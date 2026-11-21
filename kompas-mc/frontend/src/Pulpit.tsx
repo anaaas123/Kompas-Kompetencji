@@ -21,6 +21,8 @@ const ZASADY = [
 ];
 const DZIS = new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
 
+const NA_START = 5;
+
 type Filtr = "wszystkie" | "po_terminie" | "kryteria" | "ocena";
 const NAZWA_FILTRA: Record<Exclude<Filtr, "wszystkie">, string> = {
   po_terminie: "po terminie",
@@ -65,6 +67,7 @@ export function Pulpit({
   const [blad, setBlad] = useState<string | null>(null);
   const [szukaj, setSzukaj] = useState("");
   const [filtr, setFiltr] = useState<Filtr>("wszystkie");
+  const [wszystkie, setWszystkie] = useState(false);
   const rola = sesja.uzytkownik.rola;
   const zespol = rola !== "oceniany";
 
@@ -108,6 +111,8 @@ export function Pulpit({
     setSzukaj("");
   }
 
+  // Bez filtra i wyszukiwania najwyżej NA_START najpilniejszych: długa lista (HR) nie chowa się pod paskiem.
+  const skrocona = !wszystkie && !szukaj && filtr === "wszystkie" && (lista?.length ?? 0) > NA_START;
   const przelacz = (f: Filtr) => setFiltr((obecny) => (obecny === f ? "wszystkie" : f));
   const ile = (f: Filtr) => sprawy?.filter((s) => doZrobienia(s) && pasuje(s, f)).length ?? 0;
   const najblizszy = (f: Filtr) => sprawy?.find((s) => doZrobienia(s) && pasuje(s, f) && s.e.termin);
@@ -168,7 +173,7 @@ export function Pulpit({
           )}
           {lista && lista.length > 0 && (
             <div className="lista">
-              {lista.map((s) => (
+              {(skrocona ? lista.slice(0, NA_START) : lista).map((s) => (
                 <WierszListy
                   key={s.osoba.osoba_id}
                   lewa={<Inicjaly imie={s.osoba.imie} nazwisko={s.osoba.nazwisko} />}
@@ -179,6 +184,11 @@ export function Pulpit({
                 />
               ))}
             </div>
+          )}
+          {skrocona && (
+            <button type="button" className="link pulpit-wiecej" onClick={() => setWszystkie(true)}>
+              Pokaż wszystkie ({lista!.length})
+            </button>
           )}
           {zespol && sprawy && !szukaj && wOkresie > 0 && (
             <button type="button" className="link pulpit-wiecej" onClick={onPracownicy}>
