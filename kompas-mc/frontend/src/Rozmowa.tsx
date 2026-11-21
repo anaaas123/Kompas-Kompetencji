@@ -88,12 +88,14 @@ export function Rozmowa({
     pobierzOcene(token, proces.id).then(setStanOceny).catch(() => setStanOceny(null));
   }, [token, proces.id]);
 
-  const dalej = proces.sciezka === "okresowa" && (
+  // Obie ścieżki idą dalej: pierwsza ocena do wyniku i arkusza zał. 2 (App pokazuje ekran pierwszej oceny).
+  const nastepny = proces.sciezka === "okresowa" ? "wynik i terminy" : "wynik, terminy i arkusz";
+  const dalej = (
     <section>
       <div className="wiersz">
-        <span className="meta">Następny krok: wynik i terminy</span>
+        <span className="meta">Następny krok: {nastepny}</span>
         <button type="button" onClick={onDalej}>
-          Dalej: wynik i terminy
+          Dalej: {nastepny}
         </button>
       </div>
     </section>
