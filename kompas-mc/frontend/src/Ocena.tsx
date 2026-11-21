@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   BladApi,
   pobierzOcene,
@@ -114,8 +114,10 @@ function EkranWskaznika({
 }) {
   const [uwagi, setUwagi] = useState(w.ocena?.uwagi ?? "");
   const przyklady = w.ocena?.przyklady ?? [];
-  const zablokowane = tylkoOdczyt || czekam;
+  // Zablokowane tylko w odczycie: „disabled” na czas zapisu zrzucałby fokus klawiatury na początek strony.
+  const zablokowane = tylkoOdczyt;
   const brak = w.ocena?.brak_podstaw ?? false;
+  const zapisz = (o: OcenaWskaznika) => !czekam && onZapisz(o);
   const doZapisu = (o: Omit<OcenaWskaznika, "przyklady" | "uwagi">) => ({ ...o, przyklady, uwagi: uwagi.trim() || null });
 
   return (
@@ -124,7 +126,9 @@ function EkranWskaznika({
         <p className="meta">
           {nazwaKryterium(kr.nazwa)} · wskaźnik {nr} z {kr.wskazniki.length}
         </p>
-        <h2 className="oc-tytul">{w.nazwa}</h2>
+        <h2 className="oc-tytul" tabIndex={-1}>
+          {w.nazwa.replace(/\.$/, "")}
+        </h2>
         {zadania.length > 0 && (
           <p className="meta oc-zadania">Zadanie z OSP: {zadania.map((z) => `${z.nr}. ${z.tekst}`).join(" · ")}</p>
         )}
@@ -157,7 +161,7 @@ function EkranWskaznika({
                 aria-label={`${p.etykieta}: ${p.opis}`}
                 className="oc-kafel"
                 disabled={zablokowane}
-                onClick={() => onZapisz(doZapisu({ poziom: p.poziom, brak_podstaw: false }))}
+                onClick={() => zapisz(doZapisu({ poziom: p.poziom, brak_podstaw: false }))}
               >
                 <span className="oc-kafel-etykieta">
                   {wybrany && <Ikona nazwa="ok" rozmiar={16} />}
@@ -176,7 +180,7 @@ function EkranWskaznika({
             className="link oc-brak"
             aria-pressed={brak}
             disabled={zablokowane}
-            onClick={() => onZapisz(doZapisu({ poziom: null, brak_podstaw: !brak }))}
+            onClick={() => zapisz(doZapisu({ poziom: null, brak_podstaw: !brak }))}
           >
             {brak ? "Cofnij brak podstaw" : "Brak podstaw do oceny"}
           </button>
@@ -261,14 +265,31 @@ function OcenaKryterium({
           Poprzednia ocena ({data(poprzednio.data)}): {poprzednio.punkty} pkt · dane demo
         </p>
       )}
-      <p className="etykieta">Twoja ocena{d ? `: ${d.punkty} pkt, ${skala.etykiety[String(d.punkty)]}` : ""}</p>
-      <Wybor
-        etykieta={`Ocena cząstkowa: ${kr.nazwa}`}
-        opcje={skala.punkty.map((p) => ({ wartosc: p, tekst: `${p} pkt`, opis: `${p} pkt: ${skala.etykiety[String(p)]}` }))}
-        wartosc={d?.punkty ?? null}
-        zablokowane={tylkoOdczyt || czekam}
-        onWybierz={(p) => onZapisz(p === null ? null : { punkty: p, uzasadnienie: uzasadnienie.trim() || null })}
-      />
+      <p className="etykieta">Twoja ocena</p>
+      <div className="oc-punkty" role="radiogroup" aria-label={`Ocena cząstkowa: ${kr.nazwa}`} style={{ "--kolumny": skala.punkty.length } as CSSProperties}>
+        {skala.punkty.map((p) => {
+          const wybrany = d?.punkty === p;
+          const sugerowany = s.status === "POZIOM" ? s.punkty === p : s.status === "REMIS" && (s.punkty_remisu ?? []).includes(p);
+          return (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={wybrany}
+              className="oc-punkt"
+              disabled={tylkoOdczyt}
+              onClick={() => !czekam && !wybrany && onZapisz({ punkty: p, uzasadnienie: uzasadnienie.trim() || null })}
+            >
+              <span className="oc-punkt-liczba">
+                {wybrany && <Ikona nazwa="ok" rozmiar={16} />}
+                {p} pkt
+              </span>
+              <span className="oc-punkt-opis">{skala.etykiety[String(p)]}</span>
+              {sugerowany && <span className="znacznik">sugestia</span>}
+            </button>
+          );
+        })}
+      </div>
       {inna && (
         <label className="etykieta oc-uwagi">
           Dlaczego inaczej niż sugestia? (opcjonalnie)
@@ -393,8 +414,10 @@ export function Ocena({
       .catch(() => setZadania({}));
   }, [token, proces.id, moznaProwadzic]);
 
+  // Po „Dalej” fokus na tytule nowego ekranu (czytnik ekranu i klawiatura zaczynają od góry).
   useEffect(() => {
     window.scrollTo(0, 0);
+    document.querySelector<HTMLElement>(".oc-ekran .oc-tytul")?.focus({ preventScroll: true });
   }, [krok]);
 
   if (!dane) {
@@ -519,7 +542,9 @@ export function Ocena({
         </p>
       </div>
       <Os dane={dane} lista={lista} biezacy={biezacy} onIdz={setKrok} />
-      <StatusSamoocenyPrzelozonego status={dane.samoocena_status} />
+      {(dane.samoocena_status === "przekazana" || k.typ === "podsumowanie") && (
+        <StatusSamoocenyPrzelozonego status={dane.samoocena_status} />
+      )}
       {dane.samoocena_status === "przekazana" && <LegendaPorownania />}
 
       <div className="oc-kolumna">

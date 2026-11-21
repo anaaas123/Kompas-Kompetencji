@@ -132,7 +132,7 @@ def test_plan_rozmowy_okresowej(klient, naglowek, korpus_mc):
     assert any(nazwa(k0) in s for s in plan["informacja_zwrotna"]["mocne_strony"])
     assert any(nazwa(k2) in s for s in plan["informacja_zwrotna"]["obszary_rozwoju"])
     assert not any(".:" in s or ".”." in s for s in sum(plan["informacja_zwrotna"].values(), []))
-    tresci = [p["tresc"] for p in plan["pytania"]]
+    tresci = [p["tresc"] for p in plan["pytania"] if p["powiazanie"]["typ"] == "przyklad"]
     assert len(tresci) == len(set(tresci))  # ten sam przykład nie powtarza pytania
 
     # kwestie do omówienia
@@ -263,3 +263,33 @@ def test_dane_osobowe_nie_sa_dozwolone_dla_modelu():
     assert {"imie", "nazwisko", "komorka", "osoba_id"} <= zakazane
     assert "przyklad" in d["dane_dla_modelu"]["dozwolone"]
     assert not zakazane & set(d["dane_dla_modelu"]["dozwolone"])
+
+
+def test_uwagi_zamiast_przykladu_trafiaja_do_planu(klient, naglowek):
+    """Pole „Przykład z okresu” zapisuje uwagi (#46): plan rozmowy używa ich zamiast „(dopisz przykład)”."""
+    h = naglowek("przelozony1")
+    proces = _proces(klient, naglowek, "P-105", "okresowa")
+    url = f"/api/procesy/{proces['id']}"
+    stan = klient.get(f"{url}/ocena", headers=h).json()
+    w = stan["kryteria"][0]["wskazniki"][0]["wskaznik_id"]
+    uwagi = "Przygotował opinię w dwa dni zamiast w tydzień."
+    r = klient.put(f"{url}/ocena/wskazniki", headers=h, json={"wskazniki": {w: {"poziom": 9, "uwagi": uwagi}}})
+    assert r.status_code == 200, r.text
+    plan = klient.post(f"{url}/rozmowa", headers=h, json={}).json()
+    assert any(uwagi.rstrip(".") in m for m in plan["informacja_zwrotna"]["mocne_strony"])
+    assert not any("(dopisz przykład)" in m for m in plan["informacja_zwrotna"]["mocne_strony"])
+    assert any(uwagi in q["tresc"] for q in plan["pytania"] if q["powiazanie"]["typ"] == "przyklad")
+    arg = next(a for a in plan["argumenty"] if a["wskaznik_id"] == w)
+    assert arg["przyklad"] == uwagi and arg["uwaga"] is None
+
+
+
+def test_kazdy_nieoceniony_wskaznik_ma_swoje_pytanie(klient, naglowek):
+    """Szablon pytania o przykład nie zawiera nazwy wskaźnika; mimo tej samej treści każdy wskaźnik ma pytanie."""
+    h = naglowek("przelozony1")
+    proces = _proces(klient, naglowek, "P-101", "okresowa")
+    stan = klient.get(f"/api/procesy/{proces['id']}/ocena", headers=h).json()
+    plan = klient.post(f"/api/procesy/{proces['id']}/rozmowa", headers=h, json={}).json()
+    nieocenione = {w["wskaznik_id"] for k in stan["kryteria"] for w in k["wskazniki"] if w["ocena"] is None}
+    z_pytaniem = {q["powiazanie"]["wskaznik_id"] for q in plan["pytania"] if q["powiazanie"]["typ"] == "wskaznik"}
+    assert nieocenione and nieocenione <= z_pytaniem

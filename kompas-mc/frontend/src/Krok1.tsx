@@ -207,8 +207,6 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
       <h2>Jak oceniamy</h2>
       <div className="k1-decyzja">
         <p className="k1-tytul">{tytul}</p>
-        {spelnione[0] && <p>{spelnione[0].opis}</p>}
-        {okresowa && a.arkusz && <p>{a.uzasadnienie}</p>}
         <p className="meta">Propozycja systemu z danych kadrowych i opisu stanowiska. Potwierdzasz ją, rozpoczynając ocenę.</p>
       </div>
       <Braki braki={[...s.braki, ...(okresowa ? a.braki : [])]} />
@@ -218,6 +216,7 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
       </button>
       <Zwijane otwarte={otwarte}>
         <div className="k1-szczegoly">
+          {okresowa && a.arkusz && <p>{a.uzasadnienie}</p>}
           <Przeslanki przeslanki={spelnione} />
           {okresowa && a.arkusz && <Zrodla adnotacje={a.adnotacje} />}
           {nieDotyczy.length > 0 && (
@@ -315,7 +314,7 @@ function OpisStanowiska({ analiza }: { analiza: AnalizaKroku1 }) {
     <ol className={`k1-zadania ${caly ? "" : "skrocone"}`}>
       {lista.map((z) => (
         <li key={z.nr} value={z.nr}>
-          {z.tekst}
+          <span className="k1-zadanie">{z.tekst}</span>
           {caly && <Zrodla adnotacje={[z.adnotacja]} />}
         </li>
       ))}

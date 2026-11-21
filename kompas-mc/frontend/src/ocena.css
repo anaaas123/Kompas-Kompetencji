@@ -9,7 +9,7 @@
 .k1-blok > p { margin: 0; }
 .k1-decyzja { display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
 .k1-decyzja p { margin: 0; }
-.k1-tytul { margin: 0; font-size: var(--t-value-r); line-height: var(--t-value-l); letter-spacing: var(--t-value-s); font-weight: var(--f-semibold); }
+.k1-tytul { margin: 0; font-size: var(--t-section-r); line-height: var(--t-section-l); font-weight: var(--f-semibold); }
 .k1-blok button.link.k1-rozwin, .oc-ekran button.link.oc-brak { align-self: flex-start; min-height: 44px; white-space: normal; text-align: left; }
 .k1-szczegoly { display: flex; flex-direction: column; gap: var(--o-8); padding-left: var(--o-16); border-left: 2px solid var(--k-line); }
 .k1-szczegoly .przeslanki { margin: 0; }
@@ -19,9 +19,11 @@
 .k1-wiersze dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
 .k1-wiersze dd { margin: 0; display: flex; flex-wrap: wrap; gap: var(--o-4) var(--o-12); }
 .k1-zadania { margin: 0; padding-left: var(--o-24); display: flex; flex-direction: column; gap: var(--o-8); }
-.k1-zadania.skrocone li { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.k1-zadania.skrocone .k1-zadanie { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .k1-start { display: flex; flex-direction: column; gap: var(--o-12); margin: 0; }
 .k1-start .meta { margin: 0; }
+.k1-start .wybor { display: flex; flex-direction: column; border-radius: var(--r-wiersz); }
+.k1-start .wybor button { width: 100%; min-height: 44px; border-radius: var(--r-sm); white-space: normal; text-align: left; }
 .k1-start label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
 
 /* Poprzednia ocena: punkty za kryteria jako pięć segmentów skali 1–9. */
@@ -81,7 +83,8 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .oc-sugestia { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--o-8); }
 .oc-sugestia strong { font-size: var(--t-value-r); line-height: var(--t-value-l); }
 
-.oc-nawigacja { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-nawigacja { position: sticky; bottom: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-16) 0; border-top: 1px solid var(--k-line); background: var(--k-canvas); }
+@media (max-width: 760px) { .oc-nawigacja { bottom: calc(var(--o-64) + var(--o-8)); } }
 .oc-nawigacja button.link { min-height: 44px; }
 .oc-licznik { margin: 0 0 0 auto; font-variant-numeric: tabular-nums; }
 
@@ -94,13 +97,14 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
   border: 0; border-radius: var(--r-sm); background: none; color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
 }
 .oc-os li > button .meta { margin: 0; font-variant-numeric: tabular-nums; }
-.oc-os-nazwa { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--f-semibold); }
+.oc-os-nazwa { max-width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: var(--f-semibold); }
 .oc-os li.biezace .oc-os-nazwa { color: var(--k-link); }
 .oc-os-kropki { display: flex; flex-wrap: wrap; gap: var(--o-2); }
 .oc-os-kropki button.oc-os-kropka { display: grid; place-items: center; width: 24px; min-height: 24px; padding: 0; border: 0; border-radius: 999px; background: none; }
 .oc-os-kropka::before { content: ""; width: 10px; height: 10px; border: 2px solid var(--k-line-control); border-radius: 999px; transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa); }
 .oc-os-kropka.pelna::before { border-color: var(--k-link); background: var(--k-link); }
 .oc-os-kropka[aria-current="step"]::before { box-shadow: 0 0 0 2px var(--k-surface), 0 0 0 4px var(--k-link); }
+@media (pointer: coarse) { .oc-os-kropki button.oc-os-kropka { width: 44px; min-height: 44px; } }
 
 @media (hover: hover) and (pointer: fine) {
   .oc-kafle button.oc-kafel:not(:disabled):hover { background: var(--k-wiersz-hover); }
@@ -124,5 +128,30 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
   .oc-kafle button.oc-kafel:active { transform: none; }
 }
 
+/* Punkty kryterium: równe kafle z liczbą, znaczeniem i znacznikiem sugestii (sugestia nic nie zaznacza). */
+.oc-punkty { display: grid; grid-template-columns: repeat(var(--kolumny, 5), minmax(0, 1fr)); gap: var(--o-8); }
+.oc-punkty button.oc-punkt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-4); min-height: 64px; height: 100%; padding: var(--o-12);
+  border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  text-align: left; white-space: normal; font-weight: var(--f-regular);
+  transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
+}
+.oc-punkty button.oc-punkt[aria-checked="true"] { border-color: var(--k-link); background: var(--k-surface); }
+.oc-punkty button.oc-punkt:active { background: var(--k-wiersz-pressed); transform: scale(var(--ruch-wcisniecie-skala)); }
+.oc-punkty button.oc-punkt:disabled { color: var(--k-text); cursor: default; }
+.oc-punkt-liczba { display: flex; align-items: center; gap: var(--o-4); font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; }
+.oc-punkt[aria-checked="true"] .oc-punkt-liczba { color: var(--k-link); }
+.oc-punkt-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+@media (hover: hover) and (pointer: fine) {
+  .oc-punkty button.oc-punkt:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-punkty button.oc-punkt[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
+}
+.oc-punkty button.oc-punkt:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+@media (max-width: 760px) { .oc-punkty { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .oc-punkty button.oc-punkt { transition: none; } .oc-punkty button.oc-punkt:active { transform: none; } }
+.oc-tytul:focus { outline: none; }
+.oc-tytul:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 4px; }
+
 /* Krok 6: pytania w zwijanych grupach */
 label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }
+label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var(--c-field); }

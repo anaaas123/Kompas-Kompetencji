@@ -40,8 +40,14 @@ export function Rozmowa({
   // Samoocena przy rozmowie (#9): status i rozbieżności z GET /ocena (przełożony, po przekazaniu).
   const [stanOceny, setStanOceny] = useState<StanOceny | null>(null);
   const [pytania, setPytania] = useState<Record<string, string>>({});
-  const [mocne, setMocne] = useState("");
-  const [rozwoj, setRozwoj] = useState("");
+  // Szkic informacji zwrotnej przeżywa przejście do kroku 7 i powrót (sessionStorage tej karty przeglądarki).
+  const kluczSzkicu = `kompas-szkic-${proces.id}`;
+  const zapisany = JSON.parse(sessionStorage.getItem(kluczSzkicu) ?? "null") as { mocne: string; rozwoj: string } | null;
+  const [mocne, setMocne] = useState(zapisany?.mocne ?? "");
+  const [rozwoj, setRozwoj] = useState(zapisany?.rozwoj ?? "");
+  useEffect(() => {
+    if (mocne || rozwoj) sessionStorage.setItem(kluczSzkicu, JSON.stringify({ mocne, rozwoj }));
+  }, [kluczSzkicu, mocne, rozwoj]);
   const [cele, setCele] = useState("");
   const [sprawozdanie, setSprawozdanie] = useState<"tak" | "nie" | null>(null);
   const [egzamin, setEgzamin] = useState<"tak" | "nie" | null>(null);
@@ -60,8 +66,10 @@ export function Rozmowa({
         if (nr !== ostatnie.current) return;
         setPlan(p);
         setPytania(Object.fromEntries(p.pytania.map((q) => [q.id, q.tresc])));
-        setMocne(p.informacja_zwrotna.mocne_strony.join("\n"));
-        setRozwoj(p.informacja_zwrotna.obszary_rozwoju.join("\n"));
+        if (!sessionStorage.getItem(kluczSzkicu)) {
+          setMocne(p.informacja_zwrotna.mocne_strony.join("\n"));
+          setRozwoj(p.informacja_zwrotna.obszary_rozwoju.join("\n"));
+        }
       } catch (err) {
         if (nr !== ostatnie.current) return;
         setBlad(err instanceof BladApi && err.status === 409 ? "Najpierw zapisz kryteria i wskaźniki (krok 2)." : opisBledu(err));
@@ -104,7 +112,7 @@ export function Rozmowa({
         </p>
       </div>
       {!moznaProwadzic && <p className="brak">Plan rozmowy przygotowuje i widzi tylko przełożony, bo zawiera przykłady z oceny.</p>}
-      {plan && <p className="meta">Pytania i szkic to podpowiedzi do rozmowy. Możesz je zmieniać – nie są zapisywane.</p>}
+      {plan && <p className="meta">Pytania i szkic to podpowiedzi do rozmowy. Możesz je zmieniać; szkic zostaje do zamknięcia karty przeglądarki.</p>}
       {blad && <p className="blad">{blad}</p>}
       {moznaProwadzic && !plan && !blad && <p className="meta">Przygotowuję plan…</p>}
     </section>
