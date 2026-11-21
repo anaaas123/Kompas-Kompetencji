@@ -4,14 +4,25 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Uzytkownik
+from pydantic import BaseModel, Field
 
+from .asystent import OdpowiedzAsystenta
 from .krok2_api import StanKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import zbuduj_stan
 from .ocena_api import _wczytaj_dane
 from .procesy import wczytaj_proces
+from .pseudonimizacja import Pseudonimizator
 from .qnt import MockQnt
 from .rozmowa import KonfiguracjaRozmowy, KontekstRozmowy, PlanRozmowy, przygotuj
+
+
+class PytanieCzatu(BaseModel):
+    pytanie: str = Field(min_length=1, max_length=1000)
+
+
+class OdpowiedzCzatu(OdpowiedzAsystenta):
+    oznaczenie_sugestii: str
 
 
 def router(
@@ -51,5 +62,51 @@ def router(
             proces.id, proces.sciezka, proces.arkusz, proces.krok2, oceny, decyzje, stan2.model, konf_oceny
         )
         return przygotuj(stan, proces.krok1.osp, kontekst or KontekstRozmowy(), konf, stan2.model)
+
+    @r.post("/procesy/{proces_id}/rozmowa/czat")
+    def czat_rozmowy(
+        proces_id: int,
+        body: PytanieCzatu,
+        request: Request,
+        uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> OdpowiedzCzatu:
+        """RAG dla przełożonego z pseudonimizowanym kontekstem bieżącej oceny."""
+        baza = request.app.state.baza
+        proces = wczytaj_proces(baza, proces_id)
+        if proces is None:
+            raise HTTPException(404, "Nie ma takiego procesu")
+        pracownik = qnt.pracownik(proces.osoba_id)
+        if pracownik is None:
+            raise HTTPException(404, "Nie ma takiej osoby w QNT")
+        auth.sprawdz(uz, "pracownik", pracownik.model_dump(), "ocena.prowadz")
+        if proces.krok2 is None:
+            raise HTTPException(409, "Najpierw zapisz kryteria i wskaźniki (krok 2).")
+
+        oceny, decyzje = _wczytaj_dane(baza, proces.id)
+        metodyki: RejestrMetodyk = request.app.state.metodyki
+        konf_oceny = metodyki.konfiguracja(metodyki.dla_procesu(proces.id))
+        stan = zbuduj_stan(
+            proces.id,
+            proces.sciezka,
+            proces.arkusz,
+            proces.krok2,
+            oceny,
+            decyzje,
+            stan2.model,
+            konf_oceny,
+        )
+        surowy_kontekst = {
+            "osoba_id": proces.osoba_id,
+            "przelozony_id": pracownik.przelozony_id,
+            "sciezka": proces.sciezka,
+            "wybrane_wskazniki_poziomy_i_decyzje": stan.model_dump(mode="json"),
+        }
+        kontekst = Pseudonimizator(qnt).json(surowy_kontekst, proces.osoba_id)
+        odpowiedz = request.app.state.asystent.odpowiedz(
+            body.pytanie, proces.sciezka, kontekst=kontekst
+        )
+        return OdpowiedzCzatu(
+            **odpowiedz.model_dump(), oznaczenie_sugestii=konf.oznaczenie_sugestii
+        )
 
     return r

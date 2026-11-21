@@ -571,6 +571,25 @@ export async function przygotujRozmowe(token: string, procesId: number, dane: Da
   return tresc as PlanRozmowy;
 }
 
+export interface OdpowiedzCzatuRozmowy extends OdpowiedzAsystenta {
+  oznaczenie_sugestii: string;
+}
+
+export async function pytajWczacieRozmowy(
+  token: string,
+  procesId: number,
+  pytanie: string,
+): Promise<OdpowiedzCzatuRozmowy> {
+  const r = await fetch(`/api/procesy/${procesId}/rozmowa/czat`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ pytanie }),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc as OdpowiedzCzatuRozmowy;
+}
+
 /* Krok 7: arkusz oceny okresowej B/C, PDF i mock EZD (#33, kontrakt w issue #33). */
 
 export interface PoleArkusza {
