@@ -121,11 +121,11 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     app.include_router(router_wnioskow(auth, qnt, krok2, serwis_wyniku, czytaj_pierwsza))
     app.include_router(router_hr(auth, qnt))
     app.include_router(router_terminow(auth, qnt))
-    app.include_router(router_samooceny(auth, qnt, krok2))
     app.include_router(router_cyklu(
         auth, qnt, konf_terminow_okresowej, konf_terminow_pierwszej,
         lambda p: proponuj_sciezke(p, konf_krok1).proponowana,
     ))
+    app.include_router(router_samooceny(auth, qnt, krok2))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:

@@ -191,6 +191,54 @@ class Anthropic:
         return _parsuj(tekst)
 
 
+class OpenAiZgodny:
+    """Dostawca zgodny z OpenAI Chat Completions API.
+
+    Klucz jest odczytywany dopiero przy wywołaniu z nazwy zmiennej środowiskowej
+    podanej w konfiguracji. Dzięki temu konfiguracja nie zawiera sekretów, a brak
+    klucza uruchamia zwykły fallback w :func:`wywolaj`.
+    """
+
+    nazwa = "openai_zgodny"
+    tryb = Tryb.NA_ZYWO
+
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        zmienna_klucza: str,
+        timeout: float = 30,
+        temperatura: float | None = None,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.zmienna_klucza = zmienna_klucza
+        self.timeout = timeout
+        self.temperatura = temperatura
+
+    def odpowiedz(self, zapytanie: Zapytanie) -> Odpowiedz:
+        klucz = os.environ.get(self.zmienna_klucza)
+        if not klucz:
+            raise RuntimeError(f"brak {self.zmienna_klucza}")
+        dane: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": _INSTRUKCJA},
+                {"role": "user", "content": _wiadomosc(zapytanie)},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        if self.temperatura is not None:
+            dane["temperature"] = self.temperatura
+        wynik = _post_json(
+            f"{self.base_url}/chat/completions",
+            dane,
+            {"authorization": f"Bearer {klucz}"},
+            self.timeout,
+        )
+        return _parsuj(wynik["choices"][0]["message"]["content"])
+
+
 class Ollama:
     """Lokalny model przez API Ollama (``/api/chat``), bez klucza."""
 
@@ -319,6 +367,13 @@ def wywolaj(
 
 _TYPY: dict[str, Callable[[dict[str, Any]], LlmProvider]] = {
     "anthropic": lambda c: Anthropic(model=c["model"], timeout=c.get("timeout", 30)),
+    "openai_zgodny": lambda c: OpenAiZgodny(
+        base_url=c["base_url"],
+        model=c["model"],
+        zmienna_klucza=c["zmienna_klucza"],
+        timeout=c.get("timeout", 30),
+        temperatura=c.get("temperatura"),
+    ),
     "ollama": lambda c: Ollama(
         model=c["model"], url=c.get("url", "http://localhost:11434"), timeout=c.get("timeout", 60)
     ),

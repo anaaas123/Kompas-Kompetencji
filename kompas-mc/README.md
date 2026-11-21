@@ -27,10 +27,33 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
 
 `POST /api/asystent {"pytanie": "...", "sciezka": "pierwsza" | "okresowa" | null}`
 
-- Domyślnie tryb ekstrakcyjny: BM25 na korpusie MC, bez sieci i bez klucza. Odpowiedź to cytaty z dokumentem, lokalizatorem (`§ 3`, `s. 21`, `Model kompetencji!B7`) i kategorią.
+- Domyślny łańcuch to DeepSeek (`deepseek-v4-flash`) → lokalna Ollama
+  (`qwen3:8b`) → tryb ekstrakcyjny BM25. Brak klucza, sieci lub Ollamy nie
+  przerywa odpowiedzi: asystent przechodzi do następnego dostawcy.
+- Aby włączyć DeepSeek, skopiuj `backend/.env.example` jako `backend/.env` i
+  ustaw `DEEPSEEK_API_KEY=sk-...`. Plik `.env` jest ignorowany przez Git. Aby
+  wyłączyć DeepSeek, usuń wartość klucza; kolejność dostawców zmienia się w
+  `konfiguracja/asystent.yaml`.
+- Nazwę modelu można sprawdzić bez ujawniania klucza poleceniem
+  `curl -sS https://api.deepseek.com/models -H "Authorization: Bearer $DEEPSEEK_API_KEY"`.
+  Konfiguracja używa zgodnego aliasu `deepseek-v4-flash` wymaganego przez
+  specyfikację; DeepSeek kieruje go obecnie do aktualnego modelu Flash.
+- Każda próba, wybrany model, tryb i przyczyna fallbacku trafiają do
+  `backend/dane/llm.jsonl`.
 - Gdy najlepszy fragment nie zawiera co najmniej 60% słów pytania, odpowiedź brzmi „brak wystarczających informacji w bazie wiedzy”.
 - Ścieżka zawęża źródła do dokumentów danej ścieżki i wspólnych (model kompetencji, OSP).
-- Model lokalny (Ollama) włącza się w `konfiguracja/asystent.yaml`. Odpowiedź z cytatem bez pokrycia jest odrzucana i asystent wraca do trybu ekstrakcyjnego.
+- Odpowiedź modelu z cytatem bez pokrycia jest odrzucana i uruchamia fallback.
+
+### Pomiar jakości asystenta
+
+Pomiar używa niezmienianych zestawów `pytania-kontrolne.yaml` oraz
+`pytania-parafrazy.yaml`. Tryb DeepSeek wymaga lokalnego klucza i nie jest
+uruchamiany w testach CI; poniższa tabela nie przypisuje mu wyniku bez pomiaru.
+
+| Tryb | Pytania kontrolne: dokument i cytat | Parafrazy: dokument i cytat | Odmowy spoza bazy |
+|---|---:|---:|---:|
+| Ekstrakcyjny | 22/22 | 16/22 | 6/6 kontrolnych, 4/5 parafraz |
+| DeepSeek `deepseek-v4-flash` | do pomiaru z kluczem | do pomiaru z kluczem | do pomiaru z kluczem |
 
 `GET /api/zrodla` pokazuje dokumenty korpusu, duplikat „Rozporządzenie … (4).pdf” (fragment rozporządzenia z 2016 r., nie osobne źródło) i pliki pominięte.
 
@@ -66,6 +89,7 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 - `GET /api/procesy/{id}/krok2` zwraca kryteria obowiązkowe według arkusza: § 4 ust. 2 (B) i § 4 ust. 3 (C) rozp. 2016 albo § 2 pkt 1 rozp. 2015. Pokazuje też propozycje najwyżej 3 kryteriów dodatkowych (w pierwszej ocenie 0) oraz przy każdym wskaźniku zadania z OSP, które go uzasadniają.
 - `PUT /api/procesy/{id}/krok2 {"dodatkowe": [...], "wskazniki": {kompetencja_id: [wskaznik_id]}}` (akcja `ocena.prowadz`) zapisuje wybór przełożonego. Limit dodatkowych sprawdza API.
 - Dobór zadań do wskaźników i punktacja kryteriów dodatkowych to `DECYZJA_PROJEKTOWA` („wymaga zatwierdzenia”). Słowa kluczowe są jawne w `konfiguracja/krok2.yaml`.
+- `GET /api/procesy/{id}/arkusz-okresowy/czesc-i/pdf` (akcja `ocena.tresc`) zwraca samą część I arkusza B albo C do podpisu po rozmowie na początku okresu (§ 5 ust. 3 i § 6 rozp. 2016). Wydruk zawiera dane obu stron, kryteria obowiązkowe i dodatkowe, termin sporządzenia oceny z kalendarza terminów oraz miejsca na podpisy i daty. Jest dostępny od zapisu kroku 2, bez wyniku oceny; wcześniej API zwraca 409. Gdy terminu nie da się wyliczyć (np. po ocenie negatywnej brak daty zapoznania z nią), API zwraca 422 z listą `braki_terminu`. Zmiana kryteriów zmienia wydruk i jego odcisk w stopce.
 
 ## Kroki 3–5: zachowania, sugestia, decyzja
 

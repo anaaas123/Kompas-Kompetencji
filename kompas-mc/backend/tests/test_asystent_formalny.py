@@ -13,7 +13,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-from kompas_core.llm import DziennikJsonl
+from kompas_core.llm import DziennikJsonl, Ekstrakcyjny, OpenAiZgodny, Ollama
+from kompas_core.llm import dostawca as modul_dostawcy
 
 from kompas_mc.asystent import Asystent, KonfiguracjaAsystenta
 from kompas_mc.ustawienia import KATALOG_MC
@@ -45,6 +46,7 @@ def asystent(korpus_mc, ustawienia, tmp_path_factory) -> Asystent:
         korpus_mc,
         KonfiguracjaAsystenta.z_pliku(ustawienia.konfiguracja_asystenta),
         DziennikJsonl(tmp_path_factory.mktemp("log") / "llm.jsonl"),
+        dostawcy=[Ekstrakcyjny(k=3)],
     )
 
 
@@ -113,10 +115,78 @@ def test_przepis_nie_jest_oznaczany(asystent):
     assert all(not c.powoluje_ustawe for c in odp.cytaty if c.kategoria.value == "PRZEPIS")
 
 
-def test_brak_platnych_uslug_ai_w_konfiguracji_domyslnej(ustawienia):
-    llm = yaml.safe_load(Path(ustawienia.konfiguracja_asystenta).read_text(encoding="utf-8"))["llm"]
-    assert set(llm["dozwolone"]) <= {"ollama", "zapisane", "ekstrakcyjny"}
-    assert all(d["typ"] in {"ollama", "zapisane", "ekstrakcyjny"} for d in llm["dostawcy"])
+def test_domyslny_lancuch_deepseek_ollama_ekstrakcyjny(ustawienia):
+    plik = KONF / "asystent.yaml"
+    llm = yaml.safe_load(plik.read_text(encoding="utf-8"))["llm"]
+    assert "dozwolone" not in llm
+    assert [d["typ"] for d in llm["dostawcy"]] == [
+        "openai_zgodny", "ollama", "ekstrakcyjny"
+    ]
+    assert llm["dostawcy"][0] == {
+        "typ": "openai_zgodny",
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-v4-flash",
+        "zmienna_klucza": "DEEPSEEK_API_KEY",
+        "timeout": 30,
+        "temperatura": 0.0,
+    }
+    konf = KonfiguracjaAsystenta.z_pliku(plik)
+    # Typy wynikają z tej samej fabryki używanej przy starcie aplikacji.
+    from kompas_core.llm import z_konfiguracji
+    lancuch = z_konfiguracji(konf.llm)
+    assert isinstance(lancuch[0], OpenAiZgodny)
+    assert isinstance(lancuch[1], Ollama)
+    assert isinstance(lancuch[2], Ekstrakcyjny)
+
+
+def test_bez_klucza_i_ollamy_odpowiada_ekstrakcyjnie(
+    korpus_mc, ustawienia, tmp_path, monkeypatch
+):
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+
+    def brak_ollamy(*args, **kwargs):
+        raise ConnectionError("Ollama niedostępna")
+
+    monkeypatch.setattr(modul_dostawcy, "_post_json", brak_ollamy)
+    asystent = Asystent(
+        korpus_mc,
+        KonfiguracjaAsystenta.z_pliku(KONF / "asystent.yaml"),
+        DziennikJsonl(tmp_path / "llm.jsonl"),
+    )
+    odp = asystent.odpowiedz("Kiedy przeprowadza się rozmowę wstępną?", "pierwsza")
+    assert odp.znaleziono and odp.tryb.value == "EKSTRAKCYJNE"
+    assert odp.dostawca == "ekstrakcyjny"
+
+
+def test_z_kluczem_poprawna_odpowiedz_deepseek_ma_tryb_na_zywo(
+    korpus_mc, ustawienia, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "testowy-klucz")
+
+    def odpowiedz_deepseek(url, dane, naglowki, timeout):
+        assert url == "https://api.deepseek.com/chat/completions"
+        assert dane["model"] == "deepseek-v4-flash"
+        assert naglowki["authorization"] == "Bearer testowy-klucz"
+        tresc = dane["messages"][1]["content"]
+        dopasowanie = re.search(r"\[([^]]+)]\n(.+?)(?:\n\n\[|\n\nPYTANIE:)", tresc, re.DOTALL)
+        assert dopasowanie
+        fragment_id, fragment = dopasowanie.groups()
+        cytat = fragment
+        return {"choices": [{"message": {"content": __import__("json").dumps({
+            "cytaty": [{"fragment_id": fragment_id, "cytat": cytat}],
+            "wybor": [],
+            "tresc": cytat,
+        })}}]}
+
+    monkeypatch.setattr(modul_dostawcy, "_post_json", odpowiedz_deepseek)
+    asystent = Asystent(
+        korpus_mc,
+        KonfiguracjaAsystenta.z_pliku(KONF / "asystent.yaml"),
+        DziennikJsonl(tmp_path / "llm.jsonl"),
+    )
+    odp = asystent.odpowiedz("Kiedy przeprowadza się rozmowę wstępną?", "pierwsza")
+    assert odp.znaleziono and odp.tryb.value == "NA_ŻYWO"
+    assert odp.dostawca == "openai_zgodny"
 
 
 # --- jakość odpowiedzi -----------------------------------------------------------------
