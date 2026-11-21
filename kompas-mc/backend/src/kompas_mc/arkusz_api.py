@@ -20,6 +20,7 @@ from .arkusze import (
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, Pracownik
+from .terminy_okresowej import TerminyOkresowej
 from .wynik_okresowy_api import SerwisWynikuOkresowego, WynikOkresowy
 
 _NIEZMIENIONY_PROCES = (
@@ -72,6 +73,7 @@ class _StanProcesu:
     wynik: WynikOkresowy | None
     oceniajacy_kryteria: Pracownik | None
     oceniajacy: Pracownik | None
+    terminy: TerminyOkresowej | None
     wiersz: tuple[str | None, str | None, str | None, str | None]
 
     @property
@@ -87,11 +89,17 @@ class _Dokument:
     odcisk: str
     czesc_iii: bool
 
-    def pdf(self) -> bytes:
+    def pdf(self, *, tylko_czesc_i: bool = False) -> bytes:
         return arkusz_pdf(
             self.wzor.model_dump(exclude_unset=True), self.wartosci,
-            drukuj_czesc_iii=self.czesc_iii, wersja=self.widok.wersja_wzoru,
+            drukuj_czesc_iii=self.czesc_iii and not tylko_czesc_i, wersja=self.widok.wersja_wzoru,
+            tylko_czesc_i=tylko_czesc_i,
         )
+
+    def odpowiedz_pdf(self, pdf: bytes, nazwa: str) -> Response:
+        return Response(pdf, media_type="application/pdf", headers={
+            "Content-Disposition": f'attachment; filename="arkusz-{self.widok.arkusz}-{self.widok.proces_id}{nazwa}.pdf"',
+        })
 
 
 def _rejestracja(wiersz: tuple) -> RejestracjaEzd:
@@ -161,7 +169,13 @@ def router(
         data_ustalenia = wynik.dane.data_ustalenia_kryteriow if wynik else None
         if zmiana and data_ustalenia and data_ustalenia < zmiana.data:
             oceniajacy_kryteria = qnt.pracownik(zmiana.poprzedni_przelozony)
-        return _StanProcesu(proces, pracownik, kryteria, wynik, oceniajacy_kryteria, oceniajacy, wiersz)
+        if wynik:
+            terminy = wynik.terminy
+        elif kryteria:
+            terminy = serwis.terminy_przed_ocena(pracownik, zapis_wyniku)
+        else:
+            terminy = None
+        return _StanProcesu(proces, pracownik, kryteria, wynik, oceniajacy_kryteria, oceniajacy, terminy, wiersz)
 
     def dokument(stan: _StanProcesu, zapis: _ZapisArkusza) -> _Dokument:
         arkusz = stan.proces.arkusz
@@ -170,7 +184,7 @@ def router(
             wzor, zapis.pola, nazwa_urzedu=wzory.nazwa_urzedu, pracownik=stan.pracownik,
             oceniajacy_kryteria=stan.oceniajacy_kryteria, oceniajacy=stan.oceniajacy,
             kryteria=stan.kryteria, ids_obowiazkowych=konf_krok2.obowiazkowe[arkusz].kompetencje,
-            wynik=stan.wynik,
+            wynik=stan.wynik, terminy=stan.terminy,
         )
         wartosci = {p.id: p.wartosc for s in sekcje for p in s.pola if p.widoczne}
         czesc_iii = bool(stan.wynik and stan.wynik.czesc_iii.dolaczana)
@@ -245,9 +259,30 @@ def router(
         doc = dokument(stan, stan.zapis)
         _wymagaj_kompletu(doc)
         wpis = _wpis_ezd(request.app.state.baza, doc)
-        return Response(wpis[-1] if wpis else doc.pdf(), media_type="application/pdf", headers={
-            "Content-Disposition": f'attachment; filename="arkusz-{doc.widok.arkusz}-{proces_id}.pdf"',
-        })
+        return doc.odpowiedz_pdf(wpis[-1] if wpis else doc.pdf(), "")
+
+    @r.get(
+        "/czesc-i/pdf", response_class=Response,
+        responses={200: {"content": {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}}},
+    )
+    def pobierz_czesc_i_pdf(
+        proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
+    ) -> Response:
+        """Pobierz samą część I do podpisu po rozmowie na początku okresu (rozp. 2016 § 5 ust. 3, § 6).
+
+        Dostępna od zapisu kryteriów w kroku 2, bez wyniku oceny. Zawiera dane obu stron, kryteria,
+        termin sporządzenia oceny i miejsca na podpisy. Przed krokiem 2 zwraca 409.
+        """
+        stan = wczytaj(request, proces_id, uz, "ocena.tresc")
+        if stan.kryteria is None:
+            raise HTTPException(409, "Najpierw zatwierdź kryteria (krok 2). Część I zawiera wybrane kryteria.")
+        if stan.terminy is None or stan.terminy.termin_sporzadzenia_oceny is None:
+            raise HTTPException(422, {
+                "komunikat": "Nie można ustalić terminu sporządzenia oceny, który wpisuje się do części I.",
+                "braki_terminu": list(stan.terminy.braki) if stan.terminy else [],
+            })
+        doc = dokument(stan, stan.zapis)
+        return doc.odpowiedz_pdf(doc.pdf(tylko_czesc_i=True), "-czesc-I")
 
     @r.post("/ezd")
     def przekaz_do_ezd(

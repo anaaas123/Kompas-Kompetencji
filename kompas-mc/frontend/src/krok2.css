@@ -1,0 +1,47 @@
+/* Krok 2: kryteria jako zwijane wiersze (wzór wiersza mObywatela), podsumowanie i zatwierdzenie w kolumnie bocznej. */
+.k2 { display: flex; flex-direction: column; gap: var(--o-24); }
+.k2-naglowek { display: flex; flex-direction: column; gap: var(--o-4); align-items: flex-start; }
+.k2-naglowek h1 { font-size: var(--t-title-r); line-height: var(--t-title-l); }
+.k2-naglowek .meta, .k2-naglowek .opis { margin: 0; }
+.k2-grupa { display: flex; flex-direction: column; gap: var(--o-8); margin-bottom: var(--o-24); }
+.k2-grupa h2 { display: flex; align-items: baseline; gap: var(--o-8); margin-bottom: var(--o-4); }
+
+.k2-kryterium { border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.k2-kryterium.nieaktywne { background: none; border: 1px solid var(--k-line); }
+.k2-glowa { display: flex; align-items: center; }
+.k2-wybierz { display: flex; align-items: center; justify-content: center; align-self: stretch; min-width: 48px; padding-left: var(--o-4); cursor: pointer; }
+.k2-wybierz input { width: 20px; height: 20px; margin: 0; }
+.k2-wybierz + button.k2-przelacz { padding-left: var(--o-4); }
+button.k2-przelacz { flex: 1; min-width: 0; min-height: 72px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: var(--o-12); row-gap: var(--o-4); align-items: center; padding: var(--o-12) var(--o-16); border: 0; border-radius: var(--r-wiersz); background: none; color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular); }
+button.k2-przelacz .ikona { grid-column: 2; grid-row: 1 / span 2; color: var(--k-link); }
+button.k2-przelacz:disabled { cursor: default; color: var(--k-text); background: none; border: 0; }
+button.k2-przelacz:active { background: var(--k-wiersz-pressed); }
+.k2-nazwa, .k2-opis { grid-column: 1; }
+.k2-nazwa { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-8); font-weight: var(--f-semibold); }
+.k2-opis { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+
+.k2-cialo { display: flex; flex-direction: column; gap: var(--o-12); padding: 0 var(--o-16) var(--o-16); }
+.k2-cialo .meta { margin: 0; }
+.k2-wskazniki { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.k2-wskazniki li { padding: var(--o-8) var(--o-12); border-radius: var(--r-sm); background: var(--k-surface); }
+.k2-zadania { display: block; margin-top: var(--o-2); color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+button.k2-pozostale, .k2-metodyka button.link { align-self: flex-start; min-height: 44px; }
+
+.k2-boczna { gap: var(--o-24); }
+@container (min-width: 880px) { .k2-boczna { position: sticky; top: var(--o-24); } }
+.k2-podsumowanie, .k2-metodyka { display: flex; flex-direction: column; gap: var(--o-12); }
+.k2-podsumowanie { padding: var(--o-20); border-radius: var(--r-card); background: var(--k-wiersz); }
+.k2-podsumowanie h2, .k2-metodyka h2 { font-size: var(--t-ui-r); line-height: var(--t-ui-l); }
+.k2-podsumowanie dl { margin: 0; display: flex; flex-direction: column; gap: var(--o-8); }
+.k2-podsumowanie dl div { display: flex; justify-content: space-between; gap: var(--o-12); }
+.k2-podsumowanie dt { color: var(--k-text-muted); }
+.k2-podsumowanie dd { margin: 0; font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; }
+.k2-podsumowanie .brak, .k2-podsumowanie .sukces { margin: 0; }
+button.k2-zatwierdz, .k2-podsumowanie button.jasny { width: 100%; white-space: normal; }
+.k2-metodyka p { margin: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  button.k2-przelacz:not(:disabled):hover { background: var(--k-wiersz-hover); }
+}
+button.k2-przelacz:focus-visible { outline: 2px solid var(--k-focus); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { button.k2-przelacz { transition: none; } }

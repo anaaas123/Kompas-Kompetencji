@@ -16,6 +16,7 @@ from .ocena import (
     Decyzja,
     KonfiguracjaOceny,
     OcenaWskaznika,
+    SamoocenaWskaznika,
     StanOceny,
     ZapisDecyzji,
     ZapisWskaznikow,
@@ -25,6 +26,7 @@ from .ocena import (
 )
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt
+from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
 
 _OCENY = TypeAdapter(dict[str, OcenaWskaznika])
 _DECYZJE = TypeAdapter(dict[str, Decyzja])
@@ -88,8 +90,26 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc")
     ) -> StanOceny:
         """Wskaźniki wybrane w kroku 2 z opisami 5 zachowań, oceny i przykłady, sugestia poziomu
-        każdego kryterium (z etykietą metodyki) i decyzja przełożonego."""
-        return stan(request, proces_dostepny(request, proces_id, uz, "ocena.tresc"))
+        każdego kryterium (z etykietą metodyki) i decyzja przełożonego. Przełożony widzi też status
+        samooceny, a po jej przekazaniu odpowiedź pracownika i flagę rozbieżności przy wskaźniku (#8);
+        sugestia liczy się wyłącznie z ocen przełożonego."""
+        proces = proces_dostepny(request, proces_id, uz, "ocena.tresc")
+        wynik = stan(request, proces)
+        p = qnt.pracownik(proces.osoba_id)
+        if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.czytaj"):
+            status, _, pozycje = wczytaj_samoocene(request.app.state.baza, proces.id)
+            wynik.samoocena_status = status
+            if status == "przekazana":
+                prog = request.app.state.samoocena.prog_rozbieznosci
+                for k in wynik.kryteria:
+                    for w in k.wskazniki:
+                        s = pozycje.get(w.wskaznik_id)
+                        if s is not None:
+                            w.samoocena = SamoocenaWskaznika(
+                                poziom=s.poziom, brak_zdania=s.brak_zdania, przyklad=s.przyklad
+                            )
+                        w.rozbieznosc = rozbieznosc(s, w.ocena, prog)
+        return wynik
 
     @r.put("/procesy/{proces_id}/ocena/wskazniki")
     def wskazniki(

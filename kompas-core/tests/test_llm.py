@@ -12,6 +12,7 @@ from kompas_core.llm import (
     Ekstrakcyjny,
     Odpowiedz,
     Ollama,
+    OpenAiZgodny,
     Tryb,
     Zapisane,
     Zapytanie,
@@ -138,6 +139,80 @@ def test_ollama_parsuje_json_z_odpowiedzi(monkeypatch):
     monkeypatch.setattr(modul, "_post_json", post)
     wynik = wywolaj(zapytanie(), [Ollama("llama3.1")], DziennikPamiec())
     assert wynik.dostawca == "ollama" and wynik.tryb is Tryb.NA_ZYWO
+
+
+def test_openai_zgodny_wysyla_chat_completions_i_parsuje_odpowiedz(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sekret")
+
+    def post(url, dane, naglowki, timeout):
+        assert url == "https://api.example.test/v1/chat/completions"
+        assert dane["model"] == "model-1" and dane["temperature"] == 0.2
+        assert dane["response_format"] == {"type": "json_object"}
+        assert naglowki == {"authorization": "Bearer sekret"} and timeout == 12
+        assert "[rozp#1]" in dane["messages"][1]["content"]
+        return {"choices": [{"message": {"content": json.dumps({
+            "cytaty": [{"fragment_id": "rozp#1", "cytat": "jedno kryterium ma 1 punkt"}],
+            "wybor": [],
+            "tresc": "Ocena jest negatywna.",
+        })}}]}
+
+    monkeypatch.setattr(modul, "_post_json", post)
+    dostawca = OpenAiZgodny(
+        "https://api.example.test/v1/", "model-1", "DEEPSEEK_API_KEY", 12, 0.2
+    )
+    wynik = wywolaj(zapytanie(), [dostawca], DziennikPamiec())
+    assert wynik.dostawca == "openai_zgodny" and wynik.tryb is Tryb.NA_ZYWO
+
+
+def test_openai_zgodny_bez_klucza_przechodzi_do_fallbacku(monkeypatch):
+    monkeypatch.delenv("NIE_MA_TAKIEGO_KLUCZA", raising=False)
+    dostawca = OpenAiZgodny("https://api.example.test", "model-1", "NIE_MA_TAKIEGO_KLUCZA")
+    log = DziennikPamiec()
+    wynik = wywolaj(zapytanie(), [dostawca, Ekstrakcyjny()], log)
+    assert wynik.dostawca == "ekstrakcyjny"
+    assert "brak NIE_MA_TAKIEGO_KLUCZA" in log.wpisy[0].bledy[0]
+
+
+@pytest.mark.parametrize("odpowiedz", [
+    {"choices": [{"message": {"content": "to nie jest JSON"}}]},
+    {"choices": [{"message": {"content": json.dumps({
+        "cytaty": [{"fragment_id": "rozp#1", "cytat": "zmyślony cytat"}]
+    })}}]},
+])
+def test_openai_zgodny_bledna_odpowiedz_przechodzi_do_fallbacku(
+    monkeypatch, odpowiedz
+):
+    monkeypatch.setenv("API_KEY", "sekret")
+    monkeypatch.setattr(modul, "_post_json", lambda *args, **kwargs: odpowiedz)
+    dostawca = OpenAiZgodny("https://api.example.test", "model-1", "API_KEY")
+    wynik = wywolaj(zapytanie(), [dostawca, Ekstrakcyjny()], DziennikPamiec())
+    assert wynik.dostawca == "ekstrakcyjny"
+
+
+def test_openai_zgodny_blad_http_przechodzi_do_fallbacku(monkeypatch):
+    monkeypatch.setenv("API_KEY", "sekret")
+
+    def blad(*args, **kwargs):
+        raise ConnectionError("HTTP 503")
+
+    monkeypatch.setattr(modul, "_post_json", blad)
+    dostawca = OpenAiZgodny("https://api.example.test", "model-1", "API_KEY")
+    wynik = wywolaj(zapytanie(), [dostawca, Ekstrakcyjny()], DziennikPamiec())
+    assert wynik.dostawca == "ekstrakcyjny"
+
+
+def test_openai_zgodny_z_konfiguracji():
+    dostawcy = z_konfiguracji({"dostawcy": [{
+        "typ": "openai_zgodny",
+        "base_url": "https://api.example.test/v1",
+        "model": "model-1",
+        "zmienna_klucza": "API_KEY",
+        "timeout": 9,
+        "temperatura": 0.1,
+    }]})
+    dostawca = dostawcy[0]
+    assert isinstance(dostawca, OpenAiZgodny)
+    assert dostawca.timeout == 9 and dostawca.temperatura == 0.1
 
 
 def test_dostawca_z_konfiguracji_wersji(tmp_path):

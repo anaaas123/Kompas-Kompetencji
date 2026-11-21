@@ -173,6 +173,17 @@ class SerwisWynikuOkresowego:
             zawiadomienie_dostepne=dane.zmiana_terminu is not None and wyliczone_terminy.termin_bazowy is not None,
         )
 
+    def terminy_przed_ocena(self, pracownik: Pracownik, zapis: str | None) -> TerminyOkresowej:
+        """Terminy cyklu bez ocen cząstkowych, np. do części I arkusza po kroku 2.
+
+        Błąd danych terminów trafia do ``braki`` zamiast 422, bo podgląd arkusza musi się otworzyć.
+        """
+        dane = _Zapis.model_validate_json(zapis).dane if zapis else DaneWynikuOkresowego()
+        try:
+            return oblicz_terminy(pracownik, dane, self.terminy)
+        except ValueError as e:
+            return TerminyOkresowej(braki=(str(e),))
+
     def obecny_widok(self, m: MigawkaWyniku) -> WynikOkresowy:
         if m.zapis_json is None:
             return self.widok(m, DaneWynikuOkresowego(), False)
