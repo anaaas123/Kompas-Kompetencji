@@ -1,14 +1,16 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { pytajAsystenta, type CytatAsystenta, type OdpowiedzAsystenta, type Sciezka } from "./api";
 
 /**
  * Czat asystenta formalnego (#37). Komponent do osadzenia na ekranie każdej ścieżki:
  * `<AsystentFormalny sciezka="pierwsza" />` filtruje źródła do tej ścieżki; bez `sciezka`
  * użytkownik wybiera ją sam. Asystent tylko wskazuje źródła – nie ocenia.
+ * `pytanieZZewnatrz` wysyła pytanie zadane poza czatem (pole na pulpicie); nowe `id` = nowe pytanie.
  */
 interface Props {
   sciezka?: Sciezka;
   przyklady?: string[];
+  pytanieZZewnatrz?: { id: number; tekst: string } | null;
 }
 
 interface Wymiana {
@@ -26,7 +28,7 @@ const WYBOR_SCIEZKI: { wartosc: Sciezka | ""; nazwa: string }[] = [
   { wartosc: "okresowa", nazwa: NAZWA_SCIEZKI.okresowa },
 ];
 
-export default function AsystentFormalny({ sciezka, przyklady = [] }: Props) {
+export default function AsystentFormalny({ sciezka, przyklady = [], pytanieZZewnatrz }: Props) {
   const [pytanie, setPytanie] = useState("");
   const [wybrana, setWybrana] = useState<Sciezka | "">(sciezka ?? "");
   const [rozmowa, setRozmowa] = useState<Wymiana[]>([]);
@@ -49,6 +51,12 @@ export default function AsystentFormalny({ sciezka, przyklady = [] }: Props) {
       setCzekam(false);
     }
   }
+
+  useEffect(() => {
+    if (pytanieZZewnatrz) void zapytaj(pytanieZZewnatrz.tekst);
+    // zapytaj zależy od stanu czatu; pytanie wysyłamy raz na zmianę id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pytanieZZewnatrz?.id]);
 
   function wyslij(e: FormEvent) {
     e.preventDefault();
