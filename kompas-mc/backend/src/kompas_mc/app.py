@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 import yaml
 from fastapi import FastAPI, Request
 from kompas_core.auth import Autoryzacja, Dziennik, KonfiguracjaRol
-from kompas_core.llm import DziennikJsonl
+from kompas_core.llm import DziennikJsonl, z_konfiguracji
 from pydantic import BaseModel, Field
 
 from .arkusz_api import router as router_arkusza
@@ -30,6 +30,7 @@ from .ocena_api import router as router_oceny
 from .osp import KatalogOsp
 from .pierwsza_ocena_api import router as router_pierwszej
 from .pracownicy import router as router_pracownikow
+from .pseudonimizacja import Pseudonimizator, chron_zewnetrznych
 from .procesy import router as router_procesow
 from .qnt import MockQnt
 from .rozmowa import KonfiguracjaRozmowy
@@ -69,10 +70,12 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
             ]
             for doc in set(konf_krok2.podstawa_wskaznikow.values())
         }
+        konf_asystenta = KonfiguracjaAsystenta.z_pliku(ust.konfiguracja_asystenta)
         app.state.asystent = Asystent(
             app.state.korpus,
-            KonfiguracjaAsystenta.z_pliku(ust.konfiguracja_asystenta),
+            konf_asystenta,
             DziennikJsonl(ust.log_llm),
+            dostawcy=chron_zewnetrznych(z_konfiguracji(konf_asystenta.llm), pseudonimizator),
         )
         app.state.panel = zbuduj_panel(ust.braki, app.state.korpus)
         app.state.rozwoj = KonfiguracjaRozwoju.z_pliku(ust.rozwoj)
@@ -86,6 +89,9 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     auth = Autoryzacja(KonfiguracjaRol.model_validate(role))
     app.include_router(auth.router(), prefix="/api", tags=["logowanie"])
     qnt = MockQnt.z_pliku(ust.qnt)
+    konf_rozmowy = KonfiguracjaRozmowy.z_pliku(ust.rozmowa)
+    pseudonimizator = Pseudonimizator(qnt, konf_rozmowy.dane_dla_modelu.get("pseudonimy"))
+    app.state.pseudonimizator = pseudonimizator
     katalog = KatalogOsp()
     app.include_router(router_pracownikow(auth, qnt))
     app.include_router(
@@ -96,7 +102,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     app.include_router(router_kroku2(auth, qnt, katalog, konf_krok2, krok2))
     app.include_router(router_oceny(auth, qnt, krok2))
     app.include_router(router_metodyki(auth))
-    app.include_router(router_rozmowy(auth, qnt, krok2, KonfiguracjaRozmowy.z_pliku(ust.rozmowa)))
+    app.include_router(router_rozmowy(auth, qnt, krok2, konf_rozmowy))
     skale = KonfiguracjaOceny.z_pliku(ust.ocena).skale
     konf_terminow_okresowej = KonfiguracjaTerminow.z_pliku(ust.terminy_okresowej)
     konf_terminow_pierwszej = KonfiguracjaTerminowPierwszej.z_pliku(ust.terminy_pierwszej)

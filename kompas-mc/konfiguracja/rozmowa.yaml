@@ -220,7 +220,24 @@ kwestie_do_omowienia:
 dane_dla_modelu:
   dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp]
   zabronione: [imie, nazwisko, osoba_id, przyklad, notatka, fragment_sprawozdania, cel]
+  zasada_zewnetrzny_model: >-
+    Dane identyfikujące nie trafiają do zewnętrznego modelu. Przed wysłaniem do dostawcy
+    spoza maszyny (anthropic, openai_zgodny) imię, nazwisko (także odmienione), osoba_id
+    i komórka osób z QNT są zastępowane pseudonimami.
+  pseudonimy:
+    oceniany: Oceniany
+    przelozony: Przełożony
+    inna_osoba: "[osoba]"
+    komorka: "[komórka]"
+    osoba_id: "[id]"
   adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Zewnętrzny model (np. DeepSeek) przetwarza dane poza infrastrukturą MC, więc
+        dostaje kontekst procesu bez danych identyfikujących: osoba oceniana i jej
+        przełożony występują jako role, inne osoby i komórki jako pseudonimy. Model
+        lokalny (ollama) i tryb ekstrakcyjny nie wymagają pseudonimizacji.
+      zatwierdził: osoba D
     - kategoria: DECYZJA_PROJEKTOWA
       uzasadnienie: >-
         #35: dane osobowe nie trafiają do zewnętrznego modelu. Przykłady, notatki i
