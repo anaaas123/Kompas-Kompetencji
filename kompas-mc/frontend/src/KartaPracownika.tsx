@@ -183,6 +183,7 @@ export function KartaPracownika({
               osoba={osoba}
               sciezka={dane.cykl?.sciezka ?? dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? null}
               onEtap={prowadzi ? otworzEtap : undefined}
+              wToku={wToku !== null}
             />
             {cele}
             <WynikiKryteriow ocena={dane.ocena} />
@@ -306,11 +307,14 @@ function Cykl({
   osoba,
   sciezka,
   onEtap,
+  wToku,
 }: {
   dane: Dane;
   osoba: Pracownik;
   sciezka: "okresowa" | "pierwsza" | null;
   onEtap?: (i: number) => void;
+  /** Proces w toku w aplikacji; bez niego klikalny jest tylko bieżący etap, który zaczyna ocenę. */
+  wToku: boolean;
 }) {
   const c = dane.cykl;
   const etapy = ETAPY_CYKLU[sciezka ?? "okresowa"];
@@ -361,6 +365,9 @@ function Cykl({
                     ? `do ${data(c.termin.data)}`
                     : "teraz"
                   : "";
+            // Bez oceny w aplikacji etap „zrobione” nie ma czego pokazać, a okres oceny nie zaczyna oceny
+            // (Następny krok mówi „zaczniesz bliżej terminu”); klik nie może otwierać nowej oceny.
+            const klik = onEtap && stan !== "przyszly" && (wToku || (stan === "biezacy" && c.etap !== "okres"));
             const tresc = (
               <>
                 <span className={`znak-etapu ${stan}`} aria-hidden="true">
@@ -368,13 +375,13 @@ function Cykl({
                 </span>
                 <span className="nazwa-etapu">{nazwa}</span>
                 <span className="meta">{opis}</span>
-                {onEtap && stan !== "przyszly" && <Ikona nazwa="dalej" rozmiar={20} />}
+                {klik && <Ikona nazwa="dalej" rozmiar={20} />}
               </>
             );
             return (
               <li key={nazwa} className={stan} aria-current={stan === "biezacy" ? "step" : undefined}>
-                {onEtap && stan !== "przyszly" ? (
-                  <button type="button" className="etap" onClick={() => onEtap(i)}>
+                {klik ? (
+                  <button type="button" className="etap" onClick={() => onEtap!(i)}>
                     {tresc}
                   </button>
                 ) : (

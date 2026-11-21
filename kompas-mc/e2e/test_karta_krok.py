@@ -96,3 +96,21 @@ def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_
     page.locator(".cykl li.biezacy button.etap").click()
     expect(page.get_by_text(re.compile(r"^Kroki 3–5"))).to_be_visible()
     page.close()
+
+
+def test_etapy_bez_oceny_w_aplikacji_nie_otwieraja_nowej(przegladarka):
+    """#55: Michał (P-104) ma kryteria ustalone poza aplikacją i okres oceny; żaden etap nie zaczyna nowej oceny."""
+    _, b = przegladarka
+    page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=os.environ.get("TRYB", "light"))
+    page.goto(URL)
+    page.fill('input[aria-label="Login"]', "przelozony1")
+    page.fill('input[aria-label="Hasło"]', "demo")
+    page.click("form.logowanie-formularz button")
+    page.wait_for_selector(".powloka")
+    page.locator("nav.menu button.poz", has_text="Pracownicy").click()
+    page.get_by_text("Michał Wójcik-Demo").first.click()
+
+    expect(page.locator(".cykl .etapy li")).to_have_count(3)
+    expect(page.locator(".cykl .etapy li.zrobiony")).to_have_count(1)
+    expect(page.locator(".cykl .etapy button.etap")).to_have_count(0)
+    page.close()
