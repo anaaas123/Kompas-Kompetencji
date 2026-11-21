@@ -1,4 +1,4 @@
-"""API wersji MC BDG."""
+"""API Kompasu Kompetencji."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         yield
         app.state.baza.close()
 
-    app = FastAPI(title="Kompas Kompetencji – wersja MC BDG", lifespan=cykl)
+    app = FastAPI(title="Kompas Kompetencji", lifespan=cykl)
     role = yaml.safe_load(ust.role.read_text(encoding="utf-8"))
     auth = Autoryzacja(KonfiguracjaRol.model_validate(role))
     app.include_router(auth.router(), prefix="/api", tags=["logowanie"])

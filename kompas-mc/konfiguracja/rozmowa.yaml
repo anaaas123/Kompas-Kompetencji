@@ -165,7 +165,7 @@ informacja_zwrotna:
       uzasadnienie: >-
         Treść zadania (pkt 1) wymaga rozmowy o mocnych stronach i obszarach rozwoju; podział
         według wybranych poziomów modelu jest deterministyczny, a tekst pisze przełożony.
-      zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR
+      zatwierdził: osoba D
 
 # ---------------------------------------------------------------------------------------
 # Kwestie, które asystent wskazuje do omówienia (z danych procesu, bez zmiany ocen).
@@ -185,10 +185,10 @@ kwestie_do_omowienia:
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: >-
-          #35 wymaga wskazania dużego odchylenia od sugestii. Próg 2 poziomów skali
+          Duże odchylenie od sugestii wymaga wskazania. Próg 2 poziomów skali
           (np. sugestia „na poziomie”, wybór „znacznie powyżej”) – decyzja należy do przełożonego,
           asystent tylko prosi o uzasadnienie.
-        zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR
+        zatwierdził: osoba D
 
   - id: kwestia.znacznie-ponizej
     sciezka: okresowa
@@ -223,6 +223,6 @@ dane_dla_modelu:
   adnotacje:
     - kategoria: DECYZJA_PROJEKTOWA
       uzasadnienie: >-
-        #35: dane osobowe nie trafiają do zewnętrznego modelu. Przykłady, notatki i
+        Dane osobowe nie trafiają do zewnętrznego modelu. Przykłady, notatki i
         sprawozdanie mogą zawierać dane osobowe, więc zostają w trybie deterministycznym.
-      zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR
+      zatwierdził: osoba D

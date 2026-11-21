@@ -1,1 +1,1 @@
-"""Kompas Kompetencji – wersja MC BDG."""
+"""Kompas Kompetencji."""

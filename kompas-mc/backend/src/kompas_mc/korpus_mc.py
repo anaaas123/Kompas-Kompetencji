@@ -1,4 +1,4 @@
-"""Korpus wersji MC: manifest z „materialy mc”, podział na fragmenty, duplikaty."""
+"""Korpus aplikacji: manifest z „materialy mc”, podział na fragmenty i duplikaty."""
 
 from __future__ import annotations
 

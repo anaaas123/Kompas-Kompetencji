@@ -1,4 +1,4 @@
-"""Baza SQLite wersji MC (osobna od wersji 1). Tabele dokładają kolejne tickety."""
+"""Baza SQLite aplikacji Kompas Kompetencji."""
 
 from __future__ import annotations
 

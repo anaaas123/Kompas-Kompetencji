@@ -66,7 +66,7 @@ metodyka:
         Ani model kompetencji, ani rozporządzenia nie opisują, jak z ocen wskaźników wyznaczyć
         ocenę kryterium (braki.yaml: brak.agregacja-modelu). Mediana jest odporna na pojedynczą
         skrajną ocenę i zawsze daje poziom ze skali przy nieparzystej liczbie ocen.
-      zatwierdził: osoba E (ścieżka oceny MC) – do zatwierdzenia przez mentora MC
+      zatwierdził: osoba E
 
 mapowanie_pierwsza:
   wartosci: {1: 3, 3: 3, 5: 5, 7: 7, 9: 7}
@@ -82,7 +82,7 @@ mapowanie_pierwsza:
       uzasadnienie: >-
         Model ma 5 poziomów, pierwsza ocena 3 (braki.yaml: rozbieznosc.skala-5-3). Skrajne poziomy
         modelu przypisujemy do najbliższego punktu skali pierwszej oceny.
-      zatwierdził: osoba E (ścieżka oceny MC) – do zatwierdzenia przez mentora MC
+      zatwierdził: osoba E
 
 przyklady:
   adnotacje:

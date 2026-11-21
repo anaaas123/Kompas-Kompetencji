@@ -29,7 +29,7 @@ reguly:
         uzasadnienie: >-
           Poradnik mówi o kryterium; aplikacja schodzi na poziom wskaźnika modelu, bo poradnik
           wskazuje, że trzeba ustalić, „na którym zachowaniu” się skupić.
-        zatwierdził: osoba A (integrator)
+        zatwierdził: osoba A
 
   - id: rozwoj.mocna-strona
     opis: >-
@@ -88,7 +88,7 @@ reguly:
         uzasadnienie: >-
           Wymóg zadania MC: AI nie ustala oceny ani treści dokumentu; wynik asystenta jest
           sugestią do edycji.
-        zatwierdził: osoba A (integrator)
+        zatwierdził: osoba A
 
 # Katalog form rozwoju. `dla`: obszar (poniżej oczekiwań) | mocna (powyżej oczekiwań).
 # `kompetencje` (opcjonalnie): forma proponowana tylko przy tych kompetencjach modelu.
@@ -151,7 +151,7 @@ formy:
           Grafika „Kompas Kompetencji_ Ścieżki Oceny.png” (bez warstwy tekstowej) wymienia przy
           asystencie rozmowy „plan rozwoju zawodowego (mentoring / coaching)”. Przy mocnej stronie
           oceniany może też być mentorem dla innych.
-        zatwierdził: osoba A (integrator)
+        zatwierdził: osoba A
 
   - id: doskonalenie-w-dzialaniu
     nazwa: Doskonalenie w działaniu (w ramach wykonywanych zadań)
