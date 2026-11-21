@@ -8,7 +8,6 @@ Uruchomienie i zmienne jak w test_samoocena.py; potrzebna świeża baza (proces 
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 
 import pytest
@@ -66,7 +65,7 @@ def test_karta_otwiera_kroki_3_5_jednym_kliknieciem(przegladarka, proces_w_kroku
     expect(przycisk).to_have_count(1)
     przycisk.click()
 
-    expect(page.get_by_text(re.compile(r"^Kroki 3–5"))).to_be_visible()
+    expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     expect(page.get_by_text("Krok 1 z 8")).to_have_count(0)
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
@@ -94,7 +93,7 @@ def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_
     page.locator("nav.menu button.poz", has_text="Pulpit").click()
     page.locator(".lista button.pozycja", has_text="Maj-Demo").first.click()
     page.locator(".cykl li.biezacy button.etap").click()
-    expect(page.get_by_text(re.compile(r"^Kroki 3–5"))).to_be_visible()
+    expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     page.close()
 
 

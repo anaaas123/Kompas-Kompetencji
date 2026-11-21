@@ -104,7 +104,7 @@ export default function App() {
 
   // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
   // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
-  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie.
+  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie (podsumowanie i punkty).
   /** `wymus`: etap wybrany na karcie (#55), np. kryteria procesu, który jest już dalej. */
   const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null, wymus?: Etap) => {
     const k = p?.krok ?? 0;
@@ -116,8 +116,8 @@ export default function App() {
               (w): Etap => (w.zapisany ? "arkusz" : "wynik"),
               (): Etap => "wynik",
             )
-          : k >= 6
-            ? "rozmowa"
+          : k >= 6 && p?.sciezka === "okresowa"
+            ? "wynik"
             : k >= 3
               ? "ocena"
               : "krok2");
