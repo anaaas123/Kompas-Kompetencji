@@ -218,7 +218,7 @@ kwestie_do_omowienia:
 # Ochrona danych: co wolno wysłać do opcjonalnego modelu redakcyjnego.
 # ---------------------------------------------------------------------------------------
 dane_dla_modelu:
-  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp, przyklad]
+  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp, przyklad, uwagi]
   zabronione: [imie, nazwisko, komorka, osoba_id]
   adnotacje:
     - kategoria: DECYZJA_PROJEKTOWA

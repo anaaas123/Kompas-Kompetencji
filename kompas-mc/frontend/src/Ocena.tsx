@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   BladApi,
   pobierzOcene,
+  pobierzKrok2,
   przygotujRozmowe,
   zapiszDecyzje,
   zapiszWskazniki,
@@ -18,6 +19,7 @@ import { LegendaPorownania, SamoocenaPrzyWskazniku, StatusSamoocenyPrzelozonego 
 import { data } from "./zespol-dane";
 import { usePoprzedniaOcena } from "./PoprzedniaOcena";
 import { Zwijane } from "./Zwijane";
+import { Ikona } from "./Ikona";
 import "./krok2.css";
 import "./ocena.css";
 
@@ -82,12 +84,19 @@ function punktySugestii(s: Sugestia): string | null {
 const zgodnaZSugestia = (s: Sugestia, punkty: number) =>
   s.status === "POZIOM" ? punkty === s.punkty : s.status === "REMIS" ? (s.punkty_remisu ?? []).includes(punkty) : true;
 
-/** Jeden wskaźnik: pytanie do rozmowy, pięć odpowiedzi z opisem zachowania, uwagi. */
+/** Etykieta kafla jak w makiecie v2: „Znacznie poniżej”, „Na poziomie”. */
+const etykietaKafla = (etykieta: string) => {
+  const k = krotko(etykieta);
+  return k.charAt(0).toUpperCase() + k.slice(1);
+};
+
+/** Jeden wskaźnik (układ makiety v2): zadania z OSP, przypomnienie z pytaniem, pięć równych kafli z opisem, przykład. */
 function EkranWskaznika({
   kr,
   w,
   nr,
   pytania,
+  zadania,
   tylkoOdczyt,
   czekam,
   blad,
@@ -97,6 +106,7 @@ function EkranWskaznika({
   w: WskaznikOceny;
   nr: number;
   pytania: string[];
+  zadania: { nr: number; tekst: string }[];
   tylkoOdczyt: boolean;
   czekam: boolean;
   blad?: string;
@@ -110,67 +120,78 @@ function EkranWskaznika({
 
   return (
     <div className="oc-ekran">
-      <p className="meta">
-        {nazwaKryterium(kr.nazwa)} · wskaźnik {nr} z {kr.wskazniki.length}
-      </p>
-      <h2 className="oc-tytul">{w.nazwa}</h2>
-
-      {pytania.length > 0 && (
-        <div className="oc-pytanie">
-          <p className="etykieta">Zapytaj na rozmowie</p>
-          {pytania.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
-          <p className="meta">Słuchaj: sytuacja · działanie · rezultat · czy to się powtarzało</p>
-        </div>
-      )}
-
-      <div className="oc-odpowiedzi" role="radiogroup" aria-label={`Poziom: ${w.nazwa}`}>
-        {w.poziomy.map((p) => {
-          const wybrany = !brak && w.ocena?.poziom === p.poziom;
-          return (
-            <button
-              key={p.poziom}
-              type="button"
-              role="radio"
-              aria-checked={wybrany}
-              className="oc-odpowiedz"
-              disabled={zablokowane}
-              onClick={() => onZapisz(doZapisu({ poziom: p.poziom, brak_podstaw: false }))}
-            >
-              <span className="oc-znacznik" aria-hidden="true" />
-              <span className="oc-tresc">
-                <span className="oc-etykieta">
-                  {p.etykieta}
-                  {oczekiwany(p.etykieta) && <span className="znacznik">oczekiwany</span>}
-                </span>
-                <span className="oc-opis">{p.opis}</span>
-              </span>
-            </button>
-          );
-        })}
+      <div className="oc-glowa">
+        <p className="meta">
+          {nazwaKryterium(kr.nazwa)} · wskaźnik {nr} z {kr.wskazniki.length}
+        </p>
+        <h2 className="oc-tytul">{w.nazwa}</h2>
+        {zadania.length > 0 && (
+          <p className="meta oc-zadania">Zadanie z OSP: {zadania.map((z) => `${z.nr}. ${z.tekst}`).join(" · ")}</p>
+        )}
       </div>
 
-      <button
-        type="button"
-        className="link oc-brak"
-        aria-pressed={brak}
-        disabled={zablokowane}
-        onClick={() => onZapisz(doZapisu({ poziom: null, brak_podstaw: !brak }))}
-      >
-        {brak ? "Cofnij „brak podstaw”" : "Nie było okazji tego zaobserwować: brak podstaw do oceny"}
-      </button>
-      {brak && <p className="meta">Brak podstaw nie wchodzi do sugestii punktów.</p>}
+      <div className="oc-pytanie">
+        <Ikona nazwa="pytanie" rozmiar={20} />
+        <div>
+          <p className="oc-pytanie-tytul">Przypomnij sobie sytuację z okresu oceny</p>
+          {pytania.slice(0, 1).map((p) => (
+            <p key={p}>
+              <span className="meta">Możesz zapytać: </span>
+              {p}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      <div className="oc-obserwacja">
+        <p className="etykieta">Obserwacja</p>
+        <div className="oc-kafle" role="radiogroup" aria-label={`Poziom: ${w.nazwa}`}>
+          {w.poziomy.map((p) => {
+            const wybrany = !brak && w.ocena?.poziom === p.poziom;
+            return (
+              <button
+                key={p.poziom}
+                type="button"
+                role="radio"
+                aria-checked={wybrany}
+                aria-label={`${p.etykieta}: ${p.opis}`}
+                className="oc-kafel"
+                disabled={zablokowane}
+                onClick={() => onZapisz(doZapisu({ poziom: p.poziom, brak_podstaw: false }))}
+              >
+                <span className="oc-kafel-etykieta">
+                  {wybrany && <Ikona nazwa="ok" rozmiar={16} />}
+                  {etykietaKafla(p.etykieta)}
+                  {oczekiwany(p.etykieta) && <span className="znacznik">oczekiwany</span>}
+                </span>
+                <span className="oc-kafel-opis">{p.opis}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="oc-pod-kaflami">
+          {brak ? <span className="meta">Ten wskaźnik nie wpłynie na sugestię punktów.</span> : <span />}
+          <button
+            type="button"
+            className="link oc-brak"
+            aria-pressed={brak}
+            disabled={zablokowane}
+            onClick={() => onZapisz(doZapisu({ poziom: null, brak_podstaw: !brak }))}
+          >
+            {brak ? "Cofnij brak podstaw" : "Brak podstaw do oceny"}
+          </button>
+        </div>
+      </div>
 
       <SamoocenaPrzyWskazniku w={w} />
 
       <label className="etykieta oc-uwagi">
-        Uwagi z rozmowy (opcjonalnie)
+        Przykład z okresu (opcjonalnie)
         <textarea
-          rows={2}
+          rows={3}
           value={uwagi}
           disabled={tylkoOdczyt}
-          placeholder="Co pracownik opowiedział: sytuacja, działanie, rezultat"
+          placeholder="Sytuacja → działanie → rezultat"
           onChange={(e) => setUwagi(e.target.value)}
           onBlur={() => w.ocena && (w.ocena.uwagi ?? "") !== uwagi.trim() && onZapisz({ ...w.ocena, uwagi: uwagi.trim() || null })}
         />
@@ -231,7 +252,7 @@ function OcenaKryterium({
             <strong>Sugestia: {sugerowane}</strong> <span className="meta">{s.opis}</span>
           </>
         ) : (
-          <span className="meta">Sugestia pojawi się po ocenie co najmniej połowy wskaźników.</span>
+          <span className="meta">Sugestia pojawi się, gdy ocenisz co najmniej połowę wskaźników.</span>
         )}
         <span className="kategoria zasada">Zasada aplikacji</span>
       </p>
@@ -250,7 +271,7 @@ function OcenaKryterium({
       />
       {inna && (
         <label className="etykieta oc-uwagi">
-          Dlaczego inaczej niż sugestia (opcjonalnie)
+          Dlaczego inaczej niż sugestia? (opcjonalnie)
           <textarea
             rows={2}
             value={uzasadnienie}
@@ -262,7 +283,7 @@ function OcenaKryterium({
           />
         </label>
       )}
-      {!d && !tylkoOdczyt && <p className="meta">Sugestia niczego nie zaznacza. Punkty wybierasz Ty.</p>}
+      {!d && !tylkoOdczyt && <p className="meta">Sugestia to tylko podpowiedź. Punkty wybierasz Ty.</p>}
       {blad && <p className="blad">{blad}</p>}
     </div>
   );
@@ -342,6 +363,7 @@ export function Ocena({
 }) {
   const [dane, setDane] = useState<StanOceny | null>(null);
   const [pytania, setPytania] = useState<Record<string, string[]>>({});
+  const [zadania, setZadania] = useState<Record<string, { nr: number; tekst: string }[]>>({});
   const [krok, setKrok] = useState(0);
   const [metodyka, setMetodyka] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
@@ -363,6 +385,12 @@ export function Ocena({
         })
         .catch(() => setPytania({}));
     }
+    // Powiązanie wskaźnik ↔ zadania z OSP (krok 2, dobór zespołu zatwierdzany przez przełożonego).
+    pobierzKrok2(token, proces.id)
+      .then((k2) =>
+        setZadania(Object.fromEntries(k2.kryteria.flatMap((k) => k.wskazniki.map((w) => [w.wskaznik_id, w.zadania.map((z) => ({ nr: z.nr, tekst: z.tekst }))])))),
+      )
+      .catch(() => setZadania({}));
   }, [token, proces.id, moznaProwadzic]);
 
   useEffect(() => {
@@ -418,6 +446,7 @@ export function Ocena({
           w={w}
           nr={k.w + 1}
           pytania={pytania[w.wskaznik_id] ?? []}
+          zadania={zadania[w.wskaznik_id] ?? []}
           tylkoOdczyt={tylkoOdczyt}
           czekam={czekam === w.wskaznik_id}
           blad={bledy[w.wskaznik_id]}
@@ -467,8 +496,8 @@ export function Ocena({
         </table>
         <p className="meta">
           {kp.kryteria_z_decyzja === kp.kryteria
-            ? "Wszystkie kryteria mają ocenę. Średnią i warunki oceny policzy krok 7."
-            : `Ocenione kryteria: ${kp.kryteria_z_decyzja} z ${kp.kryteria}. Możesz wrócić do nich po rozmowie.`}
+            ? "Wszystkie kryteria są ocenione. Średnią i wynik zobaczysz w kroku 7."
+            : `Ocenione kryteria: ${kp.kryteria_z_decyzja} z ${kp.kryteria}. Do każdego możesz wrócić także po rozmowie.`}
         </p>
       </div>
     );
@@ -502,6 +531,11 @@ export function Ocena({
             </button>
           ) : (
             <span />
+          )}
+          {k.typ === "wskaznik" && (
+            <span className="meta oc-licznik">
+              {biezacy + 1} z {lista.length - 1}
+            </span>
           )}
           {nastepny ? (
             <button type="button" onClick={() => setKrok(biezacy + 1)}>

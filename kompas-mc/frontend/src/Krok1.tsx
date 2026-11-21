@@ -257,7 +257,7 @@ function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 |
       <dl className="k1-wiersze">
         {obowiazkowe.length > 0 && (
           <div>
-            <dt>Musi być · {arkusz}</dt>
+            <dt>Obowiązkowe · {arkusz}</dt>
             <dd>{obowiazkowe.map((k) => nazwaKryterium(k.nazwa)).join(" · ")}</dd>
           </div>
         )}

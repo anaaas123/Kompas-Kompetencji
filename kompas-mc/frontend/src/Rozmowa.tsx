@@ -104,7 +104,7 @@ export function Rozmowa({
         </p>
       </div>
       {!moznaProwadzic && <p className="brak">Plan rozmowy przygotowuje i widzi tylko przełożony, bo zawiera przykłady z oceny.</p>}
-      {plan && <p className="meta">Pytania i szkic to propozycja z szablonów. Możesz je zmienić; aplikacja ich nie zapisuje.</p>}
+      {plan && <p className="meta">Pytania i szkic to podpowiedzi do rozmowy. Możesz je zmieniać – nie są zapisywane.</p>}
       {blad && <p className="blad">{blad}</p>}
       {moznaProwadzic && !plan && !blad && <p className="meta">Przygotowuję plan…</p>}
     </section>

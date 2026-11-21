@@ -35,32 +35,44 @@
 .kategoria.zasada { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
 
 /* Kroki 3–5: jedna kolumna, oś postępu u góry, jeden wskaźnik na ekran; ocena kryterium pod ostatnim wskaźnikiem. */
-.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); max-width: 800px; }
-.oc-ekran, .oc-kryterium { display: flex; flex-direction: column; gap: var(--o-16); }
+.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); max-width: 1040px; }
+.oc-ekran, .oc-kryterium { display: flex; flex-direction: column; gap: var(--o-24); }
 .oc-ekran > p, .oc-kryterium > p { margin: 0; }
-.oc-kryterium { padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-kryterium { gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-glowa { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-glowa p { margin: 0; }
 .oc-tytul { font-size: var(--t-section-r); line-height: var(--t-section-l); }
-.oc-pytanie { display: flex; flex-direction: column; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-info-bg); color: var(--k-info-text); }
-.oc-pytanie p { margin: 0; }
-.oc-pytanie .etykieta, .oc-pytanie .meta { color: inherit; }
-label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-zadania { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 
-.oc-odpowiedzi { display: flex; flex-direction: column; gap: var(--o-8); }
-.oc-odpowiedzi button.oc-odpowiedz {
-  display: flex; align-items: flex-start; gap: var(--o-12); width: 100%; min-height: 64px; padding: var(--o-12) var(--o-16);
+/* Ramka „Przypomnij sobie sytuację” (makieta v2): ikona, tytuł, pytanie do rozmowy. */
+.oc-pytanie { display: flex; align-items: flex-start; gap: var(--o-12); padding: var(--o-16) var(--o-20); border-radius: var(--r-wiersz); background: var(--k-info-bg); color: var(--k-text); }
+.oc-pytanie > .ikona { margin-top: var(--o-2); color: var(--k-link); }
+.oc-pytanie > div { display: flex; flex-direction: column; gap: var(--o-4); min-width: 0; }
+.oc-pytanie p { margin: 0; }
+.oc-pytanie-tytul { font-weight: var(--f-semibold); }
+label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8); }
+
+/* Pięć równych kafli poziomów z opisem pod etykietą; wybrany: ramka i znacznik. */
+.oc-obserwacja { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-obserwacja > .etykieta { margin: 0; }
+.oc-kafle { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--o-8); }
+.oc-kafle button.oc-kafel {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-8); min-height: 0; height: 100%; padding: var(--o-16) var(--o-12);
   border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
   text-align: left; white-space: normal; font-weight: var(--f-regular);
   transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
 }
-.oc-odpowiedzi button.oc-odpowiedz[aria-checked="true"] { border-color: var(--k-link); }
-.oc-odpowiedzi button.oc-odpowiedz:active { background: var(--k-wiersz-pressed); transform: scale(0.99); }
-.oc-odpowiedzi button.oc-odpowiedz:disabled { color: var(--k-text); cursor: default; }
-.oc-znacznik { flex: none; width: 20px; height: 20px; margin-top: var(--o-2); border: 2px solid var(--k-line-control); border-radius: 999px; transition: border-color var(--ruch-szybki) var(--ruch-krzywa), border-width var(--ruch-szybki) var(--ruch-krzywa); }
-.oc-odpowiedz[aria-checked="true"] .oc-znacznik { border: 6px solid var(--k-link); }
-.oc-tresc { display: flex; flex-direction: column; gap: var(--o-4); min-width: 0; }
-.oc-etykieta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8); font-weight: var(--f-semibold); }
-.oc-odpowiedz[aria-checked="true"] .oc-etykieta { color: var(--k-link); }
-.oc-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.oc-kafle button.oc-kafel[aria-checked="true"] { border-color: var(--k-link); background: var(--k-surface); }
+.oc-kafle button.oc-kafel:active { background: var(--k-wiersz-pressed); transform: scale(var(--ruch-wcisniecie-skala)); }
+.oc-kafle button.oc-kafel:disabled { color: var(--k-text); cursor: default; }
+.oc-kafel-etykieta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-4) var(--o-8); font-weight: var(--f-semibold); }
+.oc-kafel[aria-checked="true"] .oc-kafel-etykieta { color: var(--k-link); }
+.oc-kafel-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.oc-pod-kaflami { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); }
+.oc-pod-kaflami .meta { margin: 0; }
+@media (max-width: 760px) {
+  .oc-kafle { grid-template-columns: minmax(0, 1fr); }
+}
 
 .oc-podstawa { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
 .oc-podstawa li { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
@@ -71,6 +83,7 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-4)
 
 .oc-nawigacja { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
 .oc-nawigacja button.link { min-height: 44px; }
+.oc-licznik { margin: 0 0 0 auto; font-variant-numeric: tabular-nums; }
 
 /* Oś postępu: kryteria z kropkami wskaźników i podsumowanie. */
 .oc-os ol { margin: 0; padding: 0 0 var(--o-4); list-style: none; display: flex; gap: var(--o-8); overflow-x: auto; }
@@ -90,11 +103,12 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-4)
 .oc-os-kropka[aria-current="step"]::before { box-shadow: 0 0 0 2px var(--k-surface), 0 0 0 4px var(--k-link); }
 
 @media (hover: hover) and (pointer: fine) {
-  .oc-odpowiedzi button.oc-odpowiedz:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-kafle button.oc-kafel:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-kafle button.oc-kafel[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
   .oc-os li > button:not(:disabled):hover { background: none; color: var(--k-link); }
   .oc-os-kropki button.oc-os-kropka:not(:disabled):hover { background: var(--k-wiersz-hover); }
 }
-.oc-odpowiedzi button.oc-odpowiedz:focus-visible, .oc-os button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.oc-kafle button.oc-kafel:focus-visible, .oc-os button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 
 /* Ruch: wejście ekranu i bloku, zwijane wejście i wyjście; tylko opacity i transform. */
 @keyframes oc-wejscie { from { opacity: 0; transform: translateY(var(--o-8)); } }
@@ -106,8 +120,8 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-4)
 .zwijane.zamyka { animation: oc-zwin 160ms ease forwards; }
 @media (prefers-reduced-motion: reduce) {
   .oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna, .zwijane, .zwijane.zamyka { animation: none; }
-  .oc-odpowiedzi button.oc-odpowiedz, .oc-znacznik, .oc-os li, .oc-os-kropka::before { transition: none; }
-  .oc-odpowiedzi button.oc-odpowiedz:active { transform: none; }
+  .oc-kafle button.oc-kafel, .oc-os li, .oc-os-kropka::before { transition: none; }
+  .oc-kafle button.oc-kafel:active { transform: none; }
 }
 
 /* Krok 6: pytania w zwijanych grupach */
