@@ -156,6 +156,11 @@ export default function App() {
           moznaProwadzic={prowadzi}
           onWstecz={() => setProces(null)}
           onDalej={() => setEtap("ocena")}
+          onPracownik={() => {
+            setProces(null);
+            setOceniany(null);
+            setEtap("krok2");
+          }}
         />
       )}
       {oceniany && proces && etap === "ocena" && (

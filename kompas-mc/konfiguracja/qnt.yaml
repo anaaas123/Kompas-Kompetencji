@@ -80,6 +80,7 @@ pracownicy:
     ostatnia_ocena_okresowa:
       data: 2026-11-16
       wynik: negatywna
+      data_zapoznania: 2026-11-18   # podpis Piotra na arkuszu (dane demo)
       oceny_czastkowe: { wykorzystywanie-wiedzy-i-doskonalenie-zawodowe: 3, rzetelnosc: 1, organizacja-pracy-i-orientacja-na-osiaganie-celow: 3, wspolpraca: 3, komunikacja: 3 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: C
     scenariusz: Po ocenie negatywnej – rozmowa i kryteria w 7 dni od 2026-11-16 → do 2026-11-23 (§ 7 pkt 2); alert HR „pilne”.
