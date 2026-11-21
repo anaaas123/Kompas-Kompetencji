@@ -740,6 +740,23 @@ export interface EtapOsoby {
   braki: string[];
 }
 
+/** Mapa kompetencji zespołu (#33): punkty ocen cząstkowych; tylko z uprawnieniem do treści ocen (nie HR). */
+export interface MapaKompetencji {
+  skala: number[];
+  poziom_oczekiwan: number;
+  kryteria: { kompetencja_id: string; nazwa: string }[];
+  osoby: {
+    osoba_id: string;
+    zrodlo: "biezaca_ocena" | "ostatnia_ocena";
+    data: string | null;
+    punkty: Record<string, number>;
+    rozbieznosci: number | null;
+  }[];
+}
+
+export const pobierzMapeKompetencji = (token: string) =>
+  fetch("/api/zespol/kompetencje", { headers: autoryzacja(token) }).then((r) => json<MapaKompetencji>(r));
+
 export const pobierzCykl = (token: string) =>
   fetch("/api/cykl", { headers: autoryzacja(token) }).then((r) => json<EtapOsoby[]>(r));
 

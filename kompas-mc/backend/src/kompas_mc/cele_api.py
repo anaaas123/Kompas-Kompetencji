@@ -8,18 +8,20 @@ Konfiguracja: ``app.state.cele`` (``konfiguracja/cele.yaml``).
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Dziennik, Uzytkownik, WpisDziennika
 from pydantic import BaseModel, Field
 
 from . import cele as c
+from .cele_llm import PodpowiedziLlm
 from .krok2_api import StanKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import StanOceny, zbuduj_stan
 from .ocena_api import _wczytaj_dane
 from .procesy import ProcesOceny, wczytaj_proces
+from .pseudonimizacja import Pseudonimizator
 from .qnt import MockQnt
 from .rozwoj import DaneRozwoju, OcenaWskaznika, zaproponuj
 from .samoocena import wczytaj as wczytaj_samoocene
@@ -163,9 +165,14 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
     def podpowiedzi(
         osoba_id: str, request: Request, uz: Uzytkownik = auth.wymagaj("cele.proponuj")
     ) -> c.WynikPodpowiedzi:
-        """Regułowe propozycje celów ze wskaźników ocenionych poniżej poziomu oczekiwań w ostatnim
-        procesie (reguły ``rozwoj.yaml``). Status ``propozycja``; niczego nie zapisuje. Pracownik
-        widzi podpowiedzi z oceny w toku dopiero po przekazaniu samooceny."""
+        """Propozycje celów do przyjęcia albo odrzucenia; status ``propozycja``, niczego nie zapisują.
+
+        Najpierw LLM z RAG (#12): 1–3 cele SMART z modelu kompetencji i poradników o IPRZ, na
+        podstawie wskaźników z ostatniego procesu, przekazanej samooceny i istniejących celów, po
+        pseudonimizacji. Cel ze wskaźnikiem spoza modelu albo z cytatem bez pokrycia jest odrzucany.
+        Gdy LLM zawiedzie (np. brak klucza) albo żaden cel nie przejdzie walidacji, zwraca propozycje
+        regułowe ze wskaźników poniżej poziomu oczekiwań (``rozwoj.yaml``). Pracownik widzi
+        podpowiedzi z oceny w toku dopiero po przekazaniu samooceny."""
         kto = aktor(uz, osoba(osoba_id))
         proces = ostatni_proces(request, osoba_id)
         if proces is None:
@@ -174,12 +181,37 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
                 komunikat="Brak ocenionych wskaźników: podpowiedzi pojawią się po ocenie w krokach 3–5.",
             )
         baza = request.app.state.baza
-        if kto == "pracownik" and proces.status == "W_TOKU" and wczytaj_samoocene(baza, proces.id)[0] != "przekazana":
+        status_samooceny, _, samoocena = wczytaj_samoocene(baza, proces.id)
+        if kto == "pracownik" and proces.status == "W_TOKU" and status_samooceny != "przekazana":
             return c.WynikPodpowiedzi(
                 osoba_id=osoba_id, proces_id=proces.id, podpowiedzi=[],
                 komunikat="Podpowiedzi z bieżącej oceny będą dostępne po przekazaniu samooceny.",
             )
         stan = stan_oceny(request, proces)
+        ocenione = [w for w in stan.dla_rozwoju if w.poziom is not None]
+
+        kontekst = {
+            "sciezka": proces.sciezka,
+            "wskazniki_ocenione": [w.model_dump(mode="json") for w in ocenione],
+            "samoocena": (
+                {wid: s.model_dump(mode="json") for wid, s in samoocena.items()}
+                if status_samooceny == "przekazana" else None
+            ),
+            "istniejace_cele": [
+                cel.model_dump(mode="json", include={"nazwa", "opis", "wskaznik_id", "miernik", "termin", "status"})
+                for cel in c.lista(baza, osoba_id)
+            ],
+        }
+        llm: PodpowiedziLlm = request.app.state.cele_llm
+        z_llm = llm.zaproponuj(
+            Pseudonimizator(qnt).json(kontekst, osoba_id), [w.wskaznik_id for w in ocenione], date.today()
+        )
+        if z_llm.podpowiedzi:
+            return c.WynikPodpowiedzi(
+                osoba_id=osoba_id, proces_id=proces.id, podpowiedzi=z_llm.podpowiedzi, zrodlo="llm",
+                dostawca=z_llm.dostawca, tryb=z_llm.tryb, odrzucone=z_llm.odrzucone,
+            )
+
         konf_rozwoju = request.app.state.rozwoj
         wynik = zaproponuj(
             DaneRozwoju(
@@ -191,6 +223,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         return c.WynikPodpowiedzi(
             osoba_id=osoba_id, proces_id=proces.id,
             podpowiedzi=c.podpowiedzi_regulowe(wynik, konf_rozwoju.poziom_oczekiwan),
+            odrzucone=z_llm.odrzucone,
         )
 
     @r.get("/cele/{cel_id}/historia")

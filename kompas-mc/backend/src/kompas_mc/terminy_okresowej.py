@@ -102,6 +102,8 @@ class KonfiguracjaTerminow(BaseModel):
     granica_zmiany_terminu: _Odstep
     zmiana_terminu: _Podstawa
     dzien_wolny: _Podstawa
+    okno_oceny_koncowej: _Odstep
+    """Od ilu dni przed terminem oceny na piśmie ocena końcowa jest bieżącą czynnością (GET /api/cykl)."""
     dni_wolne: frozenset[date] = frozenset()
 
     @classmethod

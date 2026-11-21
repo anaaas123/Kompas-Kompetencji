@@ -9,14 +9,20 @@ from typing import Any
 from .qnt import MockQnt, Pracownik
 
 
+def _wzorzec_odmiany(czlon: str) -> str:
+    """Wzorzec słowa z końcówką fleksyjną: Marta → Martą, Piotr → Piotra, Zielińska → Zielińskiej."""
+    rdzen = czlon[:-1] if czlon[-1].lower() in "aąeęioóuy" else czlon
+    return rf"{re.escape(rdzen)}[a-ząćęłńóśźż]{{0,3}}"
+
+
 def _zamien(tekst: str, wzorce: list[tuple[str, str]]) -> str:
     for wartosc, etykieta in wzorce:
         if wartosc:
-            if wartosc.isalpha() and len(wartosc) > 3:
-                # Imiona w swobodnym opisie mogą być odmienione (Marta → Martą,
-                # Piotr → Piotra). Krótki wariant fleksyjny usuwa również te formy.
-                rdzen = wartosc[:-1] if wartosc[-1].lower() in "aąeęioóuy" else wartosc
-                wzorzec = rf"\b{re.escape(rdzen)}[a-ząćęłńóśźż]{{0,3}}\b"
+            czlony = wartosc.split("-")
+            if all(c.isalpha() for c in czlony) and len(wartosc) > 3:
+                # Imiona i nazwiska w swobodnym opisie mogą być odmienione, także dwuczłonowe
+                # (Zielińska-Demo → Zielińskiej-Demo). Każdy człon dostaje wariant fleksyjny.
+                wzorzec = r"\b" + "-".join(_wzorzec_odmiany(c) for c in czlony) + r"\b"
             else:
                 wzorzec = re.escape(wartosc)
             tekst = re.sub(wzorzec, etykieta, tekst, flags=re.IGNORECASE)

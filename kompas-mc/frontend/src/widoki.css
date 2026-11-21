@@ -152,3 +152,33 @@ details.opis-stanowiska[open] > summary .meta { color: var(--k-text-muted); }
 details.opis-stanowiska > summary:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 .czynnosc-wiersza { color: var(--k-text); font-weight: var(--f-semibold); }
 .cykl ul.brak { margin: 0; padding: var(--o-12) var(--o-16) var(--o-12) var(--o-32); }
+
+/* #33: mapa kompetencji zespołu (osoby × kryteria), wnioski, oceny cząstkowe na karcie. Kolor ze znaczeniem + liczba. */
+.mapa-kompetencji { display: flex; flex-direction: column; gap: var(--o-16); margin-bottom: 0; }
+.wnioski-mapy { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--o-12); }
+.wniosek { margin: 0; display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-16) var(--o-20); border-radius: var(--r-wiersz); }
+.wniosek strong { font-size: var(--t-ui-r); line-height: var(--t-ui-l); }
+.wniosek > span:last-child { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.wniosek.do-rozwoju { background: var(--k-attention-bg); }
+.wniosek.mocna { background: var(--k-success-bg); }
+.tabela-mapy { overflow-x: auto; }
+.tabela-mapy:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.tabela-mapy table { margin-top: 0; }
+.tabela-mapy th { white-space: normal; vertical-align: bottom; }
+.tabela-mapy tbody th { text-align: left; font-size: var(--t-ui-r); line-height: var(--t-ui-l); background: none; color: var(--k-text); font-weight: var(--f-semibold); white-space: nowrap; }
+.tabela-mapy tbody th .meta { display: block; font-weight: var(--f-regular); }
+.tabela-mapy tbody th button.link { color: var(--k-link); text-decoration: none; font-weight: var(--f-semibold); }
+.komorka-mapy, .brak-kryterium { text-align: center; font-variant-numeric: tabular-nums; font-weight: var(--f-semibold); }
+.komorka-mapy.ponizej { background: var(--k-attention-bg); color: var(--k-attention-text); }
+.komorka-mapy.na-poziomie { background: var(--k-wiersz); color: var(--k-text); }
+.komorka-mapy.powyzej { background: var(--k-success-bg); color: var(--k-success-text); }
+.brak-kryterium { color: var(--k-text-muted); font-weight: var(--f-regular); }
+.legenda-mapy { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-4) var(--o-8); font-size: var(--t-small-r); line-height: var(--t-small-l); color: var(--k-text-secondary); }
+.legenda-mapy .meta { flex-basis: 100%; }
+.probka { display: inline-block; width: var(--o-14); height: var(--o-14); border-radius: var(--r-sm); }
+.probka.ponizej { background: var(--k-attention-bg); box-shadow: inset 0 0 0 1px var(--k-attention-text); }
+.probka.na-poziomie { background: var(--k-wiersz); box-shadow: inset 0 0 0 1px var(--k-line-control); }
+.probka.powyzej { background: var(--k-success-bg); box-shadow: inset 0 0 0 1px var(--k-success-text); }
+.wypelnienie.ponizej { background: var(--k-attention-text); }
+.wypelnienie.na-poziomie { background: var(--k-action); }
+.wypelnienie.powyzej { background: var(--k-success-pelny); }

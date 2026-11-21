@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
+from kompas_core.llm import Tryb
 from kompas_core.zrodla import SourceRef
 from pydantic import BaseModel, Field
 
@@ -30,9 +31,19 @@ class Regula(BaseModel):
     adnotacje: list[SourceRef]
 
 
+class KonfiguracjaLlmCelow(BaseModel):
+    wersja: str
+    """Wersja promptu (``prompt_wersja`` w logu LLM)."""
+    maks_celow: int = 3
+    zrodla: list[str]
+    """ID fragmentów poradników o wnioskach rozwojowych i IPRZ, dołączanych do każdego zapytania."""
+    adnotacje: list[SourceRef]
+
+
 class KonfiguracjaCelow(BaseModel):
     pracownik_moze_edytowac: bool
     regula: Regula
+    llm: KonfiguracjaLlmCelow
 
     @classmethod
     def z_pliku(cls, plik: str | Path) -> KonfiguracjaCelow:
@@ -66,6 +77,16 @@ class Cel(TrescCelu):
 OZNACZENIE = "Sugestia asystenta – do edycji"
 
 
+class CytatCelu(BaseModel):
+    """Cytat ze źródła, na którym opiera się podpowiedź z LLM (sprawdzony w korpusie)."""
+
+    fragment_id: str
+    doc_id: str
+    lokalizator: str | None
+    strona: int | None
+    cytat: str
+
+
 class PodpowiedzCelu(BaseModel):
     """Propozycja celu do przyjęcia albo odrzucenia. Nigdy nie zapisuje się sama."""
 
@@ -81,6 +102,8 @@ class PodpowiedzCelu(BaseModel):
     zrodlo: Literal["reguly", "llm"]
     regula: str | None = None
     formy: list[str] = Field(default_factory=list)
+    cytat: CytatCelu | None = None
+    """Tylko podpowiedzi z LLM: źródło z pokryciem w korpusie."""
     oznaczenie: str = OZNACZENIE
 
 
@@ -90,6 +113,13 @@ class WynikPodpowiedzi(BaseModel):
     """Proces oceny, z którego pochodzą wskaźniki (ostatni oceniony)."""
     komunikat: str | None = None
     podpowiedzi: list[PodpowiedzCelu]
+    zrodlo: Literal["llm", "reguly"] = "reguly"
+    """Skąd pochodzą podpowiedzi: z LLM po walidacji albo z reguł (także gdy LLM zawiódł)."""
+    dostawca: str | None = None
+    tryb: Tryb | None = None
+    """Znacznik trybu odpowiedzi LLM; None dla reguł."""
+    odrzucone: list[str] = Field(default_factory=list)
+    """Powody odrzucenia celów z LLM albo informacja, który dostawca zawiódł (szczegóły w ``llm.jsonl``)."""
 
 
 def podpowiedzi_regulowe(wynik: WynikRozwoju, poziom_oczekiwan: int) -> list[PodpowiedzCelu]:
