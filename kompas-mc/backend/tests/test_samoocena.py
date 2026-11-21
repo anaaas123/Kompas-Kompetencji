@@ -67,6 +67,9 @@ def test_pelny_przebieg(k, h, proces):
     assert r.status_code == 200, r.text
     sugestie_przed = [kr["sugestia"] for kr in r.json()["kryteria"]]
 
+    # Pracownik nie widzi oceny przełożonego, dopóki nie przekaże samooceny.
+    assert k.get(url_oc, headers=ho).status_code == 403
+
     # Szkic: poziom, „brak zdania”, przykład; wskaźnik spoza kroku 2 → 422.
     przyklad = {"sytuacja": "Nowa ustawa", "dzialanie": "Przygotowałam analizę", "rezultat": "Przyjęta bez uwag"}
     r = k.put(url, headers=ho, json={"wskazniki": {w1: {"poziom": 9, "przyklad": przyklad}, w2: {"brak_zdania": True}}})
@@ -92,6 +95,10 @@ def test_pelny_przebieg(k, h, proces):
     assert r.json()["status"] == "przekazana" and r.json()["przekazano"]
     assert k.put(url, headers=ho, json={"wskazniki": {w1: {"poziom": 5}}}).status_code == 409
     assert k.post(f"{url}/przekaz", headers=ho).status_code == 409
+
+    # Po przekazaniu pracownik widzi ocenę przełożonego, ale bez pól porównania (te są dla przełożonego).
+    r = k.get(url_oc, headers=ho)
+    assert r.status_code == 200 and r.json()["samoocena_status"] is None
 
     # Przełożony widzi treść i rozbieżność (9 − 3 = 6 ≥ 4); „brak zdania” nie daje rozbieżności.
     oc = k.get(url_oc, headers=hp).json()
