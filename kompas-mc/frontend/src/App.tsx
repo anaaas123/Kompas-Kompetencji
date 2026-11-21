@@ -228,7 +228,6 @@ export default function App() {
         <Pulpit
           sesja={sesja}
           onWybierz={setKarta}
-          onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
           onZespol={() => przejdz("zespol")}
           onPracownicy={() => przejdz("pracownicy")}

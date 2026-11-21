@@ -1,9 +1,19 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { pobierzCykl, pobierzPracownikow, type EtapOsoby, type Pracownik } from "./api";
+import AsystentFormalny from "./AsystentFormalny";
+import {
+  pobierzCykl,
+  pobierzMapeKompetencji,
+  pobierzPracownikow,
+  type EtapOsoby,
+  type MapaKompetencji as Mapa,
+  type Pracownik,
+} from "./api";
 import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
+import { MapaKompetencji } from "./Kompetencje";
 import { Inicjaly, SzkieletListy, WierszListy } from "./Lista";
 import { Kafel } from "./Wykresy";
+import { Wydra } from "./wydra/Wydra";
 import { data, dni, odmiana, osoby, wedlugKomorek } from "./zespol-dane";
 import "./widoki.css";
 import "./pulpit.css";
@@ -11,14 +21,10 @@ import "./pulpit.css";
 /**
  * Pulpit (strona główna) jak w makiecie v3: „Do zrobienia” to osoby z następną czynnością i terminem
  * z /api/cykl (początek okresu: kryteria albo rozmowa wstępna; koniec: rozmowa oceniająca i ocena).
- * Trzy kafle filtrują tę listę; kafla z zerem nie ma. Z prawej krótko o zespole i pytania o zasady,
- * na dole przyklejone pole „znajdź pracownika albo zapytaj”. Frontend niczego nie liczy z przepisów.
+ * Trzy kafle filtrują tę listę; kafla z zerem nie ma. Z prawej krótko o zespole, pod spodem mapa kompetencji
+ * (przełożony). Pole na dole: jedna pasująca osoba otwiera kartę, inaczej pulpit staje się rozmową
+ * z asystentem na całym ekranie. Frontend niczego nie liczy z przepisów.
  */
-const ZASADY = [
-  "Co omawia się na rozmowie oceniającej?",
-  "Kiedy ocena okresowa jest negatywna?",
-  "Ile dni ma pracownik na sprzeciw od oceny okresowej?",
-];
 const DZIS = new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
 
 const NA_START = 5;
@@ -51,14 +57,12 @@ function Plakietka({ e }: { e: EtapOsoby }) {
 export function Pulpit({
   sesja,
   onWybierz,
-  onZapytaj,
   onWyloguj,
   onZespol,
   onPracownicy,
 }: {
   sesja: Sesja;
   onWybierz: (p: Pracownik) => void;
-  onZapytaj: (pytanie: string) => void;
   onWyloguj: () => void;
   onZespol: () => void;
   onPracownicy: () => void;
@@ -68,6 +72,8 @@ export function Pulpit({
   const [szukaj, setSzukaj] = useState("");
   const [filtr, setFiltr] = useState<Filtr>("wszystkie");
   const [wszystkie, setWszystkie] = useState(false);
+  const [rozmowa, setRozmowa] = useState<{ id: number; tekst: string } | null>(null);
+  const [mapa, setMapa] = useState<Mapa | null>(null);
   const rola = sesja.uzytkownik.rola;
   const zespol = rola !== "oceniany";
 
@@ -94,6 +100,11 @@ export function Pulpit({
     };
   }, [sesja.token, onWyloguj]);
 
+  // Mapa kompetencji (#33) wymaga dostępu do treści ocen: ma ją przełożony, HR nie.
+  useEffect(() => {
+    if (rola === "przelozony") pobierzMapeKompetencji(sesja.token).then(setMapa).catch(() => setMapa(null));
+  }, [sesja.token, rola]);
+
   const lista = useMemo(() => {
     if (!sprawy) return null;
     const q = szukaj.trim().toLowerCase();
@@ -107,7 +118,7 @@ export function Pulpit({
     if (!q) return;
     // Jedna osoba pasuje do wpisu: otwórz ją; inaczej to pytanie do asystenta.
     if (lista && lista.length === 1) onWybierz(lista[0].osoba);
-    else onZapytaj(q);
+    else setRozmowa({ id: Date.now(), tekst: q });
     setSzukaj("");
   }
 
@@ -125,6 +136,24 @@ export function Pulpit({
   const wydzialow = sprawy ? wedlugKomorek(sprawy, (s) => s.osoba.komorka).reduce((a, g) => a + g.wydzialy.length, 0) : 0;
   const ostatnia = (w: "pozytywna" | "negatywna") => ludzie.filter((p) => p.ostatnia_ocena_okresowa?.wynik === w).length;
   const wOkresie = sprawy?.filter((s) => !doZrobienia(s)).length ?? 0;
+
+  if (rozmowa) {
+    return (
+      <div className="pulpit pulpit-rozmowa">
+        <div className="pulpit-rozmowa-glowa">
+          <Wydra poza="stoi" szerokosc={48} naStart="machanie" />
+          <div>
+            <h1>Asystent formalny</h1>
+            <p className="meta">Odpowiada cytatem z materiałów MC. Nie ocenia pracownika.</p>
+          </div>
+          <button type="button" className="link" onClick={() => setRozmowa(null)}>
+            Wróć do pulpitu
+          </button>
+        </div>
+        <AsystentFormalny pytanieZZewnatrz={rozmowa} />
+      </div>
+    );
+  }
 
   return (
     <div className="pulpit">
@@ -197,39 +226,49 @@ export function Pulpit({
           )}
         </section>
 
-        <aside className="pulpit-boczna">
-          {zespol && sprawy && (
+        {zespol && sprawy && (
+          <aside className="pulpit-boczna">
             <section className="sekcja">
-              <h2>{rola === "hr" ? "Urząd" : "Mój zespół"}</h2>
-              <dl className="pulpit-fakty">
-                <div>
-                  <dt>Ludzie</dt>
-                  <dd>
-                    {osoby(ludzie.length)} · {wydzialow} {odmiana(wydzialow, "wydział", "wydziały", "wydziałów")}
-                  </dd>
+              <div className="wiersz-tytulu">
+                <h2>{rola === "hr" ? "Urząd" : "Mój zespół"}</h2>
+                <button type="button" className="link" onClick={onZespol}>
+                  Analiza
+                </button>
+              </div>
+              <div className="pulpit-zespol">
+                <dl className="pulpit-liczby">
+                  <div>
+                    <dd>{ludzie.length}</dd>
+                    <dt>{odmiana(ludzie.length, "osoba", "osoby", "osób")}</dt>
+                  </div>
+                  <div>
+                    <dd>{wydzialow}</dd>
+                    <dt>{odmiana(wydzialow, "wydział", "wydziały", "wydziałów")}</dt>
+                  </div>
+                  <div>
+                    <dd>{ile("wszystkie")}</dd>
+                    <dt>do zrobienia</dt>
+                  </div>
+                </dl>
+                <div className="pulpit-oceny">
+                  <span className="kafel-etykieta">Ostatnie oceny</span>
+                  <span className="status pozytywna">
+                    {ostatnia("pozytywna")} {odmiana(ostatnia("pozytywna"), "pozytywna", "pozytywne", "pozytywnych")}
+                  </span>
+                  <span className="status negatywna">
+                    {ostatnia("negatywna")} {odmiana(ostatnia("negatywna"), "negatywna", "negatywne", "negatywnych")}
+                  </span>
+                  <span className="status neutralna">
+                    {ludzie.length - ostatnia("pozytywna") - ostatnia("negatywna")} bez oceny
+                  </span>
                 </div>
-                <div>
-                  <dt>Ostatnie oceny</dt>
-                  <dd>
-                    {ostatnia("pozytywna")} poz. · {ostatnia("negatywna")} neg. · {ludzie.length - ostatnia("pozytywna") - ostatnia("negatywna")} bez oceny
-                  </dd>
-                </div>
-              </dl>
-              <button type="button" className="link pulpit-wiecej" onClick={onZespol}>
-                Analiza zespołu
-              </button>
+              </div>
             </section>
-          )}
-          <section className="sekcja">
-            <h2>Zasady</h2>
-            <div className="lista ciasna">
-              {ZASADY.map((z) => (
-                <WierszListy key={z} maly lewa={<Ikona nazwa="pytanie" />} tytul={z} onClick={() => onZapytaj(z)} />
-              ))}
-            </div>
-          </section>
-        </aside>
+          </aside>
+        )}
       </div>
+
+      {mapa && sprawy && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} />}
 
       <div className="pulpit-pasek">
         <form className="pole-zapytania" role="search" onSubmit={wyslij}>
