@@ -203,3 +203,19 @@ def test_zastepstwo_zawiadomienie_i_izolacja_uprawnien(api_pierwszej):
     assert all(f in pdf for f in ("10.10.2026", "29.10.2026", "§ 5 ust. 4", "Dąbrowski-Demo"))
     drugi = _proces(klient, h, osoba="P-103", sciezka="okresowa")
     assert klient.get(f"{drugi}/pierwsza-ocena", headers=h).status_code == 409
+
+
+def test_rozmowa_wstepna_pdf_po_zapisie_terminu_sprawozdania(api_pierwszej):
+    klient, h = api_pierwszej
+    proces = _proces(klient, h)
+    assert klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=h).status_code == 409
+
+    stan = _json(klient.get(f"{proces}/pierwsza-ocena", headers=h))
+    dane = {**stan["dane"], "data_rozmowy_wstepnej": "2026-03-16", "wyznaczony_termin_sprawozdania": "2026-11-15"}
+    _json(klient.put(f"{proces}/pierwsza-ocena", headers=h, json=dane))
+    r = klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=h)
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    tekst = " ".join(s.extract_text() for s in PdfReader(BytesIO(r.content)).pages)
+    assert "Rozmowa wstępna" in tekst and "16.03.2026" in tekst and "15.11.2026" in tekst
+    assert "Rozmowa oceniająca" not in tekst, "tylko część ogólna i rozmowa wstępna"
+    assert klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=_login(klient, "oceniany")).status_code == 403

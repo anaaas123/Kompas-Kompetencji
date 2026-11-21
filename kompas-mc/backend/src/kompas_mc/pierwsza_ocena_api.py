@@ -13,7 +13,7 @@ from kompas_core.skala import WynikSkali
 from kompas_core.zrodla import SourceRef
 from pydantic import BaseModel, Field, TypeAdapter
 
-from .arkusz_pierwszej_pdf import arkusz_pierwszej_oceny_pdf
+from .arkusz_pierwszej_pdf import arkusz_pierwszej_oceny_pdf, rozmowa_wstepna_pdf
 from .arkusze import (
     KOMUNIKAT_PODPIS, BrakArkusza, NiepoprawnePola, SekcjaArkusza,
     WzoryArkuszy, ZrodloArkusza, sprawdz_uzupelnienia,
@@ -304,6 +304,27 @@ def router(
         )
         return Response(pdf, media_type="application/pdf", headers={
             "Content-Disposition": f'attachment; filename="pierwsza-ocena-{proces_id}.pdf"',
+        })
+
+    @r.get("/rozmowa-wstepna.pdf", response_class=Response, responses={200: {"content": _PDF}})
+    def rozmowa_wstepna(
+        proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
+    ) -> Response:
+        """Pobierz część ogólną i rozmowę wstępną arkusza do podpisu po rozmowie wstępnej (rozp. 2015 § 3–4).
+
+        Dostępne po zapisie daty rozmowy wstępnej i wyznaczonego końca terminu sprawozdania; wcześniej 409.
+        """
+        m = wczytaj(request, proces_id, uz, "ocena.tresc")
+        stan, _ = widok(request, m, m.zapis)
+        if stan.terminy.data_rozmowy_wstepnej is None or stan.terminy.termin_sprawozdania_do is None:
+            raise HTTPException(409, "Najpierw zapisz datę rozmowy wstępnej i wyznaczony termin sprawozdania.")
+        pdf = rozmowa_wstepna_pdf(
+            wzor.model_dump(exclude_unset=True),
+            {p.id: p.wartosc for s in stan.formularz.sekcje for p in s.pola if p.widoczne},
+            wersja=wersja,
+        )
+        return Response(pdf, media_type="application/pdf", headers={
+            "Content-Disposition": f'attachment; filename="pierwsza-ocena-{proces_id}-rozmowa-wstepna.pdf"',
         })
 
     @r.get("/zawiadomienie.pdf", response_class=Response, responses={200: {"content": _PDF}})

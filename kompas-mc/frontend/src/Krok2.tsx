@@ -14,6 +14,7 @@ import {
 } from "./api";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
 import { Ikona } from "./Ikona";
+import { RozmowaWstepna } from "./RozmowaWstepna";
 import { zapiszPlik } from "./Wynik";
 import { data, odmiana } from "./zespol-dane";
 import "./krok2.css";
@@ -417,7 +418,9 @@ export function Krok2({
       </div>
 
       <div className="k2-pasek">
-        {ustalonoDnia ? (
+        {ustalonoDnia && proces.sciezka === "pierwsza" ? (
+          <RozmowaWstepna token={token} procesId={proces.id} moznaProwadzic={moznaProwadzic} onPracownik={onPracownik} />
+        ) : ustalonoDnia ? (
           <div className="k2-ustalone" role="status">
             <p className="sukces">
               <strong>Kryteria ustalone {ustalonoDnia}</strong>
