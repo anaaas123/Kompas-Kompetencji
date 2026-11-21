@@ -1,23 +1,35 @@
 import { useEffect, useState } from "react";
 import {
-  BladApi,
-  pobierzArkusz,
   pobierzWnioski,
-  zapiszArkusz,
   type PropozycjaRozwoju,
   type Pracownik,
   type ProcesOceny,
   type SourceRef,
   type WnioskiProcesu,
 } from "./api";
-import { Zrodla, opisBledu } from "./Krok1";
+import { Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 
 function Propozycja({ p }: { p: PropozycjaRozwoju }) {
+  const [komunikat, setKomunikat] = useState("");
+  async function kopiuj() {
+    const tekst = [
+      `${nazwaKryterium(p.kompetencja)} · ${p.wskaznik}`,
+      ...p.przyklady,
+      ...p.formy.map((f) => f.nazwa),
+      ...p.uwagi,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(tekst);
+      setKomunikat("Skopiowano propozycję.");
+    } catch {
+      setKomunikat("Schowek jest niedostępny. Zaznacz i skopiuj tekst propozycji ręcznie.");
+    }
+  }
   return (
     <li className="kryterium">
       <strong>{p.wskaznik}</strong>
       <p className="meta">
-        {p.kompetencja}
+        {nazwaKryterium(p.kompetencja)}
         {p.poziom !== null && ` · poziom ${p.poziom}`}
       </p>
       {p.przyklady.map((x) => (
@@ -37,6 +49,8 @@ function Propozycja({ p }: { p: PropozycjaRozwoju }) {
           {u}
         </p>
       ))}
+      <button className="link" type="button" onClick={kopiuj}>Kopiuj propozycję</button>
+      <span className="meta" role="status">{komunikat}</span>
     </li>
   );
 }
@@ -54,77 +68,31 @@ export function Wnioski({
   moznaProwadzic: boolean;
   onWstecz: () => void;
 }) {
-  const [dane, setDane] = useState<WnioskiProcesu | null>(null);
-  const [tresc, setTresc] = useState("");
-  const [blad, setBlad] = useState<string | null>(null);
-  const [czekam, setCzekam] = useState(false);
-  const [zapisano, setZapisano] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!moznaProwadzic) return;
-    pobierzWnioski(token, proces.id)
-      .then((d) => {
-        setDane(d);
-        setTresc(d.wnioski_w_arkuszu ?? "");
-      })
-      .catch((err) => setBlad(opisBledu(err)));
-  }, [token, proces.id, moznaProwadzic]);
-
-  async function zapisz() {
-    if (!dane?.pole_arkusza) return;
-    setCzekam(true);
-    setBlad(null);
-    setZapisano(null);
-    try {
-      // Wnioski są polem arkusza z kroku 7: zapis idzie przez arkusz, który zastępuje cały zestaw uzupełnień.
-      const arkusz = await pobierzArkusz(token, proces.id);
-      const pola = Object.fromEntries(
-        arkusz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne).map((p) => [p.id, p.wartosc]),
-      );
-      pola[dane.pole_arkusza] = tresc.trim() || null;
-      const po = await zapiszArkusz(token, proces.id, pola, false);
-      setZapisano(
-        arkusz.zatwierdzony && !po.zatwierdzony
-          ? "Zapisano w arkuszu. Zmiana cofnęła zatwierdzenie i rejestrację w EZD: zatwierdź arkusz ponownie w kroku 7."
-          : "Zapisano w arkuszu.",
-      );
-      setDane(await pobierzWnioski(token, proces.id));
-    } catch (err) {
-      const d = err instanceof BladApi ? (err.detail as { komunikat?: string } | null) : null;
-      setBlad(d?.komunikat ?? opisBledu(err));
-    } finally {
-      setCzekam(false);
-    }
-  }
-
-  const naglowek = (
-    <section>
-      <div className="wiersz">
-        <div>
-          <div className="etykieta">Krok 8 z 8 · Wnioski rozwojowe</div>
-          <h2>
-            {osoba.imie} {osoba.nazwisko}
-          </h2>
-          <p className="opis">
-            {proces.sciezka === "okresowa" ? "ocena okresowa" : "pierwsza ocena"}
-            {dane && ` · wynik oceny: ${dane.wynik_oceny ?? "jeszcze nie ma (krok 5 niekompletny)"}`}
-          </p>
-        </div>
-        <button type="button" className="link" onClick={onWstecz}>
-          Wróć do arkusza
-        </button>
-      </div>
-      {!moznaProwadzic && <p className="brak">Propozycje rozwoju przygotowuje i widzi tylko przełożony. Wnioski są w arkuszu (krok 7).</p>}
-      {dane && (
-        <p className="brak">
-          {dane.propozycje.status}. Asystent niczego nie wpisuje: treść wniosków pisze przełożony.
-        </p>
-      )}
-      {blad && <p className="blad">{blad}</p>}
-      {moznaProwadzic && !dane && !blad && <p className="meta">Wczytuję propozycje…</p>}
+  return (
+    <section className="k7">
+      <button type="button" className="link" onClick={onWstecz}>Wróć do oceny na piśmie</button>
+      <h1>Propozycje rozwoju</h1>
+      <p>{osoba.imie} {osoba.nazwisko} · {proces.sciezka === "okresowa" ? "Ocena okresowa" : "Pierwsza ocena"}</p>
+      {moznaProwadzic ? <PropozycjeRozwoju token={token} procesId={proces.id} /> :
+        <p>Propozycje rozwoju są dostępne dla przełożonego.</p>}
     </section>
   );
-  if (!dane) return naglowek;
+}
+
+export function PropozycjeRozwoju({ token, procesId }: { token: string; procesId: number }) {
+  const [dane, setDane] = useState<WnioskiProcesu | null>(null);
+  const [blad, setBlad] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aktywny = true;
+    pobierzWnioski(token, procesId)
+      .then((d) => { if (aktywny) setDane(d); })
+      .catch((err) => { if (aktywny) setBlad(opisBledu(err)); });
+    return () => { aktywny = false; };
+  }, [token, procesId]);
+
+  if (blad) return <p className="blad" role="alert">{blad}</p>;
+  if (!dane) return <p className="meta">Wczytuję propozycje…</p>;
 
   const pr = dane.propozycje;
   const obszary = pr.propozycje.filter((p) => p.typ === "OBSZAR_ROZWOJOWY");
@@ -134,7 +102,7 @@ export function Wnioski({
 
   return (
     <>
-      {naglowek}
+      <p className="meta">{pr.status}</p>
 
       {!pr.dostepne && pr.komunikat && (
         <section>
@@ -144,7 +112,6 @@ export function Wnioski({
 
       {pr.dostepne && (
         <section>
-          <h2>Propozycje z kroków 3–5</h2>
           {pr.propozycje.length === 0 && (
             <p className="meta">Wszystkie ocenione wskaźniki są na poziomie oczekiwań, więc asystent nie ma propozycji. Wnioski pisze przełożony.</p>
           )}
@@ -175,41 +142,6 @@ export function Wnioski({
           )}
         </section>
       )}
-
-      <section>
-        <h2>Wnioski do indywidualnego programu rozwoju</h2>
-        <p className="meta">{dane.gdzie_wpisac}</p>
-        {dane.pole_arkusza ? (
-          <fieldset className="formularz" disabled={czekam}>
-            <label className="etykieta">
-              Treść wniosków (pisze przełożony)
-              <textarea
-                rows={5}
-                value={tresc}
-                placeholder={pr.struktura_wnioskow.join("\n")}
-                onChange={(e) => {
-                  setTresc(e.target.value);
-                  setZapisano(null);
-                }}
-              />
-            </label>
-            <div className="wiersz">
-              <span className="meta">Zapis do arkusza cofa jego zatwierdzenie, jeśli było.</span>
-              <button type="button" disabled={czekam || tresc.trim() === (dane.wnioski_w_arkuszu ?? "")} onClick={zapisz}>
-                {czekam ? "Zapisuję…" : "Zapisz wnioski w arkuszu"}
-              </button>
-            </div>
-          </fieldset>
-        ) : (
-          <p className="brak">Arkusza tej ścieżki jeszcze nie ma, więc wniosków nie da się zapisać.</p>
-        )}
-        {zapisano && <p className="sukces">{zapisano}</p>}
-        {zapisano && (
-          <button type="button" className="jasny" onClick={onWstecz}>
-            Wróć do arkusza (krok 7)
-          </button>
-        )}
-      </section>
 
       <section>
         <h2>Zasady propozycji</h2>

@@ -7,6 +7,8 @@ import { Ocena } from "./Ocena";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
+import { Pierwsza } from "./Pierwsza";
+import PanelMetodyki from "./PanelMetodyki";
 import PanelHR from "./PanelHR";
 import { pobierzWynik, type Pracownik, type ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
@@ -106,7 +108,7 @@ export default function App() {
 
   // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
   // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
-  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie (podsumowanie i punkty).
+  // Pierwsza ocena: od kroku 6 (wynik zapisany albo rozmowa zakończona) ekran Pierwsza.tsx.
   /** `wymus`: etap wybrany na karcie (#55), np. kryteria procesu, który jest już dalej. */
   const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null, wymus?: Etap) => {
     const k = p?.krok ?? 0;
@@ -118,7 +120,7 @@ export default function App() {
               (w): Etap => (w.zapisany ? "arkusz" : "wynik"),
               (): Etap => "wynik",
             )
-          : k >= 6 && p?.sciezka === "okresowa"
+          : k >= 6
             ? "wynik"
             : k >= 3
               ? "ocena"
@@ -182,33 +184,31 @@ export default function App() {
           onDalej={() => setEtap("wynik")}
         />
       )}
-      {oceniany && proces && etap === "wynik" && (
-        <Wynik
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("ocena")}
-          onDalej={() => setEtap("arkusz")}
-        />
-      )}
-      {oceniany && proces && etap === "arkusz" && (
-        <Arkusz
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("wynik")}
-          onDalej={() => setEtap("wnioski")}
-        />
-      )}
+      {oceniany && proces && (etap === "wynik" || etap === "arkusz" || etap === "wnioski") && (() => {
+        const Ekran = proces.sciezka === "pierwsza" ? Pierwsza : etap === "arkusz" ? Arkusz : Wynik;
+        return (
+          <div hidden={etap === "wnioski"}>
+            <Ekran
+              key={proces.id}
+              token={sesja.token}
+              osoba={oceniany}
+              proces={proces}
+              moznaProwadzic={prowadzi}
+              zalogowanyId={sesja.uzytkownik.osoba_id}
+              onWstecz={() => setEtap("ocena")}
+              onZmienOcene={proces.status === "W_TOKU" ? () => setEtap("ocena") : undefined}
+              onDalej={() => setEtap("wnioski")}
+            />
+          </div>
+        );
+      })()}
       {oceniany && proces && etap === "wnioski" && (
         <Wnioski
           token={sesja.token}
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("arkusz")}
+          onWstecz={() => setEtap(proces.sciezka === "pierwsza" ? "wynik" : "arkusz")}
         />
       )}
       {karta && samoocena !== null && (
@@ -227,6 +227,7 @@ export default function App() {
         />
       )}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
+      {!karta && !oceniany && widokZrodel && <PanelMetodyki token={sesja.token} mozeZarzadzac />}
       {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit
