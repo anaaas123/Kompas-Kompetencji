@@ -1,0 +1,38 @@
+/* Okno asystenta formalnego na środku ekranu: nagłówek z wydrą, rozmowa przewijana, pole pytania przyklejone na dole. */
+.okno-asystenta { width: min(760px, calc(100vw - var(--o-32))); height: min(760px, calc(100dvh - var(--o-64))); max-width: none; max-height: none; margin: auto; padding: 0; border: 1px solid var(--k-line); border-radius: var(--r-card); background: var(--k-surface); color: var(--k-text); box-shadow: var(--s-dialog); }
+.okno-asystenta::backdrop { background: var(--k-backdrop); }
+.okno-asystenta[open] { animation: okno-wejscie 200ms cubic-bezier(0.2, 0.8, 0, 1); }
+.okno-asystenta[open]::backdrop { animation: okno-tlo 200ms ease; }
+@keyframes okno-wejscie { from { opacity: 0; transform: translateY(var(--o-8)) scale(0.98); } }
+@keyframes okno-tlo { from { opacity: 0; } }
+
+.okno { height: 100%; display: flex; flex-direction: column; }
+.okno-glowa { display: flex; align-items: center; gap: var(--o-12); padding: var(--o-12) var(--o-16) var(--o-12) var(--o-24); border-bottom: 1px solid var(--k-line); }
+.okno-glowa > div { flex: 1; min-width: 0; }
+.okno-glowa h2 { font-size: var(--t-section-r); line-height: var(--t-section-l); }
+.okno-glowa .meta { margin: 0; }
+.okno-glowa button.ikona-przycisk:active { background: var(--k-wiersz-pressed); }
+.okno-glowa button.ikona-przycisk:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+
+.okno-cialo { flex: 1; min-height: 0; overflow: auto; padding: var(--o-24) var(--o-24) 0; }
+.okno-cialo .czat { min-height: 100%; display: flex; flex-direction: column; }
+.okno-cialo .czat > .opis { margin: 0; }
+.okno-cialo .czat .przyklady { flex-direction: column; align-items: stretch; }
+.okno-cialo .czat .przyklady button { white-space: normal; text-align: left; height: auto; min-height: 48px; padding: var(--o-12) var(--o-16); }
+.okno-cialo .czat .rozmowa li { scroll-margin-top: var(--o-16); }
+/* cytaty z PDF mają twarde łamania w pół zdania; w oknie czytamy je jako ciągły tekst */
+.okno-cialo .cytat blockquote { white-space: normal; }
+.okno-cialo .czat form { position: sticky; bottom: 0; margin-top: auto; padding: var(--o-12) 0 var(--o-16); border-top: 1px solid var(--k-line); background: var(--k-surface); }
+.okno-cialo .czat .wiersz { flex-wrap: wrap; }
+.okno-cialo .czat .wybor button { white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .okno-asystenta { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
+  .okno-cialo { padding: var(--o-16) var(--o-16) 0; }
+  .okno-cialo .czat .wybor { width: 100%; }
+  .okno-cialo .czat .wybor button { flex: 1; padding-inline: var(--o-8); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+  .okno-cialo .czat form .wiersz > button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .okno-asystenta[open], .okno-asystenta[open]::backdrop { animation: none; }
+}

@@ -10,6 +10,29 @@ KATALOG_MC = Path(__file__).resolve().parents[3]  # kompas-mc/
 PORT_DOMYSLNY = 8002
 
 
+def wczytaj_env(plik: str | Path) -> None:
+    """Wczytaj prosty plik ``KEY=VALUE`` bez nadpisywania środowiska procesu."""
+    sciezka = Path(plik)
+    if not sciezka.exists():
+        return
+    for nr, surowa in enumerate(sciezka.read_text(encoding="utf-8").splitlines(), start=1):
+        linia = surowa.strip()
+        if not linia or linia.startswith("#"):
+            continue
+        if linia.startswith("export "):
+            linia = linia.removeprefix("export ").lstrip()
+        if "=" not in linia:
+            raise ValueError(f"{sciezka}:{nr}: oczekiwano NAZWA=WARTOSC")
+        nazwa, wartosc = linia.split("=", 1)
+        nazwa = nazwa.strip()
+        if not nazwa or not nazwa.replace("_", "a").isalnum():
+            raise ValueError(f"{sciezka}:{nr}: niepoprawna nazwa zmiennej")
+        wartosc = wartosc.strip()
+        if len(wartosc) >= 2 and wartosc[0] == wartosc[-1] and wartosc[0] in "\"'":
+            wartosc = wartosc[1:-1]
+        os.environ.setdefault(nazwa, wartosc)
+
+
 @dataclass(frozen=True)
 class Ustawienia:
     port: int
@@ -30,9 +53,11 @@ class Ustawienia:
     wzory_arkuszy: Path = KATALOG_MC / "konfiguracja" / "wzory-arkuszy.json"
     wynik_pierwszej: Path = KATALOG_MC / "konfiguracja" / "wynik-pierwszej.yaml"
     terminy_pierwszej: Path = KATALOG_MC / "konfiguracja" / "terminy-pierwszej.yaml"
+    samoocena: Path = KATALOG_MC / "konfiguracja" / "samoocena.yaml"
 
     @classmethod
     def ze_srodowiska(cls) -> Ustawienia:
+        wczytaj_env(KATALOG_MC / "backend" / ".env")
         konf = KATALOG_MC / "konfiguracja"
         dane = Path(os.environ.get("KOMPAS_MC_DANE", KATALOG_MC / "backend" / "dane"))
         return cls(
@@ -56,4 +81,5 @@ class Ustawienia:
             wzory_arkuszy=Path(os.environ.get("KOMPAS_MC_WZORY_ARKUSZY", konf / "wzory-arkuszy.json")),
             wynik_pierwszej=Path(os.environ.get("KOMPAS_MC_WYNIK_PIERWSZEJ", konf / "wynik-pierwszej.yaml")),
             terminy_pierwszej=Path(os.environ.get("KOMPAS_MC_TERMINY_PIERWSZEJ", konf / "terminy-pierwszej.yaml")),
+            samoocena=Path(os.environ.get("KOMPAS_MC_SAMOOCENA", konf / "samoocena.yaml")),
         )

@@ -21,6 +21,8 @@ from .cykl import router as router_cyklu
 from .hr import terminy_z_regul
 from .hr_api import router as router_hr
 from .hr_api import router_terminow
+from .samoocena import KonfiguracjaSamooceny
+from .samoocena_api import router as router_samooceny
 from .krok1 import KonfiguracjaKroku1, proponuj_sciezke
 from .krok2 import KonfiguracjaKroku2
 from .krok2_api import StanKroku2
@@ -78,6 +80,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         )
         app.state.panel = zbuduj_panel(ust.braki, app.state.korpus)
         app.state.rozwoj = KonfiguracjaRozwoju.z_pliku(ust.rozwoj)
+        app.state.samoocena = KonfiguracjaSamooceny.z_pliku(ust.samoocena)
         app.state.metodyki = RejestrMetodyk(app.state.baza, KonfiguracjaOceny.z_pliku(ust.ocena))
         app.state.terminy = terminy_z_regul(konf_terminow_okresowej, konf_terminow_pierwszej, app.state.baza)
         yield
@@ -122,6 +125,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         auth, qnt, konf_terminow_okresowej, konf_terminow_pierwszej,
         lambda p: proponuj_sciezke(p, konf_krok1).proponowana,
     ))
+    app.include_router(router_samooceny(auth, qnt, krok2))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:

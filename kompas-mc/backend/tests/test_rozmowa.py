@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import pytest
 from fastapi.testclient import TestClient
+from kompas_core.llm import Cytat, Odpowiedz, Tryb
 from kompas_core.zrodla.cli import main as waliduj
 
 from kompas_mc.app import utworz_aplikacje
@@ -196,6 +197,59 @@ def test_uprawnienia_planu(klient, naglowek):
     assert klient.post("/api/procesy/999999/rozmowa", json={}, headers=naglowek("przelozony1")).status_code == 404
 
 
+def test_czat_ma_kontekst_procesu_bez_danych_identyfikujacych(klient, naglowek):
+    proces, *_ = _okresowa_z_ocenami(klient, naglowek)
+    zapytania = []
+
+    class Atrapa:
+        nazwa = "atrapa"
+        model = "test"
+        tryb = Tryb.NA_ZYWO
+
+        def odpowiedz(self, zapytanie):
+            zapytania.append(zapytanie)
+            fragment = zapytanie.fragmenty[0]
+            return Odpowiedz(
+                cytaty=[Cytat(fragment_id=fragment.id, cytat=fragment.tekst)],
+                tresc="Sugestia oparta na materiale.",
+            )
+
+    poprzedni = klient.app.state.asystent.dostawcy
+    klient.app.state.asystent.dostawcy = [Atrapa()]
+    try:
+        r = klient.post(
+            f"/api/procesy/{proces['id']}/rozmowa/czat",
+            headers=naglowek("przelozony1"),
+            json={"pytanie": "Kiedy ocena okresowa jest negatywna?"},
+        )
+    finally:
+        klient.app.state.asystent.dostawcy = poprzedni
+
+    assert r.status_code == 200, r.text
+    odp = r.json()
+    assert odp["tryb"] == "NA_ŻYWO" and odp["cytaty"][0]["lokalizator"]
+    assert "Sugestia asystenta" in odp["oznaczenie_sugestii"]
+    prompt = zapytania[0].pytanie
+    assert "KONTEKST PROCESU" in prompt and "wybrane_wskazniki" in prompt
+    assert "P-104" not in prompt and "P-001" not in prompt
+    assert "Michał" not in prompt and "Wójcik-Demo" not in prompt
+    assert "Marta" not in prompt and "Kowalczyk-Demo" not in prompt
+    assert "Oceniany" in prompt and "Przełożony" in prompt
+
+
+def test_czat_spoza_bazy_i_uprawnienia(klient, naglowek):
+    proces, *_ = _okresowa_z_ocenami(klient, naglowek)
+    url = f"/api/procesy/{proces['id']}/rozmowa/czat"
+    body = {"pytanie": "Jak zastosować teleportację kwantową w ocenie?"}
+    assert klient.post(url, json=body).status_code == 401
+    assert klient.post(url, json=body, headers=naglowek("hr")).status_code == 403
+    assert klient.post(url, json=body, headers=naglowek("oceniany")).status_code == 403
+    r = klient.post(url, json=body, headers=naglowek("przelozony1"))
+    assert r.status_code == 200
+    assert r.json()["znaleziono"] is False
+    assert r.json()["komunikat"] == "brak wystarczających informacji w bazie wiedzy"
+
+
 def test_cytaty_konfiguracji_rozmowy_sa_w_korpusie():
     konf = KATALOG_MC / "konfiguracja"
     assert waliduj(["--manifest", str(konf / "korpus.yaml"), str(konf / "rozmowa.yaml")]) == 0
@@ -206,5 +260,6 @@ def test_dane_osobowe_nie_sa_dozwolone_dla_modelu():
 
     d = yaml.safe_load((KATALOG_MC / "konfiguracja" / "rozmowa.yaml").read_text(encoding="utf-8"))
     zakazane = set(d["dane_dla_modelu"]["zabronione"])
-    assert {"imie", "nazwisko", "przyklad", "notatka", "fragment_sprawozdania"} <= zakazane
+    assert {"imie", "nazwisko", "komorka", "osoba_id"} <= zakazane
+    assert "przyklad" in d["dane_dla_modelu"]["dozwolone"]
     assert not zakazane & set(d["dane_dla_modelu"]["dozwolone"])
