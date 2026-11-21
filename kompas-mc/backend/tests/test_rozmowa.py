@@ -206,5 +206,6 @@ def test_dane_osobowe_nie_sa_dozwolone_dla_modelu():
 
     d = yaml.safe_load((KATALOG_MC / "konfiguracja" / "rozmowa.yaml").read_text(encoding="utf-8"))
     zakazane = set(d["dane_dla_modelu"]["zabronione"])
-    assert {"imie", "nazwisko", "przyklad", "notatka", "fragment_sprawozdania"} <= zakazane
+    assert {"imie", "nazwisko", "komorka", "osoba_id"} <= zakazane
+    assert "przyklad" in d["dane_dla_modelu"]["dozwolone"]
     assert not zakazane & set(d["dane_dla_modelu"]["dozwolone"])
