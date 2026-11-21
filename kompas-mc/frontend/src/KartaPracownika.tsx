@@ -23,7 +23,8 @@ import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
 import { OcenyCzastkowe } from "./Kompetencje";
-import { data, kiedy, lat, lataStazu, stazTekst, NAZWA_SCIEZKI, podzial } from "./zespol-dane";
+import { OpisOsoby } from "./OpisOsoby";
+import { data, kiedy, lat, lataStazu, podzial } from "./zespol-dane";
 import "./widoki.css";
 
 /**
@@ -79,8 +80,8 @@ export function KartaPracownika({
   sesja: Sesja;
   osoba: Pracownik;
   onWroc: () => void;
-  /** Proces w toku (#49): App otwiera jego bieżący krok; null = krok 1. */
-  onOcen: (proces: ProcesOceny | null) => void;
+  /** Proces w toku (#49): App otwiera jego bieżący krok; null = krok 1; "krok2" = kryteria procesu (etap na karcie, #55). */
+  onOcen: (proces: ProcesOceny | null, etap?: "krok2") => void;
   /** Pracownik otwiera „Moją samoocenę” procesu (#9). */
   onSamoocena?: (procesId: number) => void;
   /** Sekcja celów rozwojowych osoby (#11, komponent z gałęzi celów); bez niej sekcji nie ma. */
@@ -102,8 +103,8 @@ export function KartaPracownika({
           pobierzProcesy(token),
           pobierzTerminy(token).catch(() => []),
           pobierzPracownikow(token),
-          // Notatki widzi tylko przełożony; HR i oceniany dostają 403.
-          pobierzNotatki(token, osoba.osoba_id).catch(() => []),
+          // Notatki widzi tylko przełożony; HR i oceniany nie pytają (API dałoby 403).
+          prowadzi ? pobierzNotatki(token, osoba.osoba_id).catch(() => []) : Promise.resolve([] as Notatka[]),
           pobierzCykl(token).catch(() => []),
         ]);
         const mapa = prowadzi ? await pobierzMapeKompetencji(token).catch(() => null) : null;
@@ -138,13 +139,15 @@ export function KartaPracownika({
 
   const { wydzial, departament } = podzial(osoba.komorka);
   const staz = lataStazu(osoba.data_zatrudnienia);
-  const rokOd = osoba.data_zatrudnienia.slice(0, 4);
   const przelozonyTo =
     osoba.przelozony_id === sesja.uzytkownik.osoba_id
       ? "Ty"
       : dane?.przelozony
         ? `${dane.przelozony.imie} ${dane.przelozony.nazwisko}`
         : null;
+  const wToku = dane?.proces?.status === "W_TOKU" ? dane.proces : null;
+  /** Etap cyklu (#55): ocena → bieżący krok procesu (#49), kryteria i okres → krok 2, bez procesu → krok 1. */
+  const otworzEtap = (i: number) => (i === 2 || !wToku ? onOcen(wToku) : onOcen(wToku, "krok2"));
 
   return (
     <div className="widok karta">
@@ -165,6 +168,7 @@ export function KartaPracownika({
           <p className="opis">
             {osoba.stanowisko} · {wydzial}
           </p>
+          <OpisOsoby sesja={sesja} osoba={osoba} />
         </div>
       </div>
 
@@ -174,82 +178,16 @@ export function KartaPracownika({
       {dane && (
         <div className="dwie">
           <div className="sekcje-karty">
-            <p className="streszczenie">
-              {osoba.stanowisko.charAt(0).toUpperCase() + osoba.stanowisko.slice(1)} od {rokOd} r. ({stazTekst(staz)}),{" "}
-              {osoba.korpus === "urzednik_sc" ? "urzędnik" : "pracownik"} służby cywilnej, umowa na czas{" "}
-              {osoba.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}.{" "}
-              {osoba.kieruje_pracownikami ? "Kieruje zespołem." : "Nie kieruje zespołem."}
-            </p>
-
-            <Cykl dane={dane} sciezka={dane.cykl?.sciezka ?? dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? null} />
+            <Cykl
+              dane={dane}
+              osoba={osoba}
+              sciezka={dane.cykl?.sciezka ?? dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? null}
+              onEtap={prowadzi ? otworzEtap : undefined}
+            />
             {cele}
             <WynikiKryteriow ocena={dane.ocena} />
-            <OcenyCzastkowe mapa={dane.mapa} osoba={osoba} />
 
-            <div className="sekcja">
-              <h2>Poprzednie oceny</h2>
-              <div className="lista">
-                {osoba.ostatnia_ocena_okresowa && (
-                  <WierszListy
-                    lewa={<Ikona nazwa="dokument" />}
-                    tytul="Ocena okresowa"
-                    znacznik={
-                      <span className={`status ${osoba.ostatnia_ocena_okresowa.wynik}`}>
-                        {osoba.ostatnia_ocena_okresowa.wynik}
-                      </span>
-                    }
-                    opis={`sporządzona ${data(osoba.ostatnia_ocena_okresowa.data)}`}
-                  />
-                )}
-                {osoba.pierwsza_ocena && (
-                  <WierszListy
-                    lewa={<Ikona nazwa="dokument" />}
-                    tytul="Pierwsza ocena"
-                    opis={
-                      osoba.pierwsza_ocena.egzamin_sluzba_przygotowawcza === "zaliczony"
-                        ? "egzamin ze służby przygotowawczej zaliczony"
-                        : osoba.pierwsza_ocena.egzamin_sluzba_przygotowawcza === "brak"
-                          ? "egzamin ze służby przygotowawczej jeszcze niezdany"
-                          : "służba przygotowawcza nie dotyczy"
-                    }
-                  />
-                )}
-                {!osoba.ostatnia_ocena_okresowa && !osoba.pierwsza_ocena && (
-                  <p className="meta">W kartotece QNT nie ma jeszcze żadnej oceny.</p>
-                )}
-              </div>
-            </div>
-
-            {dane.analiza?.osp && (
-              <details className="sekcja opis-stanowiska">
-                <summary>
-                  <h2>Opis stanowiska</h2>
-                  <span className="meta">
-                    OSP {dane.analiza.osp.symbol} · {dane.analiza.osp.zadania_dominujace.length} zadania dominujące · pokaż
-                  </span>
-                </summary>
-                <span className="kafel-etykieta">Cel stanowiska</span>
-                <p className="zero">{dane.analiza.osp.cel.tekst}</p>
-                <span className="kafel-etykieta">Zadania dominujące</span>
-                <ol className="zadania-karty">
-                  {dane.analiza.osp.zadania_dominujace.map((z) => (
-                    <li key={z.nr}>{z.tekst}</li>
-                  ))}
-                </ol>
-                {dane.analiza.osp.kompetencje_miekkie.lista.length > 0 && (
-                  <>
-                    <span className="kafel-etykieta">Kompetencje miękkie z opisu</span>
-                    <div className="etykiety">
-                      {dane.analiza.osp.kompetencje_miekkie.lista.map((k) => (
-                        <span key={k} className="znacznik">
-                          {k}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </details>
-            )}
+            {dane.analiza?.osp && <OpisStanowiska osp={dane.analiza.osp} />}
 
             {dane.notatki.length > 0 && (
               <div className="sekcja">
@@ -275,17 +213,9 @@ export function KartaPracownika({
               <NastepnyKrok
                 dane={dane}
                 prowadzi={prowadzi}
-                onOcen={() => onOcen(dane.proces?.status === "W_TOKU" ? dane.proces : null)}
+                onOcen={() => onOcen(wToku)}
                 przelozony={dane.przelozony}
               />
-            )}
-
-            {dane.analiza?.arkusz_okresowy.arkusz && (
-              <div className="ramka">
-                <span className="kafel-etykieta">Arkusz oceny</span>
-                <strong>Arkusz {dane.analiza.arkusz_okresowy.arkusz}</strong>
-                <p className="meta zero">{dane.analiza.arkusz_okresowy.uzasadnienie}</p>
-              </div>
             )}
 
             <div className="sekcja">
@@ -368,40 +298,56 @@ export function KartaPracownika({
 
 /**
  * Cykl oceny w trzech etapach z rozporządzeń i zdanie „Teraz: … do … · Potem: …” (rada UX 21.11).
- * Etap i termin podaje /api/cykl; front nic nie liczy.
+ * Etap i termin podaje /api/cykl; front nic nie liczy. Przełożony klika etap zrobiony albo bieżący i przechodzi
+ * do jego kroku (#55). Pod etapami poprzednie oceny z akt, bo są częścią tej samej oceny (Karol 21.11).
  */
-function Cykl({ dane, sciezka }: { dane: Dane; sciezka: "okresowa" | "pierwsza" | null }) {
+function Cykl({
+  dane,
+  osoba,
+  sciezka,
+  onEtap,
+}: {
+  dane: Dane;
+  osoba: Pracownik;
+  sciezka: "okresowa" | "pierwsza" | null;
+  onEtap?: (i: number) => void;
+}) {
   const c = dane.cykl;
-  if (!c) return null;
   const etapy = ETAPY_CYKLU[sciezka ?? "okresowa"];
-  const biezacy = INDEKS_ETAPU[c.etap];
-  const termin = c.termin && (
-    <>
-      {" "}
-      do {data(c.termin.data)} ({c.dni_do_terminu !== null ? kiedy(c.dni_do_terminu) : ""})
-    </>
-  );
+  const biezacy = c ? INDEKS_ETAPU[c.etap] : -1;
+  const arkusz = sciezka !== "pierwsza" ? dane.analiza?.arkusz_okresowy : null;
   return (
     <div className="sekcja cykl">
-      <h2>{sciezka === "pierwsza" ? "Pierwsza ocena" : "Ocena okresowa"}</h2>
-      <p className={`teraz ${c.po_terminie ? "po-terminie" : ""}`}>
-        <strong>Teraz:</strong> {c.czynnosc}
-        {termin}
-        {biezacy >= 0 && biezacy < 2 && (
-          <>
-            {" "}
-            · <strong>Potem:</strong> {etapy[biezacy + 1].toLowerCase()}
-          </>
-        )}
-      </p>
-      {c.braki.length > 0 && (
+      <h2>
+        {sciezka === "pierwsza" ? "Pierwsza ocena" : "Ocena okresowa"}
+        {/* Arkusz jako dopisek (Karol 21.11: „aż takie duże?”); uzasadnienie z przepisem jest w kroku 1. */}
+        {arkusz?.arkusz && <span className="arkusz-dopisek"> · arkusz {arkusz.arkusz}</span>}
+      </h2>
+      {c && (
+        <p className={`teraz ${c.po_terminie ? "po-terminie" : ""}`}>
+          <strong>Teraz:</strong> {c.czynnosc}
+          {c.termin && (
+            <>
+              {" "}
+              do {data(c.termin.data)} ({c.dni_do_terminu !== null ? kiedy(c.dni_do_terminu) : ""})
+            </>
+          )}
+          {biezacy >= 0 && biezacy < 2 && (
+            <>
+              {" "}
+              · <strong>Potem:</strong> {etapy[biezacy + 1].toLowerCase()}
+            </>
+          )}
+        </p>
+      )}
+      {c && c.braki.length > 0 && (
         <ul className="brak">
           {c.braki.map((b) => (
             <li key={b}>{b}</li>
           ))}
         </ul>
       )}
-      {biezacy >= 0 && (
+      {c && biezacy >= 0 && (
         <ol className="etapy">
           {etapy.map((nazwa, i) => {
             const stan = i < biezacy ? "zrobiony" : i === biezacy ? "biezacy" : "przyszly";
@@ -415,21 +361,102 @@ function Cykl({ dane, sciezka }: { dane: Dane; sciezka: "okresowa" | "pierwsza" 
                     ? `do ${data(c.termin.data)}`
                     : "teraz"
                   : "";
+            const tresc = (
+              <>
+                <span className={`znak-etapu ${stan}`} aria-hidden="true">
+                  {stan === "zrobiony" ? <Ikona nazwa="ok" rozmiar={16} /> : i + 1}
+                </span>
+                <span className="nazwa-etapu">{nazwa}</span>
+                <span className="meta">{opis}</span>
+                {onEtap && stan !== "przyszly" && <Ikona nazwa="dalej" rozmiar={20} />}
+              </>
+            );
             return (
-              <li key={nazwa} className={stan}>
-                <div className="etap">
-                  <span className={`znak-etapu ${stan}`} aria-hidden="true">
-                    {stan === "zrobiony" ? <Ikona nazwa="ok" rozmiar={16} /> : i + 1}
-                  </span>
-                  <span className="nazwa-etapu">{nazwa}</span>
-                  <span className="meta">{opis}</span>
-                </div>
+              <li key={nazwa} className={stan} aria-current={stan === "biezacy" ? "step" : undefined}>
+                {onEtap && stan !== "przyszly" ? (
+                  <button type="button" className="etap" onClick={() => onEtap(i)}>
+                    {tresc}
+                  </button>
+                ) : (
+                  <div className="etap">{tresc}</div>
+                )}
               </li>
             );
           })}
         </ol>
       )}
       <LiniaSamooceny ocena={dane.ocena} />
+      <PoprzednieOceny osoba={osoba} mapa={dane.mapa} />
+    </div>
+  );
+}
+
+/** Poprzednie oceny z kartoteki QNT; oceny cząstkowe ostatniej okresowej tylko dla przełożonego (mapa). */
+function PoprzednieOceny({ osoba, mapa }: { osoba: Pracownik; mapa: MapaKompetencji | null }) {
+  const o = osoba.ostatnia_ocena_okresowa;
+  const p = osoba.pierwsza_ocena;
+  return (
+    <div className="poprzednie">
+      <span className="kafel-etykieta">Poprzednie oceny</span>
+      {o && (
+        <p className="zero">
+          Ocena okresowa <span className={`status ${o.wynik}`}>{o.wynik}</span>{" "}
+          <span className="meta">sporządzona {data(o.data)}</span>
+        </p>
+      )}
+      {o && <OcenyCzastkowe mapa={mapa} osoba={osoba} bezNaglowka />}
+      {p && (
+        <p className="zero">
+          Pierwsza ocena{" "}
+          <span className="meta">
+            {p.egzamin_sluzba_przygotowawcza === "zaliczony"
+              ? "egzamin ze służby przygotowawczej zaliczony"
+              : p.egzamin_sluzba_przygotowawcza === "brak"
+                ? "egzamin ze służby przygotowawczej jeszcze niezdany"
+                : "służba przygotowawcza nie dotyczy"}
+          </span>
+        </p>
+      )}
+      {!o && !p && <p className="meta zero">W kartotece QNT nie ma jeszcze żadnej oceny.</p>}
+      <p className="meta zero">Źródło: kartoteka QNT</p>
+    </div>
+  );
+}
+
+/** Opis stanowiska widoczny, ale skrócony: cel i zadania dominujące w 2 liniach; reszta po „Cały opis stanowiska”. */
+function OpisStanowiska({ osp }: { osp: NonNullable<AnalizaKroku1["osp"]> }) {
+  const [caly, setCaly] = useState(false);
+  return (
+    <div className={`sekcja opis-stanowiska${caly ? "" : " skrocone"}`}>
+      <h2>Opis stanowiska</h2>
+      <p className="meta zero">
+        OSP {osp.symbol} · {osp.zadania_dominujace.length} zadania dominujące
+      </p>
+      <span className="kafel-etykieta">Cel stanowiska</span>
+      <p className="zero cel-stanowiska">{osp.cel.tekst}</p>
+      <span className="kafel-etykieta">Zadania dominujące</span>
+      <ol className="zadania-karty">
+        {osp.zadania_dominujace.map((z) => (
+          <li key={z.nr}>
+            <span className="tekst-zadania">{z.tekst}</span>
+          </li>
+        ))}
+      </ol>
+      {caly && osp.kompetencje_miekkie.lista.length > 0 && (
+        <>
+          <span className="kafel-etykieta">Kompetencje miękkie z opisu</span>
+          <div className="etykiety">
+            {osp.kompetencje_miekkie.lista.map((k) => (
+              <span key={k} className="znacznik">
+                {k}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+      <button type="button" className="link" aria-expanded={caly} onClick={() => setCaly(!caly)}>
+        {caly ? "Zwiń opis stanowiska" : "Cały opis stanowiska"}
+      </button>
     </div>
   );
 }

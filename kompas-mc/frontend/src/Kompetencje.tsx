@@ -149,16 +149,12 @@ export function MapaKompetencji({
 }
 
 /** Karta pracownika: oceny cząstkowe ostatniej oceny z akt (bieżącą pokazuje sekcja ocen kryteriów). */
-export function OcenyCzastkowe({ mapa, osoba }: { mapa: Mapa | null; osoba: Pracownik }) {
+/** `bezNaglowka`: same słupki pod linią poprzedniej oceny na karcie (#55). */
+export function OcenyCzastkowe({ mapa, osoba, bezNaglowka }: { mapa: Mapa | null; osoba: Pracownik; bezNaglowka?: boolean }) {
   const o = mapa?.osoby.find((x) => x.osoba_id === osoba.osoba_id && x.zrodlo === "ostatnia_ocena");
   if (!mapa || !o) return null;
   const max = Math.max(...mapa.skala);
-  return (
-    <div className="sekcja">
-      <h2>Ostatnia ocena: kryteria</h2>
-      <p className="meta zero">
-        Oceny cząstkowe z oceny okresowej {o.data ? `z ${data(o.data)}` : ""} (akta), skala 1–{max} pkt
-      </p>
+  const slupki = (
       <ul className="slupki">
         {mapa.kryteria
           .filter((k) => o.punkty[k.kompetencja_id] !== undefined)
@@ -175,6 +171,15 @@ export function OcenyCzastkowe({ mapa, osoba }: { mapa: Mapa | null; osoba: Prac
             );
           })}
       </ul>
+  );
+  if (bezNaglowka) return slupki;
+  return (
+    <div className="sekcja">
+      <h2>Ostatnia ocena: kryteria</h2>
+      <p className="meta zero">
+        Oceny cząstkowe z oceny okresowej {o.data ? `z ${data(o.data)}` : ""} (akta), skala 1–{max} pkt
+      </p>
+      {slupki}
     </div>
   );
 }

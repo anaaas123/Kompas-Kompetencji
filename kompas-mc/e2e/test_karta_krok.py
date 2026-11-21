@@ -72,3 +72,27 @@ def test_karta_otwiera_kroki_3_5_jednym_kliknieciem(przegladarka, proces_w_kroku
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(ZRZUTY / f"karta-krok5-kroki-3-5-{tryb}.png"))
     page.close()
+
+
+def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_5):
+    """#55: etap zrobiony „Ustalenie kryteriów” otwiera krok 2 procesu, bieżący „Ocena” kroki 3–5; przyszłych brak."""
+    _, b = przegladarka
+    tryb = os.environ.get("TRYB", "light")
+    page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=tryb)
+    page.goto(URL)
+    page.fill('input[aria-label="Login"]', "przelozony1")
+    page.fill('input[aria-label="Hasło"]', "demo")
+    page.click("form.logowanie-formularz button")
+    page.wait_for_selector(".powloka")
+    page.locator(".lista button.pozycja", has_text="Maj-Demo").first.click()
+
+    etapy = page.locator(".cykl .etapy button.etap")
+    expect(etapy).to_have_count(3)
+    etapy.filter(has_text="Ustalenie kryteriów").click()
+    expect(page.get_by_text("Krok 2 z 8")).to_be_visible()
+
+    page.locator("nav.menu button.poz", has_text="Pulpit").click()
+    page.locator(".lista button.pozycja", has_text="Maj-Demo").first.click()
+    page.locator(".cykl li.biezacy button.etap").click()
+    expect(page.get_by_text(re.compile(r"^Kroki 3–5"))).to_be_visible()
+    page.close()
