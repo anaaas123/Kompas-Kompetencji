@@ -1,0 +1,27 @@
+# Cele rozwojowe pracownika (spec #2, ticket #10). Kod: kompas_mc/cele.py i cele_api.py.
+# Cele należą do pracownika, nie do procesu oceny.
+
+# true: pracownik tworzy i zmienia cele, a zmiana treści przywraca status „propozycja”.
+# false: cele tworzy i zmienia tylko przełożony.
+# W obu trybach akceptację daje przełożony; pracownik może ustawić „w_realizacji” i zgłosić
+# osiągnięcie, a „osiągnięty” potwierdza przełożony.
+pracownik_moze_edytowac: true
+
+regula:
+  id: cele.akceptacja-przelozonego
+  opis: >-
+    Cel rozwojowy zaczyna się jako propozycja i obowiązuje dopiero po zatwierdzeniu przez
+    przełożonego. Odrzucenie wymaga komentarza. Podpowiedzi celów nic nie zapisują.
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: 6.2.5.4
+      strona: 29
+      cytat_dosłowny: >-
+        Każde kryterium, w odniesieniu, do którego została wystawiona ocena poniżej „poziomu
+        oczekiwań”, stanowi obszar rozwojowy pracownika
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Materiały MC nie opisują celów rozwojowych poza wnioskami do IPRZ. Spec #2: cele należą
+        do pracownika, akceptuje je przełożony, a asystent tylko proponuje.
+      zatwierdził: Hubert Nowak

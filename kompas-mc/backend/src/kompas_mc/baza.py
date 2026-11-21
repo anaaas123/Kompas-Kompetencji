@@ -6,7 +6,7 @@ import sqlite3
 import threading
 from pathlib import Path
 
-WERSJA_SCHEMATU = "8"
+WERSJA_SCHEMATU = "9"
 
 
 CZAS_OCZEKIWANIA_S = 30
@@ -96,6 +96,13 @@ def polacz(plik: str | Path) -> Baza:
     conn.execute(
         "CREATE TABLE IF NOT EXISTS samoocena_pozycje (proces_id INTEGER NOT NULL, wskaznik_id TEXT NOT NULL,"
         " poziom INTEGER, brak_zdania INTEGER NOT NULL, przyklad TEXT, PRIMARY KEY (proces_id, wskaznik_id))"
+    )
+    # Cele rozwojowe (#10): należą do pracownika, nie do procesu oceny.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS cele (id INTEGER PRIMARY KEY, osoba_id TEXT NOT NULL, nazwa TEXT NOT NULL,"
+        " opis TEXT NOT NULL, wskaznik_id TEXT, miernik TEXT NOT NULL, termin TEXT NOT NULL, status TEXT NOT NULL,"
+        " komentarz TEXT, zgloszono_osiagniecie INTEGER NOT NULL, autor TEXT NOT NULL, utworzono TEXT NOT NULL,"
+        " zmieniono TEXT NOT NULL)"
     )
     conn.execute(
         "INSERT OR IGNORE INTO meta (klucz, wartosc) VALUES ('wersja_aplikacji', 'mc-bdg')"

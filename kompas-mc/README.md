@@ -105,6 +105,28 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 
   Sugestia nigdy nie wpisuje oceny sama.
 
+## Cele rozwojowe
+
+Cele należą do pracownika, nie do procesu oceny. Cel ma nazwę, opis, opcjonalny wskaźnik z modelu kompetencji, miernik, termin i status: `propozycja` → `zatwierdzony` → `w_realizacji` → `osiągnięty` albo `porzucony`. Odrzucona propozycja ma status `odrzucony` i komentarz przełożonego. Każda zmiana trafia do dziennika zmian.
+
+Przełącznik `pracownik_moze_edytowac` w `konfiguracja/cele.yaml`:
+
+- `true`: pracownik tworzy i zmienia cele, a zmiana treści przywraca `propozycja`;
+- `false`: cele tworzy i zmienia tylko przełożony.
+
+W obu trybach cel zatwierdza przełożony. Pracownik ustawia `w_realizacji` i zgłasza osiągnięcie, a status `osiągnięty` potwierdza przełożony. Uprawnienia w `role.yaml`: `cele.czytaj` (przełożony, pracownik, HR), `cele.proponuj` (przełożony, pracownik), `cele.zatwierdz` (przełożony).
+
+- `GET /api/pracownicy/{osoba_id}/cele` zwraca cele osoby i wartość przełącznika.
+- `POST /api/pracownicy/{osoba_id}/cele {"nazwa", "opis", "wskaznik_id"?, "miernik", "termin"}` tworzy cel ze statusem `propozycja` (201). Pracownik przy `false` dostaje 403, a wskaźnik spoza modelu daje 422.
+- `PUT /api/cele/{id}` zmienia treść. Zmiana przez pracownika przywraca `propozycja`; zmiana przez przełożonego zostawia status. Cel `osiągnięty` albo `porzucony`: 409.
+- `POST /api/cele/{id}/zatwierdz` (przełożony, tylko z `propozycja`).
+- `POST /api/cele/{id}/odrzuc {"komentarz"}` (przełożony, tylko z `propozycja`). Pusty komentarz: 422.
+- `POST /api/cele/{id}/status {"status": "w_realizacji" | "osiągnięty" | "porzucony"}`. `w_realizacji` tylko z `zatwierdzony`. `osiągnięty` od pracownika ustawia `zgloszono_osiagniecie`, a od przełożonego zmienia status. `porzucony` ustawia przełożony.
+- `GET /api/cele/{id}/historia` zwraca dziennik zmian celu.
+- `GET /api/pracownicy/{osoba_id}/cele/podpowiedzi` zwraca propozycje celów ze wskaźników ocenionych poniżej 5 w ostatnim procesie (reguły z `rozwoj.yaml`). Podpowiedzi mają status `propozycja` i niczego nie zapisują. Pracownik widzi podpowiedzi z oceny w toku dopiero po przekazaniu samooceny.
+
+Zakazane przejście zwraca 409, a akcja spoza roli 403.
+
 ## Testy i walidator
 
 ```sh
