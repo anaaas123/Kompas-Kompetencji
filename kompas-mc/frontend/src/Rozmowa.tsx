@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BladApi, pobierzOcene, przygotujRozmowe, type DaneRozmowy, type PlanRozmowy, type Pracownik, type ProcesOceny, type PytanieRozmowy, type StanOceny } from "./api";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { BladApi, pobierzOcene, przygotujRozmowe, pytajWczacieRozmowy, type DaneRozmowy, type OdpowiedzCzatuRozmowy, type PlanRozmowy, type Pracownik, type ProcesOceny, type PytanieRozmowy, type StanOceny } from "./api";
 import { AgendaRozbieznosci } from "./Samoocena";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
@@ -227,6 +227,11 @@ export function Rozmowa({
       </section>
 
       <section>
+        <h2>Zapytaj asystenta o rozmowę</h2>
+        <CzatRozmowy token={token} procesId={proces.id} />
+      </section>
+
+      <section>
         <details className="pozostale">
           <summary>Dane do planu (opcjonalnie)</summary>
           <fieldset className="formularz" disabled={czekam}>
@@ -260,5 +265,94 @@ export function Rozmowa({
 
       {dalej}
     </>
+  );
+}
+
+interface WymianaCzatu {
+  id: number;
+  pytanie: string;
+  odpowiedz?: OdpowiedzCzatuRozmowy;
+  blad?: string;
+}
+
+function CzatRozmowy({ token, procesId }: { token: string; procesId: number }) {
+  const [pytanie, setPytanie] = useState("");
+  const [historia, setHistoria] = useState<WymianaCzatu[]>([]);
+  const [czekam, setCzekam] = useState(false);
+
+  async function wyslij(e: FormEvent) {
+    e.preventDefault();
+    const tekst = pytanie.trim();
+    if (!tekst || czekam) return;
+    const id = Date.now();
+    setHistoria((h) => [...h, { id, pytanie: tekst }]);
+    setPytanie("");
+    setCzekam(true);
+    try {
+      const odpowiedz = await pytajWczacieRozmowy(token, procesId, tekst);
+      setHistoria((h) => h.map((w) => (w.id === id ? { ...w, odpowiedz } : w)));
+    } catch (err) {
+      setHistoria((h) => h.map((w) => (w.id === id ? { ...w, blad: opisBledu(err) } : w)));
+    } finally {
+      setCzekam(false);
+    }
+  }
+
+  return (
+    <div className="czat">
+      <p className="opis">
+        Asystent korzysta z materiałów oraz pseudonimizowanego kontekstu tej oceny. Nie podejmuje decyzji za przełożonego.
+      </p>
+      <ol className="rozmowa" aria-live="polite">
+        {historia.map((w) => (
+          <li key={w.id}>
+            <p className="pytanie">{w.pytanie}</p>
+            {!w.odpowiedz && !w.blad && <p className="meta">Szukam w źródłach…</p>}
+            {w.blad && <p className="blad">{w.blad}</p>}
+            {w.odpowiedz && <OdpowiedzCzatu odpowiedz={w.odpowiedz} />}
+          </li>
+        ))}
+      </ol>
+      <form onSubmit={wyslij}>
+        <textarea
+          rows={2}
+          aria-label="Pytanie do asystenta rozmowy"
+          placeholder="Np. jak przekazać ocenę 3 za współpracę?"
+          value={pytanie}
+          onChange={(e) => setPytanie(e.target.value)}
+        />
+        <div className="wiersz">
+          <span className="meta">Historia pozostaje w tej sesji.</span>
+          <button className="jasny" disabled={czekam || !pytanie.trim()}>
+            {czekam ? "Szukam…" : "Zapytaj"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function OdpowiedzCzatu({ odpowiedz }: { odpowiedz: OdpowiedzCzatuRozmowy }) {
+  if (!odpowiedz.znaleziono) {
+    return <p className="brak">{odpowiedz.komunikat} Asystent nie odpowiada bez źródła.</p>;
+  }
+  return (
+    <div className="odpowiedz">
+      <p className="brak">{odpowiedz.oznaczenie_sugestii}</p>
+      {odpowiedz.tresc && <p>{odpowiedz.tresc}</p>}
+      {odpowiedz.cytaty.map((cytat) => (
+        <article className="cytat" key={cytat.fragment_id}>
+          <div className="zrodlo">
+            <strong>{cytat.dokument}</strong>
+            {cytat.lokalizator && <> · {cytat.lokalizator}</>}
+            {cytat.strona && <> · s. {cytat.strona}</>}
+          </div>
+          <blockquote>{cytat.wyrozniony || cytat.cytat}</blockquote>
+        </article>
+      ))}
+      <p className="meta">
+        Tryb: {odpowiedz.tryb} · dostawca: {odpowiedz.dostawca}
+      </p>
+    </div>
   );
 }

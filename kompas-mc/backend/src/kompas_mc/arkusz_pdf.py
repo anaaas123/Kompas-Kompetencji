@@ -257,10 +257,18 @@ def arkusz_pdf(
     *,
     drukuj_czesc_iii: bool,
     wersja: str,
+    tylko_czesc_i: bool = False,
 ) -> bytes:
-    """Składa druk B albo C z wartości przygotowanych przez proces oceny."""
+    """Składa druk B albo C z wartości przygotowanych przez proces oceny.
+
+    ``tylko_czesc_i`` drukuje samą część I do podpisu po rozmowie na początku okresu
+    (rozp. 2016 § 5 ust. 3 i § 6 ust. 2–3).
+    """
     litera = _LITERY[wzor["id"]]
-    sekcje = wzor["sekcje"] if drukuj_czesc_iii else wzor["sekcje"][:2]
+    if tylko_czesc_i:
+        sekcje = wzor["sekcje"][:1]
+    else:
+        sekcje = wzor["sekcje"] if drukuj_czesc_iii else wzor["sekcje"][:2]
     pola = {
         pole["id"]: wartosci.get(pole["id"])
         for sekcja in sekcje
@@ -272,11 +280,16 @@ def arkusz_pdf(
         pola,
         Stopka(
             wersja,
-            hash_tresci({"wzor": wzor["zrodlo"], "czesc_iii": drukuj_czesc_iii, "wartosci": pola}),
+            hash_tresci({
+                "wzor": wzor["zrodlo"], "czesc_iii": drukuj_czesc_iii, "wartosci": pola,
+                **({"tylko_czesc_i": True} if tylko_czesc_i else {}),
+            }),
             KOMUNIKAT_PODPIS,
         ),
     )
     dokument.czesc_i(litera, wzor["zrodlo"]["zalacznik"])
+    if tylko_czesc_i:
+        return dokument.bajty()
     dokument.nowa_strona()
     dokument.czesc_ii_ocena()
     dokument.nowa_strona()

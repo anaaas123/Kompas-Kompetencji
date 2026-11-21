@@ -168,7 +168,9 @@ class Asystent:
 
     # --- API --------------------------------------------------------------------------
 
-    def odpowiedz(self, pytanie: str, sciezka: Sciezka | None = None) -> OdpowiedzAsystenta:
+    def odpowiedz(
+        self, pytanie: str, sciezka: Sciezka | None = None, kontekst: str | None = None
+    ) -> OdpowiedzAsystenta:
         brak = OdpowiedzAsystenta(
             pytanie=pytanie, sciezka=sciezka, znaleziono=False, komunikat=self.konf.komunikat_brak
         )
@@ -201,7 +203,11 @@ class Asystent:
                 Zapytanie(
                     operacja="asystent_formalny",
                     prompt_wersja=self.konf.wersja,
-                    pytanie=rozwiniete,
+                    pytanie=(
+                        f"{rozwiniete}\n\nKONTEKST PROCESU (dane pseudonimizowane):\n{kontekst}"
+                        if kontekst
+                        else rozwiniete
+                    ),
                     fragmenty=wybrane,
                 ),
                 self.dostawcy,

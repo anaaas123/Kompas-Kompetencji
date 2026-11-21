@@ -8,6 +8,7 @@ export function Kafel({
   opis,
   ton,
   onClick,
+  wybrany,
 }: {
   etykieta: string;
   wartosc: ReactNode;
@@ -15,6 +16,8 @@ export function Kafel({
   opis: ReactNode;
   ton?: "uwaga" | "zle";
   onClick?: () => void;
+  /** Kafel działa jak filtr listy: włączony stan widać na kaflu (aria-pressed). */
+  wybrany?: boolean;
 }) {
   const tresc = (
     <>
@@ -24,7 +27,7 @@ export function Kafel({
     </>
   );
   return onClick ? (
-    <button type="button" className="kafel" onClick={onClick}>
+    <button type="button" className="kafel" aria-pressed={wybrany} onClick={onClick}>
       {tresc}
     </button>
   ) : (

@@ -218,11 +218,12 @@ kwestie_do_omowienia:
 # Ochrona danych: co wolno wysłać do opcjonalnego modelu redakcyjnego.
 # ---------------------------------------------------------------------------------------
 dane_dla_modelu:
-  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp]
-  zabronione: [imie, nazwisko, osoba_id, przyklad, notatka, fragment_sprawozdania, cel]
+  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp, przyklad]
+  zabronione: [imie, nazwisko, komorka, osoba_id]
   adnotacje:
     - kategoria: DECYZJA_PROJEKTOWA
       uzasadnienie: >-
-        Dane osobowe nie trafiają do zewnętrznego modelu. Przykłady, notatki i
-        sprawozdanie mogą zawierać dane osobowe, więc zostają w trybie deterministycznym.
+        Dane identyfikujące nie trafiają do zewnętrznego modelu. Imiona, nazwiska,
+        komórki i identyfikatory są zastępowane etykietami przed zbudowaniem zapytania;
+        ta sama pseudonimizacja obejmuje treść przykładów.
       zatwierdził: osoba D
