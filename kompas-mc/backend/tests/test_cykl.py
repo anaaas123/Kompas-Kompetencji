@@ -92,3 +92,16 @@ def test_proces_w_aplikacji_przesuwa_etap(klient, h):
 def test_zakres_jak_w_liscie_pracownikow(klient, h):
     assert set(cykl(klient, h("oceniany"))) == {"P-101"}
     assert len(cykl(klient, h("hr"))) == 11
+
+
+def test_okno_oceny_koncowej_z_konfiguracji(ustawienia):
+    from kompas_mc.cykl import etap_okresowej
+    from kompas_mc.qnt import MockQnt
+    from kompas_mc.terminy_okresowej import KonfiguracjaTerminow
+
+    konf = KonfiguracjaTerminow.z_pliku(ustawienia.terminy_okresowej)
+    robert = MockQnt.z_pliku(ustawienia.qnt).pracownik("P-105")  # termin oceny 03.12.2026, za 12 dni
+    assert konf.okno_oceny_koncowej.liczba == 60
+    assert etap_okresowej(robert, None, konf, DZIS, DZIS).etap == "ocena"
+    krotsze = konf.model_copy(update={"okno_oceny_koncowej": konf.okno_oceny_koncowej.model_copy(update={"liczba": 10})})
+    assert etap_okresowej(robert, None, krotsze, DZIS, DZIS).etap == "okres"
