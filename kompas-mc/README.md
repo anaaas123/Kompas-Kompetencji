@@ -125,6 +125,16 @@ W obu trybach cel zatwierdza przełożony. Pracownik ustawia `w_realizacji` i zg
 - `GET /api/cele/{id}/historia` zwraca dziennik zmian celu.
 - `GET /api/pracownicy/{osoba_id}/cele/podpowiedzi` zwraca propozycje celów ze wskaźników ocenionych poniżej 5 w ostatnim procesie (reguły z `rozwoj.yaml`). Podpowiedzi mają status `propozycja` i niczego nie zapisują. Pracownik widzi podpowiedzi z oceny w toku dopiero po przekazaniu samooceny.
 
+### Podpowiedzi celów z LLM i RAG
+
+Endpoint podpowiedzi najpierw pyta LLM (łańcuch z `asystent.yaml` bez dostawcy ekstrakcyjnego, ustawienia w `cele.yaml`, sekcja `llm`). Model dostaje:
+
+- fragmenty `Model_kompetencji.xlsx` dla ocenionych wskaźników (wskaźnik i opisy poziomów);
+- strony poradników o wnioskach rozwojowych i IPRZ (`llm.zrodla`);
+- pseudonimizowany kontekst: wskaźniki z ostatniego procesu, samoocenę po przekazaniu i istniejące cele. Imię, nazwisko, komórka ani identyfikator osoby nie trafiają do modelu.
+
+Model zwraca 1–3 cele SMART: nazwę, opis, miernik, termin, wskaźnik modelu i cytat. Cel ze wskaźnikiem spoza modelu albo z cytatem bez pokrycia w podanym fragmencie jest odrzucany, a powód trafia do pola `odrzucone`. Gdy LLM zawiedzie (np. brak `DEEPSEEK_API_KEY`) albo żaden cel nie przejdzie walidacji, API zwraca podpowiedzi regułowe (`zrodlo: "reguly"`). Każda podpowiedź ma status `propozycja`, oznaczenie „Sugestia asystenta – do edycji” i nigdy nie zapisuje się sama.
+
 Zakazane przejście zwraca 409, a akcja spoza roli 403.
 
 ## Testy i walidator
