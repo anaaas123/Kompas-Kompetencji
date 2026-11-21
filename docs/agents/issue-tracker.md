@@ -1,6 +1,7 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and specs for `harn0ld/Kompas-Kompetencji` live as GitHub issues. Use the
+`gh` CLI for all operations.
 
 ## Conventions
 

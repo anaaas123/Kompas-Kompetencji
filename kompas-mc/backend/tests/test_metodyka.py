@@ -1,4 +1,4 @@
-"""Wersje metodyki sugestii i mapowania 5→3 (#39): nowa wersja, zatwierdzenie, przypięcie do oceny.
+"""Wersje metodyki sugestii i mapowania 5→3: nowa wersja, zatwierdzenie, przypięcie do oceny.
 
 Scenariusz zmienia aktywną metodykę, więc działa na osobnej aplikacji i bazie.
 """
@@ -49,7 +49,7 @@ def test_zmiana_metodyki_tworzy_wersje_a_ocena_zapisuje_uzyta(app_m):
     assert stan["aktywna"] == "sugestia-mc-1"
     assert stan["wersje"][0]["status"] == "PROJEKT"
 
-    # Ocena A rozpoczęta według wersji 1: 7 → 7 pkt.
+    # Ocena A rozpoczęta według pierwszej metodyki: 7 → 7 pkt.
     url_a, h_a = _ocena_pierwsza(app_m, "P-203", "przelozony1", 7)
     a = app_m.get(f"{url_a}/ocena", headers=h_a).json()
     assert a["metodyka"]["id"] == "sugestia-mc-1"

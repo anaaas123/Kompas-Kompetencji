@@ -91,10 +91,10 @@ reguly:
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: >-
-          Zadanie wymaga, by asystent odpowiadał tylko z bazy wiedzy. Pomiar (#37): ani wynik
+          Zadanie wymaga, by asystent odpowiadał tylko z bazy wiedzy. Pomiar pokazał, że ani wynik
           BM25, ani pokrycie słów nie rozdzielają pytań z bazy i spoza bazy; pojęcie spoza
           korpusu rozdziela je na zestawie kontrolnym (6/6) i parafrazach (4/5).
-        zatwierdził: osoba D (#37) – do zatwierdzenia przez A w PR #52
+        zatwierdził: osoba D
 
   - id: asystent.przepis-przed-objasnieniem
     opis: >-
@@ -103,7 +103,7 @@ reguly:
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: Przepis jest podstawą, a poradnik go objaśnia.
-        zatwierdził: osoba A (integrator)
+        zatwierdził: osoba A
 
   - id: asystent.przygotowany-zestaw-pytan
     opis: >-
@@ -115,7 +115,7 @@ reguly:
           Treść zadania (pkt 5) wymienia „przygotowany zestaw pytań i odpowiedzi” jako część
           bazy wiedzy. Samo wyszukiwanie: 14/22 pytań kontrolnych; z FAQ: 22/22, parafrazy
           15/22 (parafrazy napisane przed FAQ, nie służą do strojenia).
-        zatwierdził: osoba D (#37) – do zatwierdzenia przez A w PR #52
+        zatwierdził: osoba D
 
   - id: kontrola.rozmowa-wstepna
     opis: >-

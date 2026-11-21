@@ -1,4 +1,4 @@
-"""Ustawienia wersji MC BDG. Każde można nadpisać zmienną środowiskową."""
+"""Ustawienia aplikacji. Każde można nadpisać zmienną środowiskową."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 KATALOG_MC = Path(__file__).resolve().parents[3]  # kompas-mc/
-PORT_DOMYSLNY = 8002  # wersja 1 używa 8001
+PORT_DOMYSLNY = 8002
 
 
 @dataclass(frozen=True)

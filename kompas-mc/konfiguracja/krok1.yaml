@@ -152,7 +152,7 @@ arkusze:
           sporządzenia oceny zatrudnionego na stanowisku kierownika urzędu
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: Grafika ścieżek MC pokazuje dla oceny okresowej tylko formularze B i C.
-        zatwierdził: osoba A (integrator)
+        zatwierdził: osoba A
   PIERWSZA:
     id: arkusz.pierwsza
     opis: Pierwsza ocena ⇒ arkusz pierwszej oceny (§ 4 ust. 5, zał. 2 rozp. 2015).

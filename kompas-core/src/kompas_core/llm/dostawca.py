@@ -335,7 +335,7 @@ def z_konfiguracji(konfiguracja: dict[str, Any]) -> list[LlmProvider]:
           - {typ: zapisane, plik: demo/llm.json}
           - {typ: ekstrakcyjny}
 
-    ``dozwolone`` (opcjonalnie) ogranicza typy, np. wersja MC: ``[ollama, zapisane,
+    ``dozwolone`` (opcjonalnie) ogranicza typy, np. ``[ollama, zapisane,
     ekstrakcyjny]``; typ spoza listy ⇒ ``ValueError``.
     """
     dozwolone = konfiguracja.get("dozwolone")

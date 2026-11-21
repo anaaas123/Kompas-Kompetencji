@@ -1,7 +1,7 @@
 """Kontrakt modułu źródeł: adnotacja źródłowa, fragment korpusu, rozbieżność.
 
-Te typy są wspólnym kontraktem dla wszystkich modułów obu wersji. Klucze JSON/YAML
-są po polsku, tak jak w specyfikacji (#2, #3), np. ``cytat_dosłowny``. W Pythonie
+Te typy są wspólnym kontraktem dla wszystkich modułów aplikacji. Klucze JSON/YAML
+są po polsku, tak jak w specyfikacji, np. ``cytat_dosłowny``. W Pythonie
 pola mają nazwy bez polskich znaków (``cytat_doslowny``); oba warianty są
 przyjmowane na wejściu, a na wyjściu (``model_dump(by_alias=True)``) obowiązuje
 wariant ze specyfikacji.
@@ -18,8 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class Kategoria(StrEnum):
     """Kategoria adnotacji źródłowej.
 
-    ``FUNKCJA_APLIKACJI`` (wersja 1) i ``DECYZJA_PROJEKTOWA`` (wersja MC) to ta sama
-    kategoria pod dwiema nazwami: obie wymagają uzasadnienia i zatwierdzającego.
+    ``FUNKCJA_APLIKACJI`` i ``DECYZJA_PROJEKTOWA`` wymagają uzasadnienia i
+    zatwierdzającego.
     """
 
     PRZEPIS = "PRZEPIS"

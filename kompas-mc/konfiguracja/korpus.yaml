@@ -1,7 +1,7 @@
-# Korpus wersji MC BDG. Źródła: wyłącznie folder „materialy mc” (tylko do odczytu).
+# Korpus aplikacji. Źródła: wyłącznie folder „materialy mc” (tylko do odczytu).
 # Ścieżki plików są względne wobec tego pliku. Inny manifest: zmienna KOMPAS_MC_MANIFEST.
 #
-# Pola wersji MC (core czyta tylko doc_id, doc_version i plik):
+# Pola aplikacji (core czyta tylko doc_id, doc_version i plik):
 #   nazwa      – nazwa pokazywana użytkownikowi
 #   sciezka    – pierwsza | okresowa | wspolne (asystent filtruje fragmenty według ścieżki)
 #   kategoria  – kategoria cytatów z tego dokumentu (PRZEPIS | OBJAŚNIENIE_MATERIAŁU)
