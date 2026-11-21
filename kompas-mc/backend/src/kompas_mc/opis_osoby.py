@@ -82,6 +82,11 @@ def _lata(n: int) -> str:
     return f"{n} lata" if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else f"{n} lat"
 
 
+def _data(d: date) -> str:
+    """Data jak na ekranie i w arkuszu: 15.10.2027."""
+    return d.strftime("%d.%m.%Y")
+
+
 def _dni(n: int) -> str:
     return "1 dzień" if n == 1 else f"{n} dni"
 
@@ -105,7 +110,7 @@ def fakty(
     staz = dzis.year - d.year - ((dzis.month, dzis.day) < (d.month, d.day))
     umowa = "umowa na czas nieokreślony"
     if p.rodzaj_umowy == "okreslony":
-        umowa = "umowa na czas określony" + (f" do {p.data_konca_zatrudnienia}" if p.data_konca_zatrudnienia else "")
+        umowa = "umowa na czas określony" + (f" do {_data(p.data_konca_zatrudnienia)}" if p.data_konca_zatrudnienia else "")
     w = [
         Fakt(id="kadry.stanowisko", tekst=f"stanowisko: {p.stanowisko}", zrodlo=KADRY),
         Fakt(id="kadry.korpus", tekst=_KORPUS[p.korpus], zrodlo=KADRY),
@@ -116,16 +121,16 @@ def fakty(
             tekst="kieruje pracownikami" if p.kieruje_pracownikami else "nie kieruje pracownikami",
             zrodlo=KADRY,
         ),
-        Fakt(id="cykl.etap", tekst=f"{_SCIEZKA[etap.sciezka]}: {etap.czynnosc}", zrodlo=CYKL),
+        Fakt(id="cykl.etap", tekst=f"{_SCIEZKA[etap.sciezka]}, teraz: {etap.czynnosc.lower()}", zrodlo=CYKL),
     ]
     if etap.termin is not None and etap.dni_do_terminu is not None:
         n = etap.dni_do_terminu
         kiedy = "dziś" if n == 0 else f"za {_dni(n)}" if n > 0 else f"{_dni(-n)} po terminie"
-        w.append(Fakt(id="cykl.termin", tekst=f"termin ({etap.termin.nazwa}): {etap.termin.data}, {kiedy}", zrodlo=CYKL))
+        w.append(Fakt(id="cykl.termin", tekst=f"{etap.termin.nazwa} do {_data(etap.termin.data)} ({kiedy})", zrodlo=CYKL))
 
     o = p.ostatnia_ocena_okresowa
     if o is not None:
-        w.append(Fakt(id="ocena.ostatnia", tekst=f"ostatnia ocena okresowa z {o.data}: {o.wynik}", zrodlo=KADRY))
+        w.append(Fakt(id="ocena.ostatnia", tekst=f"ostatnia ocena okresowa z {_data(o.data)}: {o.wynik}", zrodlo=KADRY))
         if oceny_czastkowe:
             # Od najwyżej do najniżej ocenionej kompetencji; szablon bierze pierwszą i ostatnią.
             for kid, pkt in sorted(o.oceny_czastkowe.items(), key=lambda x: -x[1]):
@@ -145,7 +150,7 @@ def fakty(
         kiedy_s, rozb = samoocena
         w.append(Fakt(
             id="samoocena",
-            tekst=f"samoocena przekazana {kiedy_s.date()}; wskaźniki z rozbieżnością samooceny i oceny przełożonego: {rozb}",
+            tekst=f"samoocena przekazana {_data(kiedy_s.date())}; wskaźniki z rozbieżnością samooceny i oceny przełożonego: {rozb}",
             zrodlo="samoocena",
         ))
     if cele is not None:

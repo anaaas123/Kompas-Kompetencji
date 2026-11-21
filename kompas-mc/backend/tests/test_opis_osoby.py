@@ -44,7 +44,7 @@ def test_szablon_przelozonego_z_ocena_czastkowa(k, h):
     assert 2 <= len(o["zdania"]) <= 4 and all(z["fakty"] for z in o["zdania"])
     assert "oceny_czastkowe.komunikacja" in _ids(o)
     assert any("Komunikacja – 3 pkt" in z["tekst"] for z in o["zdania"])
-    assert "radca" in o["zdania"][0]["tekst"] and "2027-10-15" in o["zdania"][1]["tekst"]
+    assert "radca" in o["zdania"][0]["tekst"] and "do 15.10.2027" in o["zdania"][1]["tekst"]
     # Szablon spełnia te same zasady co zdania z modelu (liczby z faktów, bez werdyktów).
     fakty = [Fakt(**f) for z in o["zdania"] for f in z["fakty"]]
     zdania = [{"tekst": z["tekst"], "fakty": [f["id"] for f in z["fakty"]]} for z in o["zdania"]]
@@ -123,7 +123,7 @@ class Atrapa:
 
 
 FAKTY = [
-    Fakt(id="cykl.termin", tekst="termin (sporządzenie oceny na piśmie): 2027-10-15, za 328 dni", zrodlo="cykl oceny"),
+    Fakt(id="cykl.termin", tekst="sporządzenie oceny na piśmie do 15.10.2027 (za 328 dni)", zrodlo="cykl oceny"),
     Fakt(id="oceny_czastkowe.komunikacja", tekst="Komunikacja – 3 pkt", zrodlo="ostatnia ocena okresowa"),
 ]
 
