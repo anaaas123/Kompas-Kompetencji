@@ -13,6 +13,7 @@ import { Powloka, type Widok } from "./Powloka";
 import { Pulpit } from "./Pulpit";
 import { Zespol } from "./Zespol";
 import { KartaPracownika } from "./KartaPracownika";
+import { MojaSamoocena } from "./Samoocena";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
@@ -26,6 +27,8 @@ export default function App() {
   const [pytanie, setPytanie] = useState<{ id: number; tekst: string } | null>(null);
   // Karta pracownika otwiera się przed krokiem 1; „Następny krok” na karcie ustawia ocenianego.
   const [karta, setKarta] = useState<Pracownik | null>(null);
+  // „Moja samoocena” (#9): proces otwarty z karty na koncie pracownika.
+  const [samoocena, setSamoocena] = useState<number | null>(null);
   const [oceniany, setOceniany] = useState<Pracownik | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
   const [etap, setEtap] = useState<Etap>("krok2");
@@ -45,6 +48,7 @@ export default function App() {
     setWidok("pulpit");
     setAsystent(false);
     setKarta(null);
+    setSamoocena(null);
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
@@ -54,6 +58,7 @@ export default function App() {
   const przejdz = useCallback((w: Widok) => {
     setWidok(w);
     setKarta(null);
+    setSamoocena(null);
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
@@ -151,12 +156,16 @@ export default function App() {
           onWstecz={() => setEtap("wynik")}
         />
       )}
-      {karta && !oceniany && (
+      {karta && samoocena !== null && (
+        <MojaSamoocena token={sesja.token} osoba={karta} procesId={samoocena} onWroc={() => setSamoocena(null)} />
+      )}
+      {karta && !oceniany && samoocena === null && (
         <KartaPracownika
           sesja={sesja}
           osoba={karta}
           onWroc={() => setKarta(null)}
           onOcen={() => setOceniany(karta)}
+          onSamoocena={setSamoocena}
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
         />

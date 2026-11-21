@@ -14,6 +14,7 @@ import {
   type WskaznikOceny,
 } from "./api";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
+import { LegendaPorownania, SamoocenaPrzyWskazniku, StatusSamoocenyPrzelozonego } from "./Samoocena";
 
 const POWTARZALNOSC = { JEDNORAZOWE: "jednorazowe", KILKAKROTNE: "kilkakrotne", REGULARNE: "regularne" } as const;
 const ZLOZONOSC = { NISKA: "niska", SREDNIA: "średnia", WYSOKA: "wysoka" } as const;
@@ -157,6 +158,7 @@ function Wskaznik({
           <span className="etykieta">{wybrany.etykieta}:</span> {wybrany.opis}
         </p>
       )}
+      <SamoocenaPrzyWskazniku w={w} />
       <details className="zadania-osp">
         <summary>Opisy poziomów</summary>
         {w.poziomy.map((p) => (
@@ -401,6 +403,8 @@ export function Ocena({
           Ocenione wskaźniki: {k.wskazniki_ocenione} z {k.wskazniki_wybrane} · oceny cząstkowe: {k.kryteria_z_decyzja} z{" "}
           {k.kryteria}
         </p>
+        <StatusSamoocenyPrzelozonego status={dane.samoocena_status} />
+        {dane.samoocena_status === "przekazana" && <LegendaPorownania />}
       </section>
 
       <section>

@@ -355,6 +355,10 @@ export interface WskaznikOceny {
   poziomy: { poziom: number; etykieta: string; opis: string }[];
   ocena: OcenaWskaznika | null;
   ostrzezenia: string[];
+  /** Samoocena pracownika (#8): tylko dla przełożonego i tylko po przekazaniu. */
+  samoocena?: { poziom: number | null; brak_zdania: boolean; przyklad: PrzykladSamooceny | null } | null;
+  /** |samoocena − ocena przełożonego| ≥ 4; null, gdy brak obu poziomów. */
+  rozbieznosc?: boolean | null;
 }
 
 export interface Sugestia {
@@ -388,6 +392,8 @@ export interface KryteriumOceny {
 }
 
 export interface StanOceny {
+  /** Status samooceny (#8), tylko dla przełożonego. */
+  samoocena_status?: StatusSamooceny | null;
   proces_id: number;
   sciezka: Sciezka;
   arkusz: "B" | "C" | "PIERWSZA";
@@ -397,6 +403,65 @@ export interface StanOceny {
   kryteria: KryteriumOceny[];
   kompletnosc: { wskazniki_ocenione: number; wskazniki_wybrane: number; kryteria_z_decyzja: number; kryteria: number };
   ostrzezenia: string[];
+}
+
+/* Samoocena pracownika (#8, #9). Nie wpływa na sugestię ani na ocenę. */
+
+export type StatusSamooceny = "brak" | "szkic" | "przekazana";
+
+export interface PrzykladSamooceny {
+  sytuacja: string;
+  dzialanie: string;
+  rezultat: string;
+}
+
+export interface PozycjaSamooceny {
+  poziom: number | null;
+  brak_zdania: boolean;
+  przyklad: PrzykladSamooceny | null;
+}
+
+export interface WskaznikSamooceny {
+  wskaznik_id: string;
+  nazwa: string;
+  kompetencja_id: string;
+  kryterium: string;
+  poziomy: { poziom: number; etykieta: string; opis: string }[];
+  pozycja: PozycjaSamooceny | null;
+}
+
+export interface Samoocena {
+  proces_id: number;
+  status: StatusSamooceny;
+  przekazano: string | null;
+  tresc_widoczna: boolean;
+  wskazniki: WskaznikSamooceny[];
+  wypelniono: number;
+  wybrano: number;
+  regula: { id: string; opis: string; adnotacje: SourceRef[] };
+}
+
+const sciezkaSamooceny = (procesId: number) => `/api/procesy/${procesId}/samoocena`;
+
+export const pobierzSamoocene = (token: string, procesId: number) =>
+  fetch(sciezkaSamooceny(procesId), { headers: autoryzacja(token) }).then((r) => odpowiedzApi<Samoocena>(r));
+
+export const zapiszSamoocene = (token: string, procesId: number, wskazniki: Record<string, PozycjaSamooceny | null>) =>
+  fetch(sciezkaSamooceny(procesId), {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ wskazniki }),
+  }).then((r) => odpowiedzApi<Samoocena>(r));
+
+export const przekazSamoocene = (token: string, procesId: number) =>
+  fetch(`${sciezkaSamooceny(procesId)}/przekaz`, { method: "POST", headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<Samoocena>(r),
+  );
+
+async function odpowiedzApi<T>(r: Response): Promise<T> {
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc as T;
 }
 
 export const pobierzOcene = (token: string, procesId: number) =>

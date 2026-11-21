@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BladApi, przygotujRozmowe, type DaneRozmowy, type PlanRozmowy, type Pracownik, type ProcesOceny, type PytanieRozmowy } from "./api";
+import { BladApi, pobierzOcene, przygotujRozmowe, type DaneRozmowy, type PlanRozmowy, type Pracownik, type ProcesOceny, type PytanieRozmowy, type StanOceny } from "./api";
+import { AgendaRozbieznosci } from "./Samoocena";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
 
@@ -33,6 +34,8 @@ export function Rozmowa({
   onDalej: () => void;
 }) {
   const [plan, setPlan] = useState<PlanRozmowy | null>(null);
+  // Samoocena przy rozmowie (#9): status i rozbieżności z GET /ocena (przełożony, po przekazaniu).
+  const [stanOceny, setStanOceny] = useState<StanOceny | null>(null);
   const [pytania, setPytania] = useState<Record<string, string>>({});
   const [mocne, setMocne] = useState("");
   const [rozwoj, setRozwoj] = useState("");
@@ -69,6 +72,10 @@ export function Rozmowa({
   useEffect(() => {
     if (moznaProwadzic) przygotuj({});
   }, [moznaProwadzic, przygotuj]);
+
+  useEffect(() => {
+    pobierzOcene(token, proces.id).then(setStanOceny).catch(() => setStanOceny(null));
+  }, [token, proces.id]);
 
   const dalej = proces.sciezka === "okresowa" && (
     <section>
@@ -112,6 +119,7 @@ export function Rozmowa({
     return (
       <>
         {naglowek}
+        {stanOceny && <AgendaRozbieznosci stan={stanOceny} />}
         {dalej}
       </>
     );
@@ -120,6 +128,8 @@ export function Rozmowa({
   return (
     <>
       {naglowek}
+
+      {stanOceny && <AgendaRozbieznosci stan={stanOceny} />}
 
       <section>
         <h2>Zakres rozmowy</h2>
