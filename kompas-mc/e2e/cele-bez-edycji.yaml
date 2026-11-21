@@ -8,3 +8,23 @@ regula:
     - kategoria: DECYZJA_PROJEKTOWA
       uzasadnienie: Konfiguracja testowa (e2e), ta sama reguła co w konfiguracja/cele.yaml.
       zatwierdził: Hubert Nowak (spec #2, ticket #10)
+
+# Sekcja llm skopiowana z konfiguracja/cele.yaml (wymagana od #45); przy jej zmianie zaktualizuj też tutaj.
+llm:
+  wersja: cele-smart-1
+  maks_celow: 3
+  # Strony poradników o wnioskach rozwojowych i IPRZ dołączane do każdego zapytania
+  # (obok fragmentów modelu kompetencji dla ocenionych wskaźników).
+  zrodla:
+    - poradnik-okresowa#s29        # 6.2.5.4 Wnioski do IPRZ
+    - poradnik-okresowa#s41        # przykład arkusza: wnioski do IPRZ
+    - poradnik-okresowa#s44        # przykład arkusza: wnioski do IPRZ
+    - poradnik-pierwsza@2016#s33   # 6.5.4 wnioski dotyczące rozwoju zawodowego
+  adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Spec #2 ustala łańcuch openai_zgodny → ollama → ekstrakcyjny. Dostawca ekstrakcyjny zwraca
+        tylko fragmenty źródeł i nie ułoży celu SMART, dlatego przy podpowiedziach celów jego
+        miejsce zajmują podpowiedzi regułowe z rozwoj.yaml. Cel zwrócony przez model musi wskazać
+        wskaźnik z modelu kompetencji i cytat występujący w podanym fragmencie korpusu.
+      zatwierdził: Hubert Nowak

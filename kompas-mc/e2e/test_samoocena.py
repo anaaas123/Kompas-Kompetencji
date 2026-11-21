@@ -117,6 +117,10 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     _zrzut(page, f"krok3-przelozony-{tryb}")
 
     # Krok 6: samoocena na rozmowie, rozbieżność na górze z pytaniem do rozmowy.
+    # Kroki 3–5 idą po jednym wskaźniku (#46); do rozmowy przechodzi się z podsumowania.
+    plan = page.get_by_role("navigation", name="Plan oceny")
+    plan.get_by_role("button", name="Plan oceny").click()
+    plan.get_by_role("button", name="Podsumowanie").click()
     page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
     agenda = page.locator(".agenda")
     expect(agenda).to_contain_text("Samoocena na rozmowie")
