@@ -1,23 +1,17 @@
 import type { ReactNode } from "react";
 import type { Rola, Sciezka } from "./api";
-import AsystentFormalny from "./AsystentFormalny";
 import { Ikona, type NazwaIkony } from "./Ikona";
 import type { Sesja } from "./Konto";
-import { Wydra } from "./wydra/Wydra";
+import { OknoAsystenta } from "./OknoAsystenta";
 import znak from "./wydra/wydra-stoi.webp";
 
 /**
- * Powłoka wersji MC w stylu mObywatela: menu boczne z wydrą jako znakiem, treść i panel asystenta
- * formalnego z prawej. Panel zwęża stronę (nic nie zasłania); na telefonie menu jest dolnym paskiem.
+ * Powłoka wersji MC w stylu mObywatela: menu boczne z wydrą jako znakiem, treść i okno asystenta
+ * formalnego na środku ekranu; na telefonie menu jest dolnym paskiem.
  */
 export type Widok = "pulpit" | "pracownicy" | "zrodla";
 
 const NAZWA_ROLI: Record<Rola, string> = { przelozony: "przełożony", hr: "HR / administrator", oceniany: "oceniany" };
-const PRZYKLADY = [
-  "Kiedy przeprowadza się rozmowę wstępną?",
-  "Ile kryteriów dodatkowych można wybrać?",
-  "Ile dni ma pracownik na sprzeciw od oceny okresowej?",
-];
 
 interface Props {
   sesja: Sesja;
@@ -42,7 +36,7 @@ export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent
   ];
 
   return (
-    <div className={`powloka ${asystent ? "z-panelem" : ""}`}>
+    <div className="powloka">
       <nav className="menu" aria-label="Menu">
         <button type="button" className="znak" onClick={() => onWidok("pulpit")}>
           <img src={znak} alt="" width={40} height={45} />
@@ -88,23 +82,7 @@ export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent
         <div className="kolumna">{children}</div>
       </main>
 
-      {asystent && (
-        <aside className="panel-asystenta" aria-label="Asystent formalny">
-          <div className="panel-glowa">
-            <Wydra poza="stoi" szerokosc={56} naStart="machanie" />
-            <div>
-              <h2>Asystent formalny</h2>
-              <p className="meta">Odpowiada cytatem z materiałów MC</p>
-            </div>
-            <button type="button" className="ikona-przycisk" aria-label="Zamknij asystenta" onClick={() => onAsystent(false)}>
-              <Ikona nazwa="krzyz" />
-            </button>
-          </div>
-          <div className="panel-cialo">
-            <AsystentFormalny sciezka={sciezka} przyklady={PRZYKLADY} pytanieZZewnatrz={pytanie} />
-          </div>
-        </aside>
-      )}
+      <OknoAsystenta otwarte={asystent} onZamknij={() => onAsystent(false)} sciezka={sciezka} pytanie={pytanie} />
     </div>
   );
 }

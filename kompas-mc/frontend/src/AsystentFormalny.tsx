@@ -34,6 +34,15 @@ export default function AsystentFormalny({ sciezka, przyklady = [], pytanieZZewn
   const [rozmowa, setRozmowa] = useState<Wymiana[]>([]);
   const [czekam, setCzekam] = useState(false);
   const aktywna: Sciezka | null = sciezka ?? (wybrana || null);
+  const ostatnie = useRef<HTMLLIElement>(null);
+
+  // Nowe pytanie (i jego odpowiedź, gdy przyjdzie) przewija rozmowę do siebie, żeby odpowiedź czytać od początku.
+  const ostatnia = rozmowa[rozmowa.length - 1];
+  const gotowa = !!(ostatnia?.odpowiedz || ostatnia?.blad);
+  useEffect(() => {
+    const ruch = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    ostatnie.current?.scrollIntoView({ block: "start", behavior: ruch });
+  }, [rozmowa.length, gotowa]);
 
   async function zapytaj(tekst: string) {
     const t = tekst.trim();
@@ -68,10 +77,12 @@ export default function AsystentFormalny({ sciezka, przyklady = [], pytanieZZewn
 
   return (
     <div className="czat">
-      <p className="opis">
-        Odpowiada wyłącznie na podstawie materiałów MC i zawsze pokazuje źródło. Nie ocenia pracownika
-        – decyzja należy do przełożonego.
-      </p>
+      {rozmowa.length === 0 && (
+        <p className="opis">
+          Odpowiada wyłącznie na podstawie materiałów MC i zawsze pokazuje źródło. Nie ocenia pracownika
+          – decyzja należy do przełożonego.
+        </p>
+      )}
 
       {rozmowa.length === 0 && przyklady.length > 0 && (
         <div className="przyklady">
@@ -84,8 +95,8 @@ export default function AsystentFormalny({ sciezka, przyklady = [], pytanieZZewn
       )}
 
       <ol className="rozmowa" aria-live="polite">
-        {rozmowa.map((w) => (
-          <li key={w.id}>
+        {rozmowa.map((w, i) => (
+          <li key={w.id} ref={i === rozmowa.length - 1 ? ostatnie : undefined}>
             <p className="pytanie">
               {w.pytanie}
               {w.sciezka && <span className="znacznik">{NAZWA_SCIEZKI[w.sciezka]}</span>}
