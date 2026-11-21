@@ -27,10 +27,6 @@ from .qnt import MockQnt, Pracownik
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
 
-OKNO_OCENY_DNI = 60
-"""Decyzja projektowa, nie przepis: na tyle dni przed terminem ocena końcowa staje się bieżącą czynnością
-(poradnik, tab. 1: roboczy arkusz przygotowuje się „bezpośrednio przed rozmową oceniającą”)."""
-
 Etap = Literal["kryteria", "okres", "ocena", "brak_danych"]
 
 
@@ -89,14 +85,14 @@ def etap_okresowej(
         return _wynik(p, "okresowa", "kryteria", "Ustal kryteria", termin, dzis, proces, t.braki)
     if termin_oceny is None:
         return _wynik(p, "okresowa", "brak_danych", "Uzupełnij dane kadrowe", None, dzis, proces, t.braki)
-    if (termin_oceny.data - dzis).days <= OKNO_OCENY_DNI:
+    if (termin_oceny.data - dzis).days <= konf.okno_oceny_koncowej.liczba:
         return _wynik(p, "okresowa", "ocena", "Rozmowa oceniająca", termin_oceny, dzis, proces, t.braki)
     return _wynik(p, "okresowa", "okres", "Okres oceny", termin_oceny, dzis, proces, t.braki)
 
 
 def etap_pierwszej(
     p: Pracownik, proces: ProcesOceny | None, zapis: str | None,
-    konf: KonfiguracjaTerminowPierwszej, dzis: date,
+    konf: KonfiguracjaTerminowPierwszej, dzis: date, okno_oceny: int,
 ) -> EtapOsoby:
     dane = uzupelnij_z_kadr(ZapisDanychPierwszej.wczytaj(zapis).dane, p)
     try:
@@ -110,7 +106,7 @@ def etap_pierwszej(
     if t.pierwsza_ocena_do is None:
         return _wynik(p, "pierwsza", "brak_danych", "Uzupełnij dane kadrowe", None, dzis, proces, t.braki)
     termin = _termin("dokonanie pierwszej oceny", t.pierwsza_ocena_do)
-    if (proces and proces.krok >= 3) or (termin.data - dzis).days <= OKNO_OCENY_DNI:
+    if (proces and proces.krok >= 3) or (termin.data - dzis).days <= okno_oceny:
         return _wynik(p, "pierwsza", "ocena", "Pierwsza ocena", termin, dzis, proces, t.braki)
     return _wynik(p, "pierwsza", "okres", "Okres przed pierwszą oceną", termin, dzis, proces, t.braki)
 
@@ -123,7 +119,7 @@ def etap_osoby(
     if sciezka == "okresowa":
         return etap_okresowej(p, proces, konf_okresowej, dzis, od_kiedy)
     if sciezka == "pierwsza":
-        return etap_pierwszej(p, proces, zapis_pierwszej, konf_pierwszej, dzis)
+        return etap_pierwszej(p, proces, zapis_pierwszej, konf_pierwszej, dzis, konf_okresowej.okno_oceny_koncowej.liczba)
     return _wynik(p, None, "brak_danych", "Ustal ścieżkę oceny", None, dzis, proces,
                   ["Dane kadrowe nie rozstrzygają ścieżki; zobacz analizę w kroku 1."])
 

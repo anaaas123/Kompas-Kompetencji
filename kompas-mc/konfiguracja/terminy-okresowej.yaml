@@ -167,3 +167,21 @@ dzien_wolny:
       cytat_dosłowny: >-
         jeżeli termin do wykonania czynności przypada na dzień uznany ustawowo za wolny od pracy
         (niedziela lub święto), zgodnie z art. 115 Kodeksu cywilnego termin upływa dnia następnego
+okno_oceny_koncowej:
+  id: okresowa.okno-oceny-koncowej
+  liczba: 60
+  jednostka: dni
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 6.2, tab. 1
+      strona: 20
+      cytat_dosłowny: >-
+        przygotowanie bezpośrednio przed rozmową oceniającą wypełnionego na roboczo arkusza oceny
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Poradnik nie podaje liczby dni. Na tyle dni przed terminem sporządzenia oceny na piśmie
+        aplikacja pokazuje ocenę końcową jako bieżącą czynność (lista „Do zrobienia”, przycisk
+        „Oceń kompetencje”), żeby był czas na roboczy arkusz, rozmowę oceniającą i ocenę na piśmie.
+        Urząd może zmienić tę liczbę. Ta sama wartość obowiązuje dla pierwszej oceny.
+      zatwierdził: Karol (zmrlk), 21.11.2026
