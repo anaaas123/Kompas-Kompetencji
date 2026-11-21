@@ -1025,7 +1025,7 @@ export const zapiszPierwsza = (token: string, procesId: number, dane: DanePierws
     body: JSON.stringify({ ...dane, zatwierdz }),
   }).then((r) => odpowiedz<StanPierwszejOceny>(r));
 
-export async function pobierzPdfPierwszej(token: string, procesId: number, plik: "arkusz.pdf" | "zawiadomienie.pdf"): Promise<Blob> {
+export async function pobierzPdfPierwszej(token: string, procesId: number, plik: "arkusz.pdf" | "zawiadomienie.pdf" | "rozmowa-wstepna.pdf"): Promise<Blob> {
   const r = await fetch(`${sciezkaPierwszej(procesId)}/${plik}`, { headers: autoryzacja(token) });
   if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
   return r.blob();

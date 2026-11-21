@@ -13,8 +13,9 @@ import {
   type StanPierwszejOceny,
   type Termin,
 } from "./api";
-import { PolaWzoru, bladArkusza, brakiPol, dzisiaj, pobierzPrzelozonego, podpowiedziPol } from "./Arkusz";
-import { Zrodla } from "./Krok1";
+import { DatyWzoru, PolaWzoru, bladArkusza, brakiPol, pobierzPrzelozonego, podpowiedziPol } from "./Arkusz";
+import { PropozycjeRozwoju } from "./Wnioski";
+import { Zrodla, nazwaKryterium } from "./Krok1";
 import { Wybor } from "./Ocena";
 import {
   BladPola,
@@ -27,6 +28,9 @@ import {
   Wczytywanie,
   Werdykt,
   data,
+  dataRozmowy,
+  dzienZapisu,
+  notatkaRozwoju,
   poprawnaData,
   zapiszPlik,
   type Brak,
@@ -120,7 +124,8 @@ function Formularz({
   przelozony,
   onZmienOcene,
   onWstecz,
-  onDalej,
+  rozmowa,
+  zakonczony,
 }: {
   przelozony?: Pracownik;
   onZmienOcene?: () => void;
@@ -129,13 +134,17 @@ function Formularz({
   osoba: Pracownik;
   edycja: boolean;
   onWstecz: () => void;
-  onDalej: () => void;
+  rozmowa: string | null;
+  zakonczony: boolean;
   onZapisano: (s: StanPierwszejOceny) => void;
 }) {
   const poczatkowe = daneFormularza(stan, edycja);
   const [d, setD] = useState<DanePierwszej>(() => edycja && !stan.formularz.zatwierdzony ? {
     ...poczatkowe,
-    data_sporzadzenia_oceny: poczatkowe.data_sporzadzenia_oceny ?? dzisiaj(),
+    data_rozmowy_oceniajacej: poczatkowe.data_rozmowy_oceniajacej ?? rozmowa,
+    data_sporzadzenia_oceny: poczatkowe.data_sporzadzenia_oceny ?? dzienZapisu(new Date()),
+    wnioski_rozwojowe: stan.wnioski_dostepne && !poczatkowe.wnioski_rozwojowe?.trim()
+      ? notatkaRozwoju(stan.proces_id) : poczatkowe.wnioski_rozwojowe,
     pola: { ...poczatkowe.pola, ...podpowiedziPol(stan.formularz, przelozony) },
   } : poczatkowe);
   const [braki, setBraki] = useState<BrakArkusza[]>(stan.formularz.braki);
@@ -226,9 +235,11 @@ function Formularz({
     return celeDat[id];
   }
   const polaWzoru = stan.formularz.sekcje.flatMap((s) => s.pola);
+  // API powtarza datę sporządzenia przy kierującym. Do pól podpisu nie wpisujemy domyślnej daty.
+  const dataKierujacego = "dokonanie_oceny.kierujacy.data";
   const polaBraki = brakiPol(
     stan.formularz,
-    d.pola,
+    { ...d.pola, [dataKierujacego]: d.pola[dataKierujacego] || d.data_sporzadzenia_oceny },
     braki.filter((b) => {
       if (b.id === "aktualne_decyzje") return false;
       if (b.id === "sprawozdanie" && (d.sprawozdanie_niezlozone || Object.values(sprawozdanie).every((v) => v.trim()))) return false;
@@ -285,7 +296,7 @@ function Formularz({
   const warunki = stan.warunki.map((w) => {
     if (w.spelniony || !["pierwsza-limit-trojek", "pierwsza-minimum-sredniej"].includes(w.id)) return w;
     const kryteria = w.id === "pierwsza-limit-trojek" ? oceny.filter((p) => Number(p.wartosc) === Math.min(...p.warianty.map(Number))) : oceny;
-    return { ...w, szczegoly: kryteria.map((p) => `${p.etykieta}: ${p.wartosc} pkt`).join(", ") };
+    return { ...w, szczegoly: kryteria.map((p) => `${nazwaKryterium(p.etykieta)}: ${p.wartosc} pkt`).join(", ") };
   });
   const takNie = (v: unknown) => (v == null ? "jeszcze nie ustalono" : v ? "tak" : "nie");
 
@@ -297,8 +308,14 @@ function Formularz({
       const pola = Object.fromEntries(edytowalne.map((p) => [
         p.id, p.id in d.pola ? d.pola[p.id] : p.rodzaj === "data" ? null : p.wartosc,
       ]));
-      const po = await zapiszPierwsza(token, stan.proces_id, doZapisu({ ...d, pola }), zatwierdz);
-      setD(daneFormularza(po, edycja));
+      const po = await zapiszPierwsza(token, stan.proces_id, doZapisu({
+        ...d, pola, wnioski_rozwojowe: stan.wnioski_dostepne ? d.wnioski_rozwojowe : null,
+      }), zatwierdz);
+      const poZapisie = daneFormularza(po, edycja);
+      if (!stan.wnioski_dostepne && po.wnioski_dostepne && !po.formularz.zatwierdzony && !poZapisie.wnioski_rozwojowe?.trim()) {
+        poZapisie.wnioski_rozwojowe = notatkaRozwoju(stan.proces_id);
+      }
+      setD(poZapisie);
       setSprawdzoneDane(po.dane);
       setBraki(po.formularz.braki);
       onZapisano(po);
@@ -330,6 +347,10 @@ function Formularz({
       setCzekam(false);
     }
   }
+  const edycjaPol = {
+    formularz: stan.formularz, wartosci: d.pola, braki: lista, edycja: edycja && !czekam,
+    ustaw: (id: string, v: string | null) => ustaw({ pola: { ...d.pola, [id]: v } }),
+  };
   return (
     <Podsumowanie
       key={JSON.stringify(braki)}
@@ -353,10 +374,10 @@ function Formularz({
               </p>
             ))}
           </TabelaTerminow>
-          <section className="sekcja">
-            <h2>Daty oceny</h2>
+          <Sekcja id="daty" tytul="Daty (z wcześniejszych kroków)">
             {polaDat("daty")}
-          </section>
+            <DatyWzoru {...edycjaPol} />
+          </Sekcja>
           <Sekcja id="raport" tytul="Sprawozdanie">
             {polaDat("raport")}
             <fieldset className="formularz" disabled={!edycja || czekam}>
@@ -492,12 +513,8 @@ function Formularz({
             </fieldset>
           </Sekcja>
           <PolaWzoru
-            formularz={stan.formularz}
-            wartosci={d.pola}
-            braki={lista}
-            edycja={edycja && !czekam}
+            {...edycjaPol}
             ustawWiele={(pola) => ustaw({ pola: { ...d.pola, ...pola } })}
-            ustaw={(id, v) => ustaw({ pola: { ...d.pola, [id]: v } })}
           />
           <Sekcja id="obliczenie" tytul="Jak policzono wynik">
             <p>Skala pierwszej oceny: 3, 5 lub 7 pkt.</p>
@@ -549,7 +566,9 @@ function Formularz({
                   onChange={(e) => ustaw({ wnioski_rozwojowe: e.target.value || null })}
                 />
               </label>
-              {edycja && <button type="button" className="link" onClick={onDalej}>Zobacz propozycje z kroków 3–5</button>}
+              {edycja && <Sekcja id="propozycje" tytul="Propozycje rozwoju">
+                <PropozycjeRozwoju token={token} procesId={stan.proces_id} />
+              </Sekcja>}
               <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
             </div>
           )}
@@ -581,7 +600,11 @@ function Formularz({
         </>
       }
       glowna={
-        zatwierdzony || !edycja ? (
+        zakonczony ? (
+          <div className="k7-zakonczona"><strong>Ocena zakończona</strong>
+            {pdf && <button type="button" onClick={() => pobierz("arkusz.pdf")}>Pobierz arkusz (PDF)</button>}
+          </div>
+        ) : zatwierdzony || !edycja ? (
           <button type="button" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>
             Pobierz arkusz (PDF)
           </button>
@@ -595,7 +618,10 @@ function Formularz({
   );
 }
 
-export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDalej, onZmienOcene, zalogowanyId }: Krok7Props) {
+export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onZmienOcene, zalogowanyId }: Krok7Props) {
+  const zakonczony = proces.status !== "W_TOKU";
+  const edycja = moznaProwadzic && !zakonczony;
+  const [rozmowa, setRozmowa] = useState<string | null>(null);
   const [przelozony, setPrzelozony] = useState<Pracownik>();
   const [stan, setStan] = useState<StanPierwszejOceny | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
@@ -605,10 +631,12 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDal
     setBlad(null);
     Promise.all([
       pobierzPierwsza(token, proces.id),
-      moznaProwadzic ? pobierzPrzelozonego(token, osoba, zalogowanyId).catch(() => undefined) : undefined,
+      edycja ? pobierzPrzelozonego(token, osoba, zalogowanyId).catch(() => undefined) : undefined,
+      edycja ? dataRozmowy(token, proces.id).catch(() => null) : null,
     ])
-      .then(([s, kierownik]) => {
+      .then(([s, kierownik, dzien]) => {
         if (aktywny) {
+          setRozmowa(dzien);
           setPrzelozony(kierownik);
           setStan(s);
         }
@@ -619,13 +647,13 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDal
     return () => {
       aktywny = false;
     };
-  }, [token, proces.id, moznaProwadzic, osoba, zalogowanyId]);
+  }, [token, proces.id, edycja, osoba, zalogowanyId]);
   return (
     <div className="oc-ekran k7">
       <Naglowek
         osoba={osoba}
-        tytul="Podsumowanie pierwszej oceny"
-        opis="Pierwsza ocena · arkusz z załącznika nr 2"
+        tytul="Zakończenie oceny"
+        opis="Pierwsza ocena · części III–VI arkusza z załącznika nr 2"
         wstecz="Wróć do rozmowy"
         onWstecz={onWstecz}
       />
@@ -635,12 +663,13 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDal
           stan={stan}
           token={token}
           osoba={osoba}
-          edycja={moznaProwadzic}
+          edycja={edycja}
           przelozony={przelozony}
           onZmienOcene={onZmienOcene}
           onZapisano={setStan}
           onWstecz={onWstecz}
-          onDalej={onDalej}
+          rozmowa={rozmowa}
+          zakonczony={zakonczony}
         />
       ) : (
         <Wczytywanie blad={blad} />

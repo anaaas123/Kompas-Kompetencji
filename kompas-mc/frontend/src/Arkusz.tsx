@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   BladApi,
   pobierzArkusz,
+  pobierzKrok2,
   pobierzPracownikow,
   type Pracownik,
   pobierzArkuszPdf,
@@ -16,6 +17,8 @@ import {
   type BrakArkusza,
   type PoleArkusza,
 } from "./api";
+import { nazwaKryterium } from "./Krok1";
+import { PropozycjeRozwoju } from "./Wnioski";
 import { Zwijane } from "./Zwijane";
 import {
   BladPola,
@@ -30,6 +33,10 @@ import {
   Werdykt,
   bladWyniku,
   data,
+  dataRozmowy,
+  dzienZapisu,
+  notatkaRozwoju,
+  srednia,
   poprawnaData,
   zapiszPlik,
   type Brak,
@@ -49,10 +56,11 @@ export function bladArkusza(err: unknown): { tekst: string; braki?: BrakArkusza[
 
 function Wartosc({ p }: { p: PoleArkusza }) {
   if (p.rodzaj === "miejsce_na_podpis_odreczny") return <span className="meta">podpis odręczny na wydruku</span>;
-  if (p.wartosc === null || p.wartosc === "") return <span className="meta">—</span>;
+  if (p.wartosc == null || p.wartosc === "") return <span className="meta">—</span>;
   if (p.rodzaj === "data") return <>{data(p.wartosc)}</>;
   if (p.rodzaj === "wybor_punktow") return <>{p.wartosc} pkt</>;
-  if (p.rodzaj === "liczba_dziesietna") return <>{p.wartosc.replace(".", ",")}</>;
+  if (p.rodzaj === "liczba_dziesietna") return <>{srednia(p.wartosc)}</>;
+  if (p.id.startsWith("kryterium_") || p.id.endsWith(".kryterium")) return <>{nazwaKryterium(p.wartosc)}</>;
   return <span className="tekst-pola">{p.wartosc}</span>;
 }
 
@@ -75,7 +83,7 @@ export function Pole({
   if (tenSamTekst) {
     return (
       <div className="pole-arkusza">
-        <span className="tekst-pola">{p.wartosc}</span>
+        <Wartosc p={p} />
         {przypisy}
       </div>
     );
@@ -109,7 +117,7 @@ export function Pole({
       </label>
       {!edycja && (
         <div>
-          <Wartosc p={p} />
+          <Wartosc p={{ ...p, wartosc }} />
         </div>
       )}
       {brak && <p className="blad">{brak.komunikat}</p>}
@@ -119,11 +127,6 @@ export function Pole({
 
 type Formularz = Pick<ArkuszOkresowy, "sekcje" | "przypisy" | "braki">;
 type Wartosci = Record<string, string | null>;
-
-export function dzisiaj() {
-  const d = new Date();
-  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
-}
 
 export async function pobierzPrzelozonego(token: string, osoba: Pracownik, zalogowanyId?: string | null) {
   const osoby = await pobierzPracownikow(token);
@@ -136,17 +139,23 @@ function edytowalnePola(formularz: Formularz) {
 
 export function podpowiedziPol(formularz: Formularz, przelozony?: Pracownik) {
   const zmiany: Wartosci = {};
-  if (!przelozony) return zmiany;
+  const pola = formularz.sekcje.flatMap((s) => s.pola);
+  const nazwaUrzedu = pola.find((p) => p.id === "nazwa_urzedu")?.wartosc;
+  const zapisaneMiejsca = new Set(pola.filter((p) => p.widoczne && p.id.endsWith(".miejscowosc") && p.wartosc?.trim())
+    .map((p) => p.wartosc));
+  const miejscowosc = zapisaneMiejsca.size === 1 ? [...zapisaneMiejsca][0] :
+    !zapisaneMiejsca.size && nazwaUrzedu === "Ministerstwo Cyfryzacji" ? "Warszawa" : null;
   const dane: Wartosci = {
-    imie: przelozony.imie, nazwisko: przelozony.nazwisko, stanowisko: przelozony.stanowisko,
-    komorka_organizacyjna: przelozony.komorka,
+    imie: przelozony?.imie ?? null, nazwisko: przelozony?.nazwisko ?? null, stanowisko: przelozony?.stanowisko ?? null,
+    komorka_organizacyjna: przelozony?.komorka ?? null,
   };
   for (const p of edytowalnePola(formularz)) {
     if (p.wartosc?.trim()) continue;
-    if (/^(bezposredni_przelozony|oceniajacy\.czesc_I{1,2})\./.test(p.id)) {
+    if (miejscowosc && p.id.endsWith(".miejscowosc")) zmiany[p.id] = miejscowosc;
+    else if (/^(bezposredni_przelozony|oceniajacy\.czesc_I{1,2})\./.test(p.id)) {
       const wartosc = dane[p.id.split(".").pop()!];
       if (wartosc) zmiany[p.id] = wartosc;
-    } else if (p.id === "wniosek_o_stopien.oceniajacy.imie_nazwisko_lub_pieczatka") {
+    } else if (przelozony && p.id === "wniosek_o_stopien.oceniajacy.imie_nazwisko_lub_pieczatka") {
       zmiany[p.id] = [przelozony.imie, przelozony.nazwisko].filter(Boolean).join(" ");
     }
   }
@@ -174,7 +183,7 @@ export function brakiPol(
     for (const p of s.pola.filter((p) => p.widoczne)) {
       const cel = p.edytowalne && p.id.endsWith(".miejscowosc")
         ? { cel: "miejscowosc" }
-        : { cel: "pole-" + p.id, grupa: p.id === "wnioski_iprz" ? undefined : "pola/" + i };
+        : { cel: "pole-" + p.id, grupa: dataDoKorekty(p) ? "daty" : p.id === "wnioski_iprz" ? undefined : "pola/" + i };
       const tekst = cel.cel === "miejscowosc" ? "Arkusz: miejscowość" : `${nazwaSekcji(p, s.tytul)}: ${p.etykieta.charAt(0).toLocaleLowerCase("pl") + p.etykieta.slice(1)}`;
       const aktualna = p.edytowalne ? pola[p.id] : wartoscProcesu(p);
       const wartosc = aktualna === undefined ? p.wartosc : aktualna;
@@ -185,7 +194,7 @@ export function brakiPol(
       if (p.edytowalne && p.rodzaj === "data" && !poprawnaData(wartosc)) {
         lista.push({ ...miejsce, opis: "Wpisz istniejącą datę w formacie RRRR-MM-DD." });
       } else if (wymagane && !wartosc?.trim()) {
-        lista.push({ ...miejsce, opis: "Uzupełnij pole." });
+        lista.push({ ...miejsce, opis: p.id.startsWith("urzednik.") ? "Brak danych kadrowych do wniosku o stopień." : "Uzupełnij pole." });
       }
       for (const b of bledy.filter((b) => !b.komunikat.startsWith("Uzupełnij pole"))) {
         lista.push({ ...miejsce, opis: b.komunikat });
@@ -224,7 +233,7 @@ function PolaSekcji({ pola, wartosci, braki, edycja, ustaw }: EdycjaPol & { pola
           p={p}
           wartosc={p.id in wartosci ? wartosci[p.id] : p.wartosc}
           brak={brak && { id: p.id, etykieta: p.etykieta, komunikat: brak.opis ?? "Uzupełnij pole." }}
-          edycja={edycja && p.edytowalne}
+          edycja={edycja && p.edytowalne && !p.id.startsWith("urzednik.")}
           onZmiana={(v) => ustaw(p.id, v)}
         />
       </div>
@@ -253,6 +262,34 @@ function PolaSekcji({ pola, wartosci, braki, edycja, ustaw }: EdycjaPol & { pola
   );
 }
 
+function dataDoKorekty(p: PoleArkusza) {
+  return p.edytowalne && p.rodzaj === "data" && !p.id.startsWith("urzednik.");
+}
+
+const ETYKIETY_DAT: Record<string, string> = {
+  "dokonanie_oceny.kierujacy.data": "Data podpisu kierującego komórką",
+  "wniosek_o_stopien.oceniajacy.data": "Data wniosku o stopień",
+  "rozmowa_oceniajaca.data": "Rozmowa oceniająca",
+};
+
+export function DatyWzoru({ formularz, wartosci, edycja, ustaw }: EdycjaPol & { formularz: Formularz }) {
+  return (
+    <div className="pola-arkusza">
+      {edytowalnePola(formularz).filter(dataDoKorekty).map((p) => (
+        <div key={p.id} id={"pole-" + p.id} tabIndex={-1}>
+          <Pole
+            p={{ ...p, etykieta: ETYKIETY_DAT[p.id] ?? p.etykieta }}
+            wartosc={p.id in wartosci ? wartosci[p.id] : p.wartosc}
+            edycja={edycja}
+            onZmiana={(v) => ustaw(p.id, v)}
+          />
+          <BladPola cel={"pole-" + p.id} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PolaWzoru({ formularz, ustawWiele, ...edycja }: EdycjaPol & {
   formularz: Formularz;
   ustawWiele: (pola: Wartosci) => void;
@@ -272,24 +309,13 @@ export function PolaWzoru({ formularz, ustawWiele, ...edycja }: EdycjaPol & {
               onChange={(e) => ustawWiele(Object.fromEntries(miejsca.map((p) => [p.id, e.target.value || null])))}
             />
           </label>
+          {rozne && <p className="meta">W arkuszu zapisano różne miejscowości. Wpisana tutaj nazwa obejmie cały arkusz.</p>}
           <BladPola cel="miejscowosc" />
-          <Sekcja id="miejsca" tytul="Miejscowości w poszczególnych polach">
-            {formularz.sekcje.map((s) => s.pola.filter((p) => miejsca.includes(p)).map((p) => {
-              const role: Record<string, string> = {
-                oceniany: "oceniany", oceniajacy: "oceniający", przelozony: "przełożony", kierujacy: "kierujący komórką",
-              };
-              const rola = role[p.id.split(".")[1]];
-              return (
-                <Pole key={p.id} p={{ ...p, etykieta: [s.tytul, rola].filter(Boolean).join(" · ") }}
-                  wartosc={wartosc(p)} edycja={edycja.edycja} onZmiana={(v) => edycja.ustaw(p.id, v)} />
-              );
-            }))}
-          </Sekcja>
         </div>
       )}
       <Sekcja id="pola" tytul="Pola arkusza">
         {formularz.sekcje.map((s, i) => {
-          const pola = s.pola.filter((p) => p.widoczne && p.id !== "wnioski_iprz" && p.id !== "wnioski_rozwojowe" && !miejsca.includes(p));
+          const pola = s.pola.filter((p) => p.widoczne && p.id !== "wnioski_iprz" && p.id !== "wnioski_rozwojowe" && !miejsca.includes(p) && !dataDoKorekty(p));
           return s.widoczna && pola.length > 0 && (
             <Sekcja key={s.tytul + i} id={"pola/" + i} tytul={s.tytul}>
               <PolaSekcji pola={pola} {...edycja} />
@@ -326,10 +352,11 @@ export function Arkusz({
   proces,
   moznaProwadzic,
   onWstecz,
-  onDalej,
   onZmienOcene,
   zalogowanyId,
 }: Krok7Props) {
+  const zakonczony = proces.status !== "W_TOKU";
+  const edycja = moznaProwadzic && !zakonczony;
   const [arkusz, setArkusz] = useState<ArkuszOkresowy | null>(null);
   const [wynik, setWynik] = useState<WynikOkresowy | null>(null);
   const [f, setF] = useState<DaneWyniku | null>(null);
@@ -346,28 +373,44 @@ export function Arkusz({
     Promise.allSettled([
       pobierzWynik(token, proces.id),
       pobierzArkusz(token, proces.id),
-      moznaProwadzic ? pobierzPrzelozonego(token, osoba, zalogowanyId) : undefined,
-    ]).then(([w, a, kierownik]) => {
+      edycja ? pobierzPrzelozonego(token, osoba, zalogowanyId) : undefined,
+      edycja ? pobierzKrok2(token, proces.id) : undefined,
+      edycja ? dataRozmowy(token, proces.id) : undefined,
+    ]).then(([w, a, kierownik, krok2, rozmowa]) => {
       if (!aktywny) return;
       const zatwierdzony = a.status === "fulfilled" && a.value.zatwierdzony;
       if (w.status === "fulfilled") {
         setWynik(w.value);
         const dane = w.value.dane;
-        setF(moznaProwadzic && !zatwierdzony && !dane.data_sporzadzenia_oceny
-          ? { ...dane, data_sporzadzenia_oceny: dzisiaj() } : dane);
+        const zapis = krok2.status === "fulfilled" && krok2.value?.wybor?.zapisano;
+        const kryteria = zapis && Number.isFinite(Date.parse(zapis)) ? dzienZapisu(new Date(zapis)) : null;
+        setF(edycja && !zatwierdzony ? {
+          ...dane,
+          data_ustalenia_kryteriow: dane.data_ustalenia_kryteriow ?? kryteria,
+          data_zapoznania_z_kryteriami: dane.data_zapoznania_z_kryteriami ?? kryteria,
+          data_sporzadzenia_oceny: dane.data_sporzadzenia_oceny ?? dzienZapisu(new Date()),
+          poprzednia_ocena_poziom: w.value.poprzednia_ocena?.poziom ?? dane.poprzednia_ocena_poziom,
+        } : dane);
       } else setBladWynikuApi(bladWyniku(w.reason));
       if (a.status === "fulfilled") {
         setArkusz(a.value);
-        if (kierownik.status === "fulfilled") {
-          setPrzelozony(kierownik.value);
-          if (!zatwierdzony) setZmiany(podpowiedziPol(a.value, kierownik.value));
+        const szef = kierownik.status === "fulfilled" ? kierownik.value : undefined;
+        setPrzelozony(szef);
+        if (edycja && !zatwierdzony) {
+          const domyslne = podpowiedziPol(a.value, szef);
+          for (const p of edytowalnePola(a.value)) {
+            if (p.wartosc?.trim()) continue;
+            if (p.id === "wnioski_iprz") domyslne[p.id] = notatkaRozwoju(proces.id);
+            if (p.id === "rozmowa_oceniajaca.data" && rozmowa.status === "fulfilled") domyslne[p.id] = rozmowa.value ?? null;
+          }
+          setZmiany(domyslne);
         }
       } else setBlad(bladArkusza(a.reason).tekst);
     });
     return () => {
       aktywny = false;
     };
-  }, [token, proces.id, osoba, zalogowanyId, moznaProwadzic]);
+  }, [token, proces.id, osoba, zalogowanyId, edycja]);
 
   async function wykonaj(akcja: () => Promise<void>) {
     if (czekam) return;
@@ -387,7 +430,7 @@ export function Arkusz({
   const naglowek = (
     <Naglowek
       osoba={osoba}
-      tytul="Podsumowanie oceny"
+      tytul="Zakończenie oceny"
       opis={`Ocena okresowa · arkusz ${proces.arkusz}`}
       wstecz="Wróć do rozmowy"
       onWstecz={onWstecz}
@@ -417,27 +460,29 @@ export function Arkusz({
       wynik,
       f,
       ustaw: (v: Partial<DaneWyniku>) => setF((p) => p && { ...p, ...v }),
-      blokada: czekam || !moznaProwadzic,
+      blokada: czekam || !edycja,
     };
   const brakiWyniku: Brak[] = [];
-  const dodajDate = (cel: string, tekst: string, wartosc?: string | null, wymagana = false) => {
+  const dodajDate = (cel: string, tekst: string, wartosc?: string | null, wymagana = false, grupa = "daty") => {
     if (!poprawnaData(wartosc) || (wymagana && !wartosc))
-      brakiWyniku.push({ cel, tekst: `Daty oceny: ${tekst}`, grupa: "dane", opis: "Podaj datę w formacie RRRR-MM-DD." });
+      brakiWyniku.push({ cel, tekst: `Daty oceny: ${tekst}`, grupa, opis: "Podaj datę w formacie RRRR-MM-DD." });
   };
   if (f && wynik) {
     if (wynik.uzasadnienie_wymagane && !f.uzasadnienie?.trim())
       brakiWyniku.push({ cel: "uzasadnienie", tekst: "Uzasadnienie oceny" });
     for (const [k, nazwa] of DATY_OKRESOWE) dodajDate(k, nazwa, f[k]);
-    dodajDate("data_zapoznania_z_poprzednia_ocena", "Zapoznanie z poprzednią oceną", f.data_zapoznania_z_poprzednia_ocena);
+    dodajDate("data_zapoznania_z_poprzednia_ocena", "Zapoznanie z poprzednią oceną", f.data_zapoznania_z_poprzednia_ocena, false, "wyjatki");
+    if (f.zmiana_stanowiska) dodajDate("data_zmiany_stanowiska", "Data zmiany stanowiska", f.zmiana_stanowiska.data, true, "wyjatki");
     if (f.zmiana_terminu) {
-      dodajDate("nowy_termin", "Nowy termin", f.zmiana_terminu.nowy_termin, true);
-      dodajDate("data_zawiadomienia", "Data zawiadomienia", f.zmiana_terminu.data_zawiadomienia, true);
+      dodajDate("nowy_termin", "Nowy termin", f.zmiana_terminu.nowy_termin, true, "wyjatki");
+      dodajDate("data_zawiadomienia", "Data zawiadomienia", f.zmiana_terminu.data_zawiadomienia, true, "wyjatki");
     }
   }
   // Po poprawieniu dat ich kolejność i obliczony termin ponownie sprawdzi API przy zapisie.
   const zmienioneDaty = f && wynik && (
     DATY_OKRESOWE.some(([k]) => f[k] !== wynik.dane[k]) ||
     f.data_zapoznania_z_poprzednia_ocena !== wynik.dane.data_zapoznania_z_poprzednia_ocena ||
+    JSON.stringify(f.zmiana_stanowiska) !== JSON.stringify(wynik.dane.zmiana_stanowiska) ||
     JSON.stringify(f.zmiana_terminu) !== JSON.stringify(wynik.dane.zmiana_terminu)
   );
   const zmianaDatArkusza = edytowalne.some((p) => p.rodzaj === "data" &&
@@ -453,8 +498,9 @@ export function Arkusz({
     ...brakiPol(formularz, pola, brakiSerwera, (b) => {
       if (!daneWyniku) return;
       if (b.id === "uzasadnienie") return { cel: "uzasadnienie", grupa: undefined };
-      if (DATY_Z_WYNIKU[b.id]) return { cel: DATY_Z_WYNIKU[b.id], grupa: "dane" };
-    }, (p) => p.id === "uzasadnienie" ? f?.uzasadnienie : f?.[DATY_Z_WYNIKU[p.id]])
+      if (DATY_Z_WYNIKU[b.id]) return { cel: DATY_Z_WYNIKU[b.id], grupa: b.id === "poprzednia_ocena.poziom" ? "wyjatki" : "daty" };
+    }, (p) => p.id === "uzasadnienie" ? f?.uzasadnienie : p.id === "poprzednia_ocena.poziom"
+      ? wynik?.poprzednia_ocena?.poziom ?? f?.poprzednia_ocena_poziom : f?.[DATY_Z_WYNIKU[p.id]])
       .filter((b) => !(zmienioneDaty && b.cel === "pole-termin_sporzadzenia_oceny")),
   ];
   if (!wynik) braki.push({ cel: "brak-wyniku", tekst: "Oceny cząstkowe: ustalenie wyniku" });
@@ -467,7 +513,7 @@ export function Arkusz({
           ? "data_zapoznania_z_poprzednia_ocena"
           : null;
     if (pole && f?.[pole]) continue;
-    braki.push({ tekst: `Terminy: ${tekst}`, cel: pole ?? "terminy", grupa: pole ? "dane" : "terminy", tylkoTermin: true });
+    braki.push({ tekst: `Terminy: ${tekst}`, cel: pole ?? "terminy", grupa: pole === "data_zapoznania_z_poprzednia_ocena" ? "wyjatki" : pole ? "daty" : "terminy", tylkoTermin: true });
   }
   if (!arkusz || odswiez) braki.push({ cel: "odswiez-arkusz", tekst: "Wczytanie arkusza" });
   const brak = braki.some((b) => !b.tylkoTermin);
@@ -480,7 +526,7 @@ export function Arkusz({
       zapiszPlik(await pobierzArkuszPdf(token, proces.id), `arkusz-${proces.arkusz}-${osoba.nazwisko}.pdf`),
     );
   function zapisz(zatwierdz: boolean) {
-    if (!arkusz || !moznaProwadzic || zlaData || brakiWyniku.length || odswiez || (zatwierdz && brak)) return;
+    if (!arkusz || !edycja || zlaData || brakiWyniku.length || odswiez || (zatwierdz && brak)) return;
     return wykonaj(async () => {
       let aktualny = arkusz;
       if (ruszonyWynik && daneWyniku) {
@@ -517,6 +563,31 @@ export function Arkusz({
       setZmiany({});
     });
   }
+  const podglad = { ...pola };
+  if (wynik && f) {
+    const dolaczony = wynik.czesc_iii.dostepna && f.dolacz_wniosek_o_stopien;
+    podglad["wniosek_o_stopien.status"] = osoba.korpus === "urzednik_sc" ? (dolaczony ? "TAK" : "NIE") : "NIE DOTYCZY";
+    for (const [id, klucz] of Object.entries(DATY_Z_WYNIKU)) {
+      if (!(id in pola)) podglad[id] = f[klucz];
+    }
+    podglad.uzasadnienie = f.uzasadnienie;
+    podglad["poprzednia_ocena.poziom"] = wynik.poprzednia_ocena?.poziom ?? f.poprzednia_ocena_poziom;
+  }
+  const edycjaPol = {
+    wartosci: podglad, braki, edycja: edycja && !czekam,
+    ustaw: (id: string, v: string | null) => setZmiany((p) => ({ ...p, [id]: v })),
+  };
+  const datyWzoru = <DatyWzoru formularz={formularz} {...edycjaPol} />;
+  const poleWnioskow = wnioski && (
+    <div id="pole-wnioski_iprz" tabIndex={-1}>
+      <Pole p={wnioski} wartosc={"wnioski_iprz" in pola ? pola.wnioski_iprz : wnioski.wartosc} edycja={wnioski.edytowalne && edycjaPol.edycja}
+        onZmiana={(v) => edycjaPol.ustaw("wnioski_iprz", v)} />
+      <BladPola cel="pole-wnioski_iprz" />
+      {moznaProwadzic && <Sekcja id="propozycje" tytul="Propozycje rozwoju">
+        <PropozycjeRozwoju token={token} procesId={proces.id} />
+      </Sekcja>}
+    </div>
+  );
   const ezd = arkusz?.rejestracja_ezd;
   return (
     <div className="oc-ekran k7">
@@ -525,19 +596,18 @@ export function Arkusz({
         key={JSON.stringify(formularz.braki)}
         braki={braki}
         blad={blad}
-        podpis={arkusz?.komunikat_podpis ?? "PDF i „Zatwierdź” nie są podpisem."}
+        podpis={(zatwierdzony ? "Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2). " : "") +
+          (arkusz?.komunikat_podpis ?? "PDF i „Zatwierdź” nie są podpisem.")}
         onWstecz={onWstecz}
         dzieci={
           <>
-            {daneWyniku && <DaneOkresowej {...daneWyniku} />}
+            {daneWyniku ? <DaneOkresowej {...daneWyniku}>{datyWzoru}</DaneOkresowej> :
+              <Sekcja id="daty" tytul="Daty (z wcześniejszych kroków)">{datyWzoru}</Sekcja>}
             {arkusz && (
               <PolaWzoru
                 formularz={formularz}
-                wartosci={pola}
-                braki={braki}
-                edycja={moznaProwadzic && !czekam}
+                {...edycjaPol}
                 ustawWiele={(v) => setZmiany((p) => ({ ...p, ...v }))}
-                ustaw={(id, v) => setZmiany((p) => ({ ...p, [id]: v }))}
               />
             )}
           </>
@@ -545,23 +615,16 @@ export function Arkusz({
         bok={
           <>
             {daneWyniku ? (
-              <BokOkresowej {...daneWyniku} onZmienOcene={moznaProwadzic ? onZmienOcene : undefined} />
+              <BokOkresowej {...daneWyniku} onZmienOcene={edycja ? onZmienOcene : undefined}>{poleWnioskow}</BokOkresowej>
             ) : (
               <>
                 <Werdykt wynik={null} warunki={[]} />
                 <p id="brak-wyniku" tabIndex={-1}>
                   {bladWynikuApi}
-                  {onZmienOcene && <button className="link" type="button" onClick={onZmienOcene}>Wróć do ocen cząstkowych</button>}
+                  {edycja && onZmienOcene && <button className="link" type="button" onClick={onZmienOcene}>Wróć do ocen cząstkowych</button>}
                 </p>
+                {poleWnioskow}
               </>
-            )}
-            {wnioski && (
-              <div id="pole-wnioski_iprz" tabIndex={-1}>
-                <Pole p={wnioski} wartosc={pola.wnioski_iprz} edycja={wnioski.edytowalne && moznaProwadzic && !czekam}
-                  onZmiana={(v) => setZmiany((p) => ({ ...p, wnioski_iprz: v }))} />
-                <BladPola cel="pole-wnioski_iprz" />
-                {moznaProwadzic && <button className="link" type="button" onClick={onDalej}>Zobacz propozycje z kroków 3–5</button>}
-              </div>
             )}
             {zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
           </>
@@ -585,7 +648,7 @@ export function Arkusz({
                 Wczytaj arkusz ponownie
               </button>
             )}
-            {moznaProwadzic && (
+            {edycja && (
               <button
                 type="button"
                 className="jasny"
@@ -595,7 +658,7 @@ export function Arkusz({
                 Zapisz szkic
               </button>
             )}
-            {arkusz?.pdf_dostepny && !zatwierdzony && moznaProwadzic && (
+            {arkusz?.pdf_dostepny && !zatwierdzony && edycja && (
               <button type="button" className="link" disabled={!pdf} onClick={pobierz}>
                 Pobierz zapisany arkusz (PDF)
               </button>
@@ -617,7 +680,7 @@ export function Arkusz({
                 Pobierz zawiadomienie § 8 (PDF)
               </button>
             )}
-            {moznaProwadzic && (
+            {edycja && (
               <button
                 type="button"
                 className="link"
@@ -639,11 +702,15 @@ export function Arkusz({
                 {ezd.sha256_pdf.slice(0, 12)}…
               </p>
             )}
-            {(ruszonePola || ruszonyWynik) && moznaProwadzic && <span className="meta">Masz niezapisane zmiany w arkuszu.</span>}
+            {(ruszonePola || ruszonyWynik) && edycja && <span className="meta">Masz niezapisane zmiany w arkuszu.</span>}
           </>
         }
         glowna={
-          zatwierdzony || !moznaProwadzic ? (
+          zakonczony ? (
+            <div className="k7-zakonczona"><strong>Ocena zakończona</strong>
+              {pdf && <button type="button" onClick={pobierz}>Pobierz arkusz (PDF)</button>}
+            </div>
+          ) : zatwierdzony || !edycja ? (
             <button type="button" disabled={!pdf} onClick={pobierz}>
               Pobierz arkusz (PDF)
             </button>

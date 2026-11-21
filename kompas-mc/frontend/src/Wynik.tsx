@@ -7,6 +7,7 @@ export { Arkusz as Wynik } from "./Arkusz";
 import "./krok7.css";
 import {
   BladApi,
+  pobierzOcene,
   type SourceRef,
   type DaneWyniku,
   type Pracownik,
@@ -16,10 +17,40 @@ import {
   type WynikOkresowy,
   type ZmianaTerminu,
 } from "./api";
-import { Zrodla, opisBledu } from "./Krok1";
+import { Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
 
 export const data = (iso: string) => iso.split("-").reverse().join(".");
+
+const liczba = new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const srednia = (v: string | number) => liczba.format(Number(String(v).replace(",", ".")));
+
+function opisObliczenia(opis: string) {
+  return opis.replace(/(średnia z \d+ ocen to \d+\/\d+ = |średnia |ocena łączna )(\d+(?:[.,]\d+)?)(?:\/(\d+))?/gi,
+    (_, przed: string, n: string, mianownik?: string) =>
+      przed + (mianownik ? liczba.format(Number(n) / Number(mianownik)) : srednia(n)));
+}
+
+export function dzienZapisu(czas: Date) {
+  return czas.toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
+}
+
+export async function dataRozmowy(token: string, procesId: number) {
+  const stan = await pobierzOcene(token, procesId);
+  const czasy = stan.kryteria.flatMap((k) => k.decyzja ? [Date.parse(k.decyzja.zapisano)] : []).filter(Number.isFinite);
+  return dzienZapisu(czasy.length ? new Date(Math.max(...czasy)) : new Date());
+}
+
+export function notatkaRozwoju(procesId: number): string | null {
+  try {
+    const notatka = sessionStorage.getItem(`kompas-notatka-${procesId}-rozwoj`);
+    if (notatka?.trim()) return notatka;
+    const szkic = JSON.parse(sessionStorage.getItem(`kompas-szkic-${procesId}`) ?? "null");
+    return typeof szkic?.rozwoj === "string" && szkic.rozwoj.trim() ? szkic.rozwoj : null;
+  } catch {
+    return null;
+  }
+}
 
 const TERMINY: { klucz: keyof WynikOkresowy["terminy"]; nazwa: string }[] = [
   { klucz: "termin_kryteriow", nazwa: "Ustalenie kryteriów" },
@@ -86,6 +117,7 @@ export function bladWyniku(err: unknown): string {
   const d = err instanceof BladApi ? (err.detail as { komunikat?: string } | null) : null;
   if (d?.komunikat) return d.komunikat;
   if (err instanceof BladApi) {
+    if (err.status === 409) return "Najpierw zapisz oceny cząstkowe wszystkich kryteriów (rozmowa oceniająca).";
     if (typeof err.detail === "string") return err.detail;
     if (err.status === 403) return "Nie masz uprawnień do tej oceny.";
     if (err.status !== 422) return "Nie udało się wczytać lub zapisać danych oceny.";
@@ -98,7 +130,7 @@ export function Slad({ slad }: { slad: SladReguly[] }) {
     <ol className="slad">
       {slad.map((s) => (
         <li key={s.regula.id + s.opis}>
-          {s.opis}
+          {opisObliczenia(s.opis)}
           <Zrodla adnotacje={[s.regula.zrodlo]} />
         </li>
       ))}
@@ -136,7 +168,7 @@ export function Naglowek({
         <Ikona nazwa="wstecz" />
         {wstecz}
       </button>
-      <p className="meta">Krok 7 z 8</p>
+      <p className="meta">Część 3 z 3 · Ocena na piśmie</p>
       <h1>{tytul}</h1>
       <p className="opis">
         {osoba.imie} {osoba.nazwisko} · {opis}
@@ -228,7 +260,7 @@ export function Podsumowanie({
     cele.add(klucz);
     return true;
   });
-  const [otwarte, setOtwarte] = useState(() => new Set(braki.flatMap(grupyBraku).filter((id) => id !== "wyjatki")));
+  const [otwarte, setOtwarte] = useState(() => new Set(braki.flatMap(grupyBraku).filter((id) => id !== "wyjatki" && id !== "daty")));
   const [wszystkie, setWszystkie] = useState(false);
   const pierwszy = braki[0];
   const przelacz = (id: string) =>
@@ -281,7 +313,7 @@ export function Podsumowanie({
       <div className="oc-nawigacja k7-pasek">
         <button type="button" className="link" onClick={onWstecz}>
           <Ikona nazwa="wstecz" />
-          Poprzedni
+          Wróć do rozmowy
         </button>
         <div className="k7-komunikat">
           {blad && (
@@ -315,7 +347,7 @@ export function Werdykt({
         <h2>{wynik ? `Ocena ${wynik.wynik}` : "Wynik jeszcze nieustalony"}</h2>
         {wynik && (
           <p>
-            Średnia {Number(wynik.srednia).toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+            Średnia {srednia(wynik.srednia)}{" "}
             pkt{wynik.poziom && ` · ${wynik.poziom}`}
           </p>
         )}
@@ -334,9 +366,9 @@ export function Werdykt({
                   <Ikona nazwa={w.spelniony ? "ok" : "krzyz"} />
                 </span>
                 <div>
-                  {w.opis}
+                  {opisObliczenia(w.opis)}
                   {w.szczegoly && <p>{w.szczegoly}</p>}
-                  {w.slad && <details><summary>Ślad obliczenia</summary>{w.slad}</details>}
+                  {w.slad && <details><summary>Ślad obliczenia</summary>{opisObliczenia(w.slad)}</details>}
                   <Zrodla adnotacje={[w.zrodlo]} />
                   {!w.spelniony && onZmienOcene && (
                     <button type="button" className="link" onClick={onZmienOcene}>Zmień ocenę</button>
@@ -410,12 +442,13 @@ interface FormularzOkresowej {
   blokada: boolean;
 }
 
-export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene }: FormularzOkresowej & {
+export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, children }: FormularzOkresowej & {
+  children: ReactNode;
   onZmienOcene?: () => void;
 }) {
   const o = wynik.obliczenie;
   const minimum = Math.min(...wynik.oceny_czastkowe.map((k) => k.punkty));
-  const wypiszPunkty = (oceny: WynikOkresowy["oceny_czastkowe"]) => oceny.map((k) => `${k.nazwa}: ${k.punkty} pkt`).join(", ");
+  const wypiszPunkty = (oceny: WynikOkresowy["oceny_czastkowe"]) => oceny.map((k) => `${nazwaKryterium(k.nazwa)}: ${k.punkty} pkt`).join(", ");
   const warunki = o.slad.flatMap(({ regula, opis }) => {
     const spelniony = regula.id !== o.regula_rozstrzygajaca.id || o.wynik === "pozytywna";
     if (regula.id === "negatywna-za-ocene-czastkowa") {
@@ -448,7 +481,8 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene }: Formula
       </label>
       <BladPola cel="uzasadnienie" />
       {wynik.podstawa_uzasadnienia && <Zrodla adnotacje={[wynik.podstawa_uzasadnienia]} />}
-      {wynik.czesc_iii.dostepna && (
+      {children}
+      {wynik.czesc_iii.dostepna ? (
         <div>
           <label className="zaznacz">
             <input
@@ -457,16 +491,31 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene }: Formula
               checked={f.dolacz_wniosek_o_stopien}
               onChange={(e) => ustaw({ dolacz_wniosek_o_stopien: e.target.checked })}
             />
-            Dołącz wniosek o kolejny stopień służbowy (część III)
+            Wnioskuję o kolejny stopień służbowy (część III)
           </label>
           <Zrodla adnotacje={[wynik.czesc_iii.adnotacja]} />
+          {f.dolacz_wniosek_o_stopien && !wynik.czesc_iii.dolaczana &&
+            <p className="meta">Zapisz szkic, aby uzupełnić pola wniosku w części III arkusza.</p>}
         </div>
+      ) : (
+        <p>{o.wynik === "negatywna" ? "Przy ocenie negatywnej nie dołącza się części III." :
+          "Część III dotyczy wyłącznie urzędników służby cywilnej."}</p>
       )}
+      <section className="sekcja">
+        <h2>Zapoznanie z oceną</h2>
+        <p>Niezwłocznie zapoznaj ocenianego z oceną (§ 12).</p>
+        <p>Oceniany może wnieść sprzeciw do dyrektora generalnego urzędu w ciągu 7 dni od zapoznania się z oceną.
+          Sprzeciw rozpatruje się w ciągu 14 dni od jego wniesienia.</p>
+        {wynik.terminy.termin_sprzeciwu?.slad.filter((s) => s.regula.id === "okresowa.termin.sprzeciw-7")
+          .map((s) => <Zrodla key={s.regula.id} adnotacje={[s.regula.zrodlo]} />)}
+        <small>Poradnik KPRM dotyczący ocen okresowych, s. 32–33.</small>
+      </section>
     </>
   );
 }
 
-export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) {
+export function DaneOkresowej({ wynik, f, ustaw, blokada, children }: FormularzOkresowej & { children: ReactNode }) {
+  const stanowisko = f.zmiana_stanowiska;
   const z = f.zmiana_terminu;
   const ustawZmiane = (zmiana: Partial<ZmianaTerminu>) => z && ustaw({ zmiana_terminu: { ...z, ...zmiana } });
   const terminy: [string, Termin][] = [];
@@ -490,12 +539,19 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
         )}
         {wynik.terminy.zachowaj_kryteria && <p>Kryteria z poprzedniej oceny zostają.</p>}
       </TabelaTerminow>
-      <Sekcja id="dane" tytul="Daty i dane">
+      <Sekcja id="daty" tytul="Daty (z wcześniejszych kroków)">
         <fieldset className="formularz" disabled={blokada}>
           <div className="siatka-dat">
             {DATY_OKRESOWE.map(([k, nazwa]) => (
               <PoleDaty key={k} id={k} nazwa={nazwa} wartosc={f[k]} onZmiana={(v) => ustaw({ [k]: v })} />
             ))}
+          </div>
+        </fieldset>
+        {children}
+      </Sekcja>
+      <Sekcja id="wyjatki" tytul="Pozostałe daty i wyjątki">
+        <fieldset className="formularz" disabled={blokada}>
+          <div className="siatka-dat">
             {(wynik.terminy.braki.some((b) => b.includes("poprzednią oceną negatywną")) ||
               f.data_zapoznania_z_poprzednia_ocena) && (
               <PoleDaty
@@ -516,6 +572,23 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
               />
               <BladPola cel="poprzednia_ocena_poziom" />
             </label>
+          )}
+          <label className="zaznacz">
+            <input type="checkbox" checked={!!stanowisko} onChange={(e) => ustaw({
+              zmiana_stanowiska: e.target.checked ? { data: "", istotna_zmiana_obowiazkow: false } : null,
+            })} />
+            Zmiana stanowiska (§ 9 ust. 1–2)
+          </label>
+          {stanowisko && (
+            <>
+              <PoleDaty id="data_zmiany_stanowiska" nazwa="Data zmiany stanowiska" wartosc={stanowisko.data}
+                onZmiana={(v) => ustaw({ zmiana_stanowiska: { ...stanowisko, data: v ?? "" } })} />
+              <label className="zaznacz">
+                <input type="checkbox" checked={stanowisko.istotna_zmiana_obowiazkow}
+                  onChange={(e) => ustaw({ zmiana_stanowiska: { ...stanowisko, istotna_zmiana_obowiazkow: e.target.checked } })} />
+                Istotna zmiana obowiązków
+              </label>
+            </>
           )}
           <label className="zaznacz">
             <input
@@ -565,7 +638,7 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
             <WierszListy
               key={k.kompetencja_id}
               maly
-              tytul={k.nazwa}
+              tytul={nazwaKryterium(k.nazwa)}
               opis={k.rodzaj === "OBOWIAZKOWE" ? "obowiązkowe" : "dodatkowe"}
               prawa={`${k.punkty} pkt`}
             />

@@ -168,7 +168,7 @@ export default function App() {
               moznaProwadzic={prowadzi}
               zalogowanyId={sesja.uzytkownik.osoba_id}
               onWstecz={() => setEtap("rozmowa")}
-              onZmienOcene={() => setEtap("ocena")}
+              onZmienOcene={proces.status === "W_TOKU" ? () => setEtap("ocena") : undefined}
               onDalej={() => setEtap("wnioski")}
             />
           </div>

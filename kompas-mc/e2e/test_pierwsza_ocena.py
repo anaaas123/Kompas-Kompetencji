@@ -82,26 +82,47 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     page.wait_for_selector(".powloka")
 
     page.locator("button.pozycja", has_text="Zofia Szymańska-Demo").first.click()
-    page.get_by_role("button", name="Oceń kompetencje").first.click()
-    page.locator("main button", has_text="Podsumowanie").first.click()
+    page.get_by_role("button", name=re.compile(r"^(Oceń kompetencje|Sporządź ocenę na piśmie)$")).first.click()
+    page.get_by_role("button", name="Dalej: krok 2").click()
+    page.get_by_role("button", name="Dalej: kroki 3–5").click()
+    plan = page.get_by_role("navigation", name="Plan oceny")
+    plan.get_by_role("button", name="Plan oceny").click()
+    plan.get_by_role("button", name=re.compile(r"Podsumowanie")).click()
     page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
     expect(page.get_by_role("heading", name="Zakres rozmowy")).to_be_visible()
-    page.get_by_role("button", name=re.compile(r"^Dalej: wynik")).click()
+    wnioski = "Koordynowanie pracy z interesariuszami."
+    page.get_by_label("Obszary rozwoju").fill(wnioski)
+    page.get_by_role("button", name="Dalej: wynik, terminy i arkusz").click()
 
-    expect(page.get_by_role("heading", name="Wynik pierwszej oceny")).to_be_visible()
-    dane = page.locator("section:has(h2:has-text('Daty, sprawozdanie'))")
+    expect(page.get_by_role("heading", name="Zakończenie oceny")).to_be_visible()
+    expect(page.get_by_text("Część 3 z 3 · Ocena na piśmie", exact=True)).to_be_visible()
+    expect(page.get_by_label("Miejscowość", exact=True)).to_have_value("Warszawa")
+
+    def rozwin(nazwa):
+        przycisk = page.get_by_role("button", name=nazwa, exact=True)
+        if przycisk.get_attribute("aria-expanded") == "false":
+            przycisk.click()
+
+    rozwin("Daty (z wcześniejszych kroków)")
+    expect(page.get_by_label("Zapoznanie ocenianego z oceną")).to_have_value("")
+    rozwin("Sprawozdanie")
     for etykieta, data in DATY.items():
-        dane.locator(f"label:has-text('{etykieta}') input").first.fill(data)
-    for i, tekst in enumerate(SPRAWOZDANIE):
-        dane.locator("label:has-text('Sprawozdanie:') textarea").nth(i).fill(tekst)
-    for pole in page.locator(".pola-arkusza .pole-arkusza").all():
-        wejscie = pole.locator("input, textarea")
-        if wejscie.count() and not wejscie.first.input_value():
-            etykieta = pole.locator("label.etykieta").first.inner_text()
-            wejscie.first.fill("2026-11-21" if "Data" in etykieta else "Warszawa")
-    page.get_by_role("button", name="Zapisz", exact=True).click()
-    expect(page.locator("p.wartosc")).to_contain_text("ocena pozytywna")
-    expect(page.locator("section:has(h2:has-text('Braki')) li")).to_have_count(0)
+        page.get_by_role("textbox", name=re.compile("^" + re.escape(etykieta))).fill(data)
+    for pole, tekst in zip(("zadania", "problemy_i_rozwiazania", "nowe_umiejetnosci_i_wiedza", "propozycje_usprawnien"), SPRAWOZDANIE):
+        page.locator("#sprawozdanie-" + pole).fill(tekst)
+
+    rozwin("Pola arkusza")
+    rozwin("Część ogólna")
+    for klucz, wartosc in {
+        "imie": "Łucja", "nazwisko": "Wójcik-Demo", "stanowisko": "Dyrektor",
+        "komorka_organizacyjna": "Departament Cyberbezpieczeństwa",
+    }.items():
+        page.locator(f'[id="pole-kierujacy_komorka.{klucz}"] input').fill(wartosc)
+    expect(page.get_by_role("textbox", name="Data podpisu kierującego komórką")).to_have_value("")
+    page.get_by_role("button", name="Zapisz szkic").click()
+    expect(page.get_by_role("heading", name="Ocena pozytywna", exact=True)).to_be_visible()
+    expect(page.get_by_text("Średnia 5,40 pkt", exact=True)).to_be_visible()
+    expect(page.get_by_role("textbox", name="Wnioski rozwojowe")).to_have_value(wnioski)
 
     page.get_by_role("button", name="Zatwierdź arkusz").click()
     expect(page.get_by_text("Arkusz zatwierdzony.")).to_be_visible()
@@ -109,6 +130,6 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)
     with page.expect_download() as pobranie:
-        page.get_by_role("button", name="Pobierz arkusz PDF").click()
+        page.get_by_role("button", name="Pobierz arkusz (PDF)").click()
     sciezka = pobranie.value.path()
     assert sciezka and Path(sciezka).read_bytes()[:5] == b"%PDF-"

@@ -7,13 +7,13 @@ import {
   type SourceRef,
   type WnioskiProcesu,
 } from "./api";
-import { Zrodla, opisBledu } from "./Krok1";
+import { Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 
 function Propozycja({ p }: { p: PropozycjaRozwoju }) {
   const [komunikat, setKomunikat] = useState("");
   async function kopiuj() {
     const tekst = [
-      `${p.kompetencja} · ${p.wskaznik}`,
+      `${nazwaKryterium(p.kompetencja)} · ${p.wskaznik}`,
       ...p.przyklady,
       ...p.formy.map((f) => f.nazwa),
       ...p.uwagi,
@@ -29,7 +29,7 @@ function Propozycja({ p }: { p: PropozycjaRozwoju }) {
     <li className="kryterium">
       <strong>{p.wskaznik}</strong>
       <p className="meta">
-        {p.kompetencja}
+        {nazwaKryterium(p.kompetencja)}
         {p.poziom !== null && ` · poziom ${p.poziom}`}
       </p>
       {p.przyklady.map((x) => (
@@ -68,46 +68,31 @@ export function Wnioski({
   moznaProwadzic: boolean;
   onWstecz: () => void;
 }) {
+  return (
+    <section className="k7">
+      <button type="button" className="link" onClick={onWstecz}>Wróć do oceny na piśmie</button>
+      <h1>Propozycje rozwoju</h1>
+      <p>{osoba.imie} {osoba.nazwisko} · {proces.sciezka === "okresowa" ? "Ocena okresowa" : "Pierwsza ocena"}</p>
+      {moznaProwadzic ? <PropozycjeRozwoju token={token} procesId={proces.id} /> :
+        <p>Propozycje rozwoju są dostępne dla przełożonego.</p>}
+    </section>
+  );
+}
+
+export function PropozycjeRozwoju({ token, procesId }: { token: string; procesId: number }) {
   const [dane, setDane] = useState<WnioskiProcesu | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!moznaProwadzic) return;
     let aktywny = true;
-    pobierzWnioski(token, proces.id)
+    pobierzWnioski(token, procesId)
       .then((d) => { if (aktywny) setDane(d); })
       .catch((err) => { if (aktywny) setBlad(opisBledu(err)); });
     return () => { aktywny = false; };
-  }, [token, proces.id, moznaProwadzic]);
+  }, [token, procesId]);
 
-  const naglowek = (
-    <section>
-      <div className="wiersz">
-        <div>
-          <div className="etykieta">Krok 8 z 8 · Wnioski rozwojowe</div>
-          <h2>
-            {osoba.imie} {osoba.nazwisko}
-          </h2>
-          <p className="opis">
-            {proces.sciezka === "okresowa" ? "ocena okresowa" : "pierwsza ocena"}
-            {dane && ` · wynik oceny: ${dane.wynik_oceny ?? "jeszcze nie ma (krok 5 niekompletny)"}`}
-          </p>
-        </div>
-        <button type="button" className="link" onClick={onWstecz}>
-          Wróć do kroku 7
-        </button>
-      </div>
-      {!moznaProwadzic && <p className="brak">Propozycje rozwoju przygotowuje i widzi tylko przełożony. Wnioski są w arkuszu (krok 7).</p>}
-      {dane && (
-        <p className="brak">
-          {dane.propozycje.status}. Asystent niczego nie wpisuje: treść wniosków pisze przełożony.
-        </p>
-      )}
-      {blad && <p className="blad">{blad}</p>}
-      {moznaProwadzic && !dane && !blad && <p className="meta">Wczytuję propozycje…</p>}
-    </section>
-  );
-  if (!dane) return naglowek;
+  if (blad) return <p className="blad" role="alert">{blad}</p>;
+  if (!dane) return <p className="meta">Wczytuję propozycje…</p>;
 
   const pr = dane.propozycje;
   const obszary = pr.propozycje.filter((p) => p.typ === "OBSZAR_ROZWOJOWY");
@@ -117,7 +102,7 @@ export function Wnioski({
 
   return (
     <>
-      {naglowek}
+      <p className="meta">{pr.status}</p>
 
       {!pr.dostepne && pr.komunikat && (
         <section>
@@ -127,7 +112,6 @@ export function Wnioski({
 
       {pr.dostepne && (
         <section>
-          <h2>Propozycje z kroków 3–5</h2>
           {pr.propozycje.length === 0 && (
             <p className="meta">Wszystkie ocenione wskaźniki są na poziomie oczekiwań, więc asystent nie ma propozycji. Wnioski pisze przełożony.</p>
           )}

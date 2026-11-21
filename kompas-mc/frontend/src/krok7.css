@@ -40,6 +40,7 @@
 .k7 .k7-terminy { width: 100%; }
 .k7-terminy td:last-child { white-space: nowrap; vertical-align: top; font-variant-numeric: tabular-nums; }
 .k7-akcje { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8) var(--o-16); }
+.k7-zakonczona { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-8); }
 .k7-pasek { margin-top: auto; }
 .k7-komunikat { display: grid; gap: var(--o-4); margin-left: auto; text-align: right; max-width: 75ch; }
 .k7-komunikat [role="status"]:empty { display: none; }
