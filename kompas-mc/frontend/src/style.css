@@ -81,16 +81,20 @@ h2 { margin: 0; font-size: var(--t-section-r); line-height: var(--t-section-l); 
 p { margin: var(--o-8) 0 0; }
 code { font-size: var(--t-small-r); }
 
+/* Sekcje płasko, jak na gov.pl: bez ramki karty, oddziela je odstęp i cienka linia nad kolejną sekcją. */
 section {
-  background: var(--k-surface);
-  border: 1px solid var(--k-line);
-  border-radius: var(--r-card);
-  box-shadow: var(--s-card);
-  padding: var(--o-24);
-  margin-bottom: var(--o-16);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--k-line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--o-24) 0 0;
+  margin-bottom: var(--o-32);
   font-size: var(--t-body-r);
   line-height: var(--t-body-l);
 }
+.kolumna > section:first-child, section section { border-top: 0; padding-top: 0; }
+section section { margin-bottom: var(--o-24); }
 
 .wiersz { display: flex; justify-content: space-between; align-items: center; gap: var(--o-12); margin-top: var(--o-16); }
 section > .wiersz:first-child { margin-top: 0; }
@@ -136,8 +140,8 @@ button {
 button:active { background: var(--k-action-pressed); }
 button.jasny { background: var(--k-wiersz); border-color: transparent; color: var(--k-action); }
 button.jasny:active { background: var(--k-wiersz-pressed); }
-button.link { min-height: 0; padding: 0; border: 0; background: none; color: var(--k-text); text-decoration: underline; text-underline-offset: 2px; font-weight: var(--f-regular); }
-button.link:active { color: var(--k-text-muted); }
+button.link { min-height: 0; padding: 0; border: 0; background: none; color: var(--k-action); text-decoration: underline; text-underline-offset: 2px; font-weight: var(--f-medium); }
+button.link:active { color: var(--k-action-pressed); }
 button:disabled { border-color: var(--k-disabled-border); background: var(--k-disabled-bg); color: var(--k-disabled-text); cursor: default; }
 @media (hover: hover) and (pointer: fine) {
   button:not(:disabled):hover { background: var(--k-action-hover); }
@@ -147,13 +151,13 @@ button:disabled { border-color: var(--k-disabled-border); background: var(--k-di
 :focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 
 /* Wybór jednej z kilku opcji (zamiast natywnego select). */
-.wybor { display: inline-flex; gap: var(--o-4); flex-wrap: wrap; }
-.wybor button { background: var(--k-surface); border-color: var(--k-line-control); color: var(--k-text-secondary); font-weight: var(--f-regular); }
+.wybor { display: inline-flex; gap: var(--o-4); flex-wrap: wrap; padding: var(--o-4); border-radius: 999px; background: var(--k-neutral-bg); }
+.wybor button { min-height: 40px; border: 0; border-radius: 999px; background: none; color: var(--k-text-secondary); font-weight: var(--f-medium); }
 .wybor button:active { background: var(--k-surface-pressed); }
-.wybor button[aria-pressed="true"] { background: var(--k-tab-active); border-color: var(--k-tab-active); color: var(--k-text); font-weight: var(--f-medium); }
+.wybor button[aria-pressed="true"] { background: var(--k-surface); color: var(--k-action); font-weight: var(--f-semibold); box-shadow: 0 1px 3px rgba(16, 19, 23, 0.14); }
 @media (hover: hover) and (pointer: fine) {
-  .wybor button:not([aria-pressed="true"]):hover { background: var(--k-surface-hover); }
-  .wybor button[aria-pressed="true"]:hover { background: var(--k-tab-active); }
+  .wybor button:not([aria-pressed="true"]):hover { background: var(--k-wiersz-hover); }
+  .wybor button[aria-pressed="true"]:hover { background: var(--k-surface); }
 }
 
 /* Asystent: cytaty */
