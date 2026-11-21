@@ -1,6 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
-import { BladApi, pobierzKrok2, zapiszKrok2, type Krok2 as DaneKroku2, type KryteriumKroku2, type Pracownik, type ProcesOceny } from "./api";
+import {
+  BladApi,
+  pobierzKrok2,
+  zapiszKrok2,
+  type Krok2 as DaneKroku2,
+  type KryteriumKroku2,
+  type Pracownik,
+  type ProcesOceny,
+  type SourceRef,
+} from "./api";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
+import { Ikona } from "./Ikona";
+import "./krok2.css";
 
 type Wskazniki = Record<string, string[]>;
 
@@ -22,58 +33,91 @@ function domyslne(k: KryteriumKroku2): string[] {
   return pasujace.length > 0 ? pasujace : k.wskazniki.map((w) => w.wskaznik_id);
 }
 
-type PropsListy = {
+/** Źródła wskaźników kryterium bez powtórzeń: zwykle wszystkie stoją na tym samym miejscu rozporządzenia. */
+function zrodlaKryterium(k: KryteriumKroku2): SourceRef[] {
+  const widziane = new Set<string>();
+  return k.wskazniki
+    .map((w) => w.podstawa)
+    .filter((a) => {
+      const klucz = `${a.doc_id}|${a.lokalizator}|${a.strona}`;
+      if (widziane.has(klucz)) return false;
+      widziane.add(klucz);
+      return true;
+    });
+}
+
+type PropsKryterium = {
   k: KryteriumKroku2;
   wybrane: string[];
   tylkoOdczyt: boolean;
+  otwarte: boolean;
+  onPrzelacz: () => void;
   onWskaznik: (id: string) => void;
+  /** Kryterium dodatkowe: pole wyboru całego kryterium w nagłówku wiersza. */
+  dodatkowe?: { wybrane: boolean; zablokowane: boolean; onWybierz: () => void };
 };
 
-function ListaWskaznikow({ k, wybrane, tylkoOdczyt, onWskaznik }: PropsListy) {
+/** Kryterium jako zwijany wiersz: nagłówek z licznikiem, po rozwinięciu wskaźniki i źródło raz na kryterium. */
+function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, dodatkowe }: PropsKryterium) {
+  const aktywne = !dodatkowe || dodatkowe.wybrane;
+  const pasujace = k.wskazniki.filter((w) => w.proponowany).length;
   return (
-    <ul className="wskazniki">
-      {k.wskazniki.map((w) => (
-        <li key={w.wskaznik_id}>
-          <label className="zaznacz">
+    <div className={`k2-kryterium ${otwarte && aktywne ? "otwarte" : ""} ${aktywne ? "" : "nieaktywne"}`}>
+      <div className="k2-glowa">
+        {dodatkowe && (
+          <label className="k2-wybierz">
             <input
               type="checkbox"
-              checked={wybrane.includes(w.wskaznik_id)}
-              disabled={tylkoOdczyt}
-              onChange={() => onWskaznik(w.wskaznik_id)}
+              aria-label={`Wybierz kryterium ${k.nazwa}`}
+              checked={dodatkowe.wybrane}
+              disabled={tylkoOdczyt || dodatkowe.zablokowane}
+              onChange={dodatkowe.onWybierz}
             />
-            <span>
-              {w.nazwa} {w.proponowany && <span className="status pozytywna">pasuje do zadań</span>}
-            </span>
           </label>
-          <div className="pod-wskaznikiem">
-            {w.zadania.length > 0 && (
-              <details className="zadania-osp">
-                <summary>Zadania z OSP: {w.zadania.map((z) => z.nr).join(", ")}</summary>
-                {w.zadania.map((z) => (
-                  <p key={z.nr} className="meta">
-                    {z.nr}. ({z.rodzaj === "DOMINUJACE" ? "dominujące" : "pozostałe"}) {z.tekst}
-                  </p>
-                ))}
-              </details>
-            )}
-            <Zrodla adnotacje={[w.podstawa]} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Kryterium(props: PropsListy) {
-  return (
-    <div className="kryterium">
-      <div className="wiersz-przeslanki">
-        <strong>{props.k.nazwa}</strong>
-        <span className="meta">
-          wskaźników: {props.wybrane.length} z {props.k.wskazniki.length}
-        </span>
+        )}
+        <button type="button" className="k2-przelacz" aria-expanded={otwarte && aktywne} disabled={!aktywne} onClick={onPrzelacz}>
+          <span className="k2-nazwa">
+            {k.nazwa.charAt(0) + k.nazwa.slice(1).toLowerCase()}
+            {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
+          </span>
+          <span className="k2-opis">
+            {aktywne
+              ? `${wybrane.length} z ${k.wskazniki.length} wskaźników${pasujace ? ` · ${pasujace} pasuje do zadań z OSP` : ""}`
+              : k.propozycja
+                ? k.propozycja.powody.join("; ")
+                : `${k.wskazniki.length} wskaźników`}
+          </span>
+          {aktywne && <Ikona nazwa={otwarte ? "gora" : "dalej"} rozmiar={20} />}
+        </button>
       </div>
-      <ListaWskaznikow {...props} />
+      {otwarte && aktywne && (
+        <div className="k2-cialo">
+          {k.propozycja && <p className="meta">Dlaczego: {k.propozycja.powody.join("; ")}</p>}
+          <ul className="k2-wskazniki">
+            {k.wskazniki.map((w) => (
+              <li key={w.wskaznik_id}>
+                <label className="zaznacz">
+                  <input
+                    type="checkbox"
+                    checked={wybrane.includes(w.wskaznik_id)}
+                    disabled={tylkoOdczyt}
+                    onChange={() => onWskaznik(w.wskaznik_id)}
+                  />
+                  <span>
+                    {w.nazwa}
+                    {w.zadania.length > 0 && (
+                      <span className="k2-zadania" title={w.zadania.map((z) => `${z.nr}. ${z.tekst}`).join("\n")}>
+                        zadania z OSP: {w.zadania.map((z) => z.nr).join(", ")}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <Zrodla adnotacje={[...zrodlaKryterium(k), ...(k.propozycja?.adnotacje ?? [])]} />
+        </div>
+      )}
     </div>
   );
 }
@@ -99,6 +143,9 @@ export function Krok2({
   const [blad, setBlad] = useState<string | null>(null);
   const [czekam, setCzekam] = useState(false);
   const [zapisano, setZapisano] = useState<string | null>(null);
+  const [otwarte, setOtwarte] = useState<string[]>([]);
+  const [pozostale, setPozostale] = useState(false);
+  const [metodyka, setMetodyka] = useState(false);
 
   useEffect(() => {
     pobierzKrok2(token, proces.id)
@@ -166,150 +213,140 @@ export function Krok2({
     }
   }
 
-  const dalej = (
-    <div className="wiersz">
-      <span className="meta">Następny krok: zachowania, sugestia i ocena cząstkowa</span>
-      <button type="button" className="jasny" onClick={onDalej}>
-        Dalej: kroki 3–5
-      </button>
-    </div>
-  );
-
-  const kartaDodatkowego = (k: KryteriumKroku2) => {
+  const przelaczOtwarte = (id: string) => setOtwarte((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
+  const wiersz = (k: KryteriumKroku2, dodatkoweKryterium: boolean) => {
     const wybrany = dodatkowe.includes(k.kompetencja_id);
-    const pelny = !wybrany && dodatkowe.length >= dane.limit_dodatkowych;
     return (
-      <div key={k.kompetencja_id} className="kryterium">
-        <label className="zaznacz">
-          <input
-            type="checkbox"
-            checked={wybrany}
-            disabled={tylkoOdczyt || pelny}
-            onChange={() => przelaczDodatkowe(k)}
-          />
-          <span>
-            <strong>{k.nazwa}</strong>{" "}
-            {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
-          </span>
-        </label>
-        <div className="pod-wskaznikiem">
-          {k.propozycja && <p className="meta">Dlaczego: {k.propozycja.powody.join("; ")}</p>}
-          {k.propozycja && <Zrodla adnotacje={k.propozycja.adnotacje} />}
-          {wybrany && (
-            <p className="meta">
-              wskaźników: {(wskazniki[k.kompetencja_id] ?? []).length} z {k.wskazniki.length}
-            </p>
-          )}
-        </div>
-        {wybrany && (
-          <ListaWskaznikow
-            k={k}
-            wybrane={wskazniki[k.kompetencja_id] ?? []}
-            tylkoOdczyt={tylkoOdczyt}
-            onWskaznik={(id) => przelaczWskaznik(k.kompetencja_id, id)}
-          />
-        )}
-      </div>
+      <Kryterium
+        key={k.kompetencja_id}
+        k={k}
+        wybrane={wskazniki[k.kompetencja_id] ?? []}
+        tylkoOdczyt={tylkoOdczyt}
+        otwarte={otwarte.includes(k.kompetencja_id)}
+        onPrzelacz={() => przelaczOtwarte(k.kompetencja_id)}
+        onWskaznik={(id) => przelaczWskaznik(k.kompetencja_id, id)}
+        dodatkowe={
+          dodatkoweKryterium
+            ? {
+                wybrane: wybrany,
+                zablokowane: !wybrany && dodatkowe.length >= dane.limit_dodatkowych,
+                onWybierz: () => przelaczDodatkowe(k),
+              }
+            : undefined
+        }
+      />
     );
   };
+  const dalej = (
+    <button type="button" className="jasny" onClick={onDalej}>
+      Dalej: kroki 3–5
+    </button>
+  );
+  const nazwaArkusza = dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz;
 
   return (
-    <>
-      <section>
-        <div className="wiersz">
-          <div>
-            <div className="etykieta">Krok 2 z 8 · Kryteria i wskaźniki</div>
-            <h2>
-              {osoba.imie} {osoba.nazwisko}
-            </h2>
-            <p className="opis">
-              {NAZWA_SCIEZKI[dane.sciezka]} · arkusz {dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz}
-            </p>
-          </div>
-          <button type="button" className="link" onClick={onWstecz}>
-            Wróć do kroku 1
-          </button>
-        </div>
-        {tylkoOdczyt && !dane.wybor && (
-          <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
-        )}
-        {dane.wybor && (
-          <p className="sukces">
-            Zapisany wybór: {dane.wybor.kryteria.length} kryteriów, zapisał {dane.wybor.zapisal}.
-          </p>
-        )}
-        {tylkoOdczyt && dane.wybor && dalej}
-      </section>
-
-      <section>
-        <h2>Kryteria obowiązkowe</h2>
-        <Zrodla adnotacje={dane.podstawa_obowiazkowych} />
-        {obowiazkowe.map((k) => (
-          <Kryterium
-            key={k.kompetencja_id}
-            k={k}
-            wybrane={wskazniki[k.kompetencja_id] ?? []}
-            tylkoOdczyt={tylkoOdczyt}
-            onWskaznik={(id) => przelaczWskaznik(k.kompetencja_id, id)}
-          />
-        ))}
-      </section>
-
-      <section>
-        <div className="wiersz">
-          <h2>Kryteria dodatkowe</h2>
-          {dane.limit_dodatkowych > 0 && (
-            <span className="meta">
-              wybrano {dodatkowe.length} z {dane.limit_dodatkowych}
-            </span>
-          )}
-        </div>
-        <Zrodla adnotacje={dane.podstawa_dodatkowych} />
-        {dane.limit_dodatkowych === 0 ? (
-          <p className="brak">W pierwszej ocenie nie ma kryteriów dodatkowych.</p>
-        ) : (
-          <>
-            {proponowane.map(kartaDodatkowego)}
-            {dostepne.length > 0 && (
-              <details className="pozostale">
-                <summary>Pozostałe kompetencje ({dostepne.length})</summary>
-                {dostepne.map(kartaDodatkowego)}
-              </details>
-            )}
-          </>
-        )}
-      </section>
-
-      <section>
-        <h2>Metodyka doboru</h2>
-        <p>
-          <span className="status uwaga">{dane.metodyka.status}</span>
+    <div className="k2">
+      <div className="k2-naglowek">
+        <button type="button" className="link" onClick={onWstecz}>
+          Wróć do kroku 1
+        </button>
+        <p className="meta">Krok 2 z 8</p>
+        <h1>Kryteria i wskaźniki</h1>
+        <p className="opis">
+          {osoba.imie} {osoba.nazwisko} · {NAZWA_SCIEZKI[dane.sciezka]} · arkusz {nazwaArkusza}
         </p>
-        <p>{dane.metodyka.opis}</p>
-        <Zrodla adnotacje={dane.metodyka.adnotacje} />
-      </section>
+      </div>
 
-      {moznaProwadzic && (
-        <section>
-          <h2>Zatwierdzenie</h2>
-          <form onSubmit={zapisz}>
-            {pusteKryteria.length > 0 && (
-              <p className="brak">Każde wybrane kryterium musi mieć co najmniej jeden wskaźnik.</p>
+      <div className="dwie">
+        <div className="sekcja k2-glowna">
+          {tylkoOdczyt && !dane.wybor && (
+            <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
+          )}
+          <div className="k2-grupa">
+            <h2>
+              Obowiązkowe <span className="meta">{obowiazkowe.length}</span>
+            </h2>
+            {obowiazkowe.map((k) => wiersz(k, false))}
+          </div>
+
+          <div className="k2-grupa">
+            <h2>
+              Dodatkowe{" "}
+              {dane.limit_dodatkowych > 0 && (
+                <span className="meta">
+                  wybrano {dodatkowe.length} z {dane.limit_dodatkowych}
+                </span>
+              )}
+            </h2>
+            {dane.limit_dodatkowych === 0 ? (
+              <p className="meta">W pierwszej ocenie nie ma kryteriów dodatkowych.</p>
+            ) : (
+              <>
+                {proponowane.map((k) => wiersz(k, true))}
+                {dostepne.length > 0 && (
+                  <>
+                    <button type="button" className="link k2-pozostale" aria-expanded={pozostale} onClick={() => setPozostale((v) => !v)}>
+                      {pozostale ? "Ukryj pozostałe kompetencje" : `Pozostałe kompetencje (${dostepne.length})`}
+                    </button>
+                    {pozostale && dostepne.map((k) => wiersz(k, true))}
+                  </>
+                )}
+              </>
             )}
-            <div className="wiersz">
-              <span className="meta">
-                Kryteriów: {wybrane.length} · wskaźników: {liczbaWskaznikow}
-              </span>
-              <button disabled={czekam || pusteKryteria.length > 0}>
-                {czekam ? "Zapisuję…" : "Zatwierdź kryteria i wskaźniki"}
-              </button>
-            </div>
-          </form>
-          {zapisano && <p className="sukces">{zapisano}</p>}
-          {(zapisano || dane.wybor) && dalej}
-          {blad && <p className="blad">{blad}</p>}
-        </section>
-      )}
-    </>
+          </div>
+        </div>
+
+        <aside className="sekcja k2-boczna">
+          <div className="k2-podsumowanie">
+            <h2>Podsumowanie</h2>
+            <dl>
+              <div>
+                <dt>Kryteria</dt>
+                <dd>
+                  {obowiazkowe.length} obowiązkowych{dodatkowe.length > 0 && ` + ${dodatkowe.length} dodatkowe`}
+                </dd>
+              </div>
+              <div>
+                <dt>Wskaźniki</dt>
+                <dd>{liczbaWskaznikow}</dd>
+              </div>
+            </dl>
+            {dane.wybor && !zapisano && (
+              <p className="sukces">
+                Zapisany wybór: {dane.wybor.kryteria.length} kryteriów, zapisał {dane.wybor.zapisal}.
+              </p>
+            )}
+            {moznaProwadzic && (
+              <form onSubmit={zapisz}>
+                {pusteKryteria.length > 0 && (
+                  <p className="brak">Każde wybrane kryterium musi mieć co najmniej jeden wskaźnik.</p>
+                )}
+                <button className="k2-zatwierdz" disabled={czekam || pusteKryteria.length > 0}>
+                  {czekam ? "Zapisuję…" : "Zatwierdź kryteria i wskaźniki"}
+                </button>
+              </form>
+            )}
+            {zapisano && <p className="sukces">{zapisano}</p>}
+            {(zapisano || dane.wybor) && dalej}
+            {blad && <p className="blad">{blad}</p>}
+          </div>
+
+          <div className="k2-metodyka">
+            <button type="button" className="link" aria-expanded={metodyka} onClick={() => setMetodyka((v) => !v)}>
+              {metodyka ? "Ukryj, jak system dobrał wskaźniki" : "Jak system dobrał wskaźniki?"}
+            </button>
+            {metodyka && (
+              <>
+                <p>
+                  <span className="status uwaga">{dane.metodyka.status}</span>
+                </p>
+                <p className="meta">{dane.metodyka.opis}</p>
+                <Zrodla adnotacje={[...dane.metodyka.adnotacje, ...dane.podstawa_obowiazkowych, ...dane.podstawa_dodatkowych]} />
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }
