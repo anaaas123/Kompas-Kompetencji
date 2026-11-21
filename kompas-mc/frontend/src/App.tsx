@@ -15,6 +15,8 @@ import { Powloka, type Widok } from "./Powloka";
 import { Pulpit } from "./Pulpit";
 import { Zespol } from "./Zespol";
 import { KartaPracownika } from "./KartaPracownika";
+import { Cele } from "./Cele";
+import { CeleOsoby } from "./CeleOsoby";
 import { MojaSamoocena } from "./Samoocena";
 import { ListaPracownikow } from "./ListaPracownikow";
 import type { FiltrPracownikow } from "./zespol-dane";
@@ -193,6 +195,7 @@ export default function App() {
           onSamoocena={setSamoocena}
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
+          cele={<CeleOsoby sesja={sesja} osoba={karta} maks={3} />}
         />
       )}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
@@ -208,6 +211,7 @@ export default function App() {
         />
       )}
       {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onPracownicy={doPracownikow} onWybierz={setKarta} />}
+      {!karta && !oceniany && widok === "cele" && <Cele sesja={sesja} onWyloguj={wyloguj} />}
       {!karta && !oceniany && widok === "pracownicy" && (
         <ListaPracownikow sesja={sesja} filtr={filtr} onFiltr={setFiltr} onWyloguj={wyloguj} onWybierz={setKarta} />
       )}

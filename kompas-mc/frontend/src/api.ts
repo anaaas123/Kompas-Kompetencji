@@ -852,3 +852,73 @@ export interface WnioskiProcesu {
 
 export const pobierzWnioski = (token: string, procesId: number) =>
   fetch(`/api/procesy/${procesId}/rozwoj`, { headers: autoryzacja(token) }).then((r) => odpowiedz<WnioskiProcesu>(r));
+
+/** Cele rozwojowe (#10, #40): należą do pracownika; akceptację daje przełożony. */
+export type StatusCelu = "propozycja" | "zatwierdzony" | "w_realizacji" | "osiągnięty" | "porzucony" | "odrzucony";
+
+export interface TrescCelu {
+  nazwa: string;
+  opis?: string;
+  wskaznik_id?: string | null;
+  miernik: string;
+  termin: string;
+}
+
+export interface Cel extends TrescCelu {
+  id: number;
+  osoba_id: string;
+  opis: string;
+  status: StatusCelu;
+  komentarz: string | null;
+  zgloszono_osiagniecie: boolean;
+  autor: string;
+  utworzono: string;
+  zmieniono: string;
+}
+
+export interface WpisHistoriiCelu {
+  czas: string;
+  autor: string;
+  "różnica"?: Record<string, { przed: unknown; po: unknown }>;
+  roznica?: Record<string, { przed: unknown; po: unknown }>;
+}
+
+export interface PodpowiedzCelu {
+  nazwa: string;
+  opis: string;
+  wskaznik_id: string | null;
+  wskaznik: string | null;
+  kompetencja: string | null;
+  miernik: string;
+  termin: string | null;
+  formy: string[];
+  oznaczenie: string;
+}
+
+async function wyslijCele<T>(token: string, url: string, method = "GET", body?: unknown): Promise<T> {
+  const r = await fetch(url, {
+    method,
+    headers: { ...autoryzacja(token), ...(body === undefined ? {} : { "content-type": "application/json" }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc as T;
+}
+
+export const celeApi = {
+  lista: (t: string, osoba: string) =>
+    wyslijCele<{ osoba_id: string; pracownik_moze_edytowac: boolean; cele: Cel[] }>(t, `/api/pracownicy/${osoba}/cele`),
+  historia: (t: string, id: number) => wyslijCele<WpisHistoriiCelu[]>(t, `/api/cele/${id}/historia`),
+  podpowiedzi: (t: string, osoba: string) =>
+    wyslijCele<{ proces_id: number | null; komunikat: string | null; podpowiedzi: PodpowiedzCelu[] }>(
+      t,
+      `/api/pracownicy/${osoba}/cele/podpowiedzi`,
+    ),
+  dodaj: (t: string, osoba: string, c: TrescCelu) => wyslijCele<Cel>(t, `/api/pracownicy/${osoba}/cele`, "POST", c),
+  zmien: (t: string, id: number, c: TrescCelu) => wyslijCele<Cel>(t, `/api/cele/${id}`, "PUT", c),
+  zatwierdz: (t: string, id: number) => wyslijCele<Cel>(t, `/api/cele/${id}/zatwierdz`, "POST"),
+  odrzuc: (t: string, id: number, komentarz: string) => wyslijCele<Cel>(t, `/api/cele/${id}/odrzuc`, "POST", { komentarz }),
+  status: (t: string, id: number, status: "w_realizacji" | "osiągnięty" | "porzucony") =>
+    wyslijCele<Cel>(t, `/api/cele/${id}/status`, "POST", { status }),
+};
