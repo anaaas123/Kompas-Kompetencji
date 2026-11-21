@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
+  pobierzCykl,
   pobierzKrok1,
   pobierzNotatki,
   pobierzOcene,
@@ -8,6 +9,7 @@ import {
   pobierzSamoocene,
   pobierzTerminy,
   type AnalizaKroku1,
+  type EtapOsoby,
   type Notatka,
   type Pracownik,
   type ProcesOceny,
@@ -18,7 +20,6 @@ import {
 import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
-import { PostepKrokow } from "./Wykresy";
 import { data, kiedy, lat, lataStazu, stazTekst, NAZWA_SCIEZKI, podzial } from "./zespol-dane";
 import "./widoki.css";
 
@@ -28,28 +29,23 @@ import "./widoki.css";
  * Każda sekcja pojawia się tylko, gdy API ma dla niej dane; jedyny przycisk główny jest w „Następny krok”.
  */
 
-/** Etapy procesu jak w nagłówkach kroków (Krok N z 8). */
-const ETAPY: [number, number, string][] = [
-  [1, 1, "Analiza opisu stanowiska"],
-  [2, 2, "Kryteria i wskaźniki"],
-  [3, 5, "Ocena kryteriów"],
-  [6, 6, "Rozmowa oceniająca"],
-  [7, 7, "Wynik, terminy i arkusz"],
-  [8, 8, "Wnioski rozwojowe"],
+/** Trzy etapy cyklu z rozporządzeń (rada UX 21.11): kolejność = indeks etapu z /api/cykl. */
+const ETAPY_CYKLU: Record<"okresowa" | "pierwsza", [string, string, string]> = {
+  okresowa: ["Ustalenie kryteriów", "Okres oceny", "Ocena: rozmowa i arkusz"],
+  pierwsza: ["Rozmowa wstępna", "Okres przed pierwszą oceną", "Pierwsza ocena"],
+};
+const PODPOWIEDZI_PIERWSZA = [
+  "Kiedy przeprowadza się rozmowę wstępną?",
+  "Kto sporządza pierwszą ocenę?",
+  "Co się dzieje po negatywnej pierwszej ocenie?",
 ];
-const KROKOW = 8;
+const INDEKS_ETAPU: Record<EtapOsoby["etap"], number> = { kryteria: 0, okres: 1, ocena: 2, brak_danych: -1 };
 
-const PODPOWIEDZI: Record<string, string[]> = {
-  okresowa: [
-    "Co omawia się na rozmowie oceniającej?",
-    "Kiedy ocena okresowa jest negatywna?",
-    "Ile kryteriów dodatkowych można wybrać?",
-  ],
-  pierwsza: [
-    "Kiedy przeprowadza się rozmowę wstępną?",
-    "Kto sporządza pierwszą ocenę?",
-    "Co się dzieje po negatywnej pierwszej ocenie?",
-  ],
+const PODPOWIEDZI: Record<EtapOsoby["etap"], string[]> = {
+  kryteria: ["Jak ustalić kryteria oceny okresowej?", "Ile kryteriów dodatkowych można wybrać?", "Kiedy przeprowadza się rozmowę wstępną?"],
+  okres: ["Co zrobić, gdy zmienia się oceniający?", "Kiedy można przesunąć termin oceny?", "Jak dokumentować przykłady zachowań?"],
+  ocena: ["Co omawia się na rozmowie oceniającej?", "Kiedy ocena okresowa jest negatywna?", "Ile dni ma pracownik na sprzeciw od oceny okresowej?"],
+  brak_danych: ["Kto podlega ocenie okresowej?", "Kto podlega pierwszej ocenie?", "Co zrobić, gdy brakuje danych kadrowych?"],
 };
 
 interface Dane {
@@ -61,6 +57,8 @@ interface Dane {
   samoocena: Samoocena | null;
   notatki: Notatka[];
   przelozony: Pracownik | null;
+  /** Etap cyklu i następna czynność z /api/cykl (#23). */
+  cykl: EtapOsoby | null;
 }
 
 export function KartaPracownika({
@@ -71,6 +69,7 @@ export function KartaPracownika({
   onSamoocena,
   onZapytaj,
   onWyloguj,
+  cele,
 }: {
   sesja: Sesja;
   osoba: Pracownik;
@@ -78,6 +77,8 @@ export function KartaPracownika({
   onOcen: () => void;
   /** Pracownik otwiera „Moją samoocenę” procesu (#9). */
   onSamoocena?: (procesId: number) => void;
+  /** Sekcja celów rozwojowych osoby (#11, komponent z gałęzi celów); bez niej sekcji nie ma. */
+  cele?: ReactNode;
   onZapytaj: (pytanie: string) => void;
   onWyloguj: () => void;
 }) {
@@ -90,13 +91,14 @@ export function KartaPracownika({
     let aktualne = true;
     (async () => {
       try {
-        const [analiza, procesy, terminy, ludzie, notatki] = await Promise.all([
+        const [analiza, procesy, terminy, ludzie, notatki, cykl] = await Promise.all([
           pobierzKrok1(token, osoba.osoba_id).catch(() => null),
           pobierzProcesy(token),
           pobierzTerminy(token).catch(() => []),
           pobierzPracownikow(token),
           // Notatki widzi tylko przełożony; HR i oceniany dostają 403.
           pobierzNotatki(token, osoba.osoba_id).catch(() => []),
+          pobierzCykl(token).catch(() => []),
         ]);
         const wlasne = procesy.filter((p) => p.osoba_id === osoba.osoba_id);
         const proces = wlasne.find((p) => p.status === "W_TOKU") ?? wlasne[wlasne.length - 1] ?? null;
@@ -114,6 +116,7 @@ export function KartaPracownika({
           notatki,
           przelozony: ludzie.find((p) => p.osoba_id === osoba.przelozony_id) ?? null,
           samoocena,
+          cykl: cykl.find((c) => c.osoba_id === osoba.osoba_id) ?? null,
         });
       } catch (err) {
         if (String(err).includes("401")) onWyloguj();
@@ -133,7 +136,7 @@ export function KartaPracownika({
       ? "Ty"
       : dane?.przelozony
         ? `${dane.przelozony.imie} ${dane.przelozony.nazwisko}`
-        : osoba.przelozony_id;
+        : null;
 
   return (
     <div className="widok karta">
@@ -168,10 +171,10 @@ export function KartaPracownika({
               {osoba.korpus === "urzednik_sc" ? "urzędnik" : "pracownik"} służby cywilnej, umowa na czas{" "}
               {osoba.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}.{" "}
               {osoba.kieruje_pracownikami ? "Kieruje zespołem." : "Nie kieruje zespołem."}
-              {dane.analiza?.osp && <> {dane.analiza.osp.cel.tekst}</>}
             </p>
 
-            <Proces dane={dane} onOcen={onOcen} />
+            <Cykl dane={dane} sciezka={dane.cykl?.sciezka ?? dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? null} />
+            {cele}
             <WynikiKryteriow ocena={dane.ocena} />
 
             <div className="sekcja">
@@ -209,11 +212,15 @@ export function KartaPracownika({
             </div>
 
             {dane.analiza?.osp && (
-              <div className="sekcja">
-                <h2>Opis stanowiska</h2>
-                <p className="meta zero">
-                  OSP {dane.analiza.osp.symbol} · {departament}
-                </p>
+              <details className="sekcja opis-stanowiska">
+                <summary>
+                  <h2>Opis stanowiska</h2>
+                  <span className="meta">
+                    OSP {dane.analiza.osp.symbol} · {dane.analiza.osp.zadania_dominujace.length} zadania dominujące · pokaż
+                  </span>
+                </summary>
+                <span className="kafel-etykieta">Cel stanowiska</span>
+                <p className="zero">{dane.analiza.osp.cel.tekst}</p>
                 <span className="kafel-etykieta">Zadania dominujące</span>
                 <ol className="zadania-karty">
                   {dane.analiza.osp.zadania_dominujace.map((z) => (
@@ -232,7 +239,7 @@ export function KartaPracownika({
                     </div>
                   </>
                 )}
-              </div>
+              </details>
             )}
 
             {dane.notatki.length > 0 && (
@@ -256,7 +263,7 @@ export function KartaPracownika({
             {dane.samoocena && onSamoocena ? (
               <NastepnySamoocena s={dane.samoocena} onOtworz={() => onSamoocena(dane.samoocena!.proces_id)} />
             ) : (
-              <NastepnyKrok dane={dane} prowadzi={prowadzi} onOcen={onOcen} />
+              <NastepnyKrok dane={dane} prowadzi={prowadzi} onOcen={onOcen} przelozony={dane.przelozony} />
             )}
 
             {dane.analiza?.arkusz_okresowy.arkusz && (
@@ -285,8 +292,12 @@ export function KartaPracownika({
                   <br />
                   <span className="meta">{departament}</span>
                 </dd>
-                <dt>Przełożony</dt>
-                <dd>{przelozonyTo}</dd>
+                {przelozonyTo && (
+                  <>
+                    <dt>Przełożony</dt>
+                    <dd>{przelozonyTo}</dd>
+                  </>
+                )}
                 <dt>Kieruje pracownikami</dt>
                 <dd>{osoba.kieruje_pracownikami ? "tak" : "nie"}</dd>
                 {osoba.zmiana_oceniajacego && (
@@ -326,7 +337,10 @@ export function KartaPracownika({
             <div className="sekcja">
               <h2>Zapytaj asystenta</h2>
               <div className="lista ciasna">
-                {(PODPOWIEDZI[dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? "okresowa"] ?? []).map((q) => (
+                {((dane.cykl?.sciezka ?? dane.proces?.sciezka) === "pierwsza"
+                  ? PODPOWIEDZI_PIERWSZA
+                  : PODPOWIEDZI[dane.cykl?.etap ?? "ocena"]
+                ).map((q) => (
                   <WierszListy key={q} maly lewa={<Ikona nazwa="pytanie" />} tytul={q} onClick={() => onZapytaj(q)} />
                 ))}
               </div>
@@ -338,86 +352,130 @@ export function KartaPracownika({
   );
 }
 
-function Proces({ dane, onOcen }: { dane: Dane; onOcen: () => void }) {
-  const p = dane.proces;
-  if (!p) return null;
-  const t = dane.termin;
+/**
+ * Cykl oceny w trzech etapach z rozporządzeń i zdanie „Teraz: … do … · Potem: …” (rada UX 21.11).
+ * Etap i termin podaje /api/cykl; front nic nie liczy.
+ */
+function Cykl({ dane, sciezka }: { dane: Dane; sciezka: "okresowa" | "pierwsza" | null }) {
+  const c = dane.cykl;
+  if (!c) return null;
+  const etapy = ETAPY_CYKLU[sciezka ?? "okresowa"];
+  const biezacy = INDEKS_ETAPU[c.etap];
+  const termin = c.termin && (
+    <>
+      {" "}
+      do {data(c.termin.data)} ({c.dni_do_terminu !== null ? kiedy(c.dni_do_terminu) : ""})
+    </>
+  );
   return (
-    <div className="sekcja">
-      <div className="wiersz-tytulu">
-        <h2>
-          {NAZWA_SCIEZKI[p.sciezka].charAt(0).toUpperCase() + NAZWA_SCIEZKI[p.sciezka].slice(1)}
-          {p.arkusz !== "PIERWSZA" && <> · arkusz {p.arkusz}</>}
-        </h2>
-        <span className={`status ${p.status === "W_TOKU" ? "uwaga" : "neutralna"}`}>
-          {p.status === "W_TOKU" ? "w toku" : p.status.toLowerCase()}
-        </span>
-      </div>
-      <PostepKrokow krok={p.krok} krokow={KROKOW} etykieta="Postęp oceny" />
-      <LiniaSamooceny ocena={dane.ocena} />
-      <p className="meta zero">
-        Krok {p.krok} z {KROKOW} · rozpoczęta {data(p.rozpoczeto)} przez {p.rozpoczal}
-        {t?.najblizszy_termin && (
+    <div className="sekcja cykl">
+      <h2>{sciezka === "pierwsza" ? "Pierwsza ocena" : "Ocena okresowa"}</h2>
+      <p className={`teraz ${c.po_terminie ? "po-terminie" : ""}`}>
+        <strong>Teraz:</strong> {c.czynnosc}
+        {termin}
+        {biezacy >= 0 && biezacy < 2 && (
           <>
             {" "}
-            · {t.najblizszy_termin.nazwa} do {data(t.najblizszy_termin.data)} ({kiedy(t.dni_do_terminu!)})
+            · <strong>Potem:</strong> {etapy[biezacy + 1].toLowerCase()}
           </>
         )}
       </p>
-      <ol className="etapy">
-        {ETAPY.map(([od, do_, nazwa]) => {
-          const stan = p.krok > do_ ? "zrobiony" : p.krok >= od ? "biezacy" : "przyszly";
-          const tresc = (
-            <>
-              <span className={`znak-etapu ${stan}`} aria-hidden="true">
-                {stan === "zrobiony" ? <Ikona nazwa="ok" rozmiar={16} /> : od}
-              </span>
-              <span className="nazwa-etapu">{nazwa}</span>
-              <span className="meta">{stan === "zrobiony" ? "zrobione" : stan === "biezacy" ? "teraz" : ""}</span>
-            </>
-          );
-          return (
-            <li key={nazwa} className={stan}>
-              {stan === "biezacy" && p.status === "W_TOKU" ? (
-                <button type="button" className="etap" onClick={onOcen}>
-                  {tresc}
-                  <Ikona nazwa="dalej" rozmiar={20} />
-                </button>
-              ) : (
-                <div className="etap">{tresc}</div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      {c.braki.length > 0 && (
+        <ul className="brak">
+          {c.braki.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
+        </ul>
+      )}
+      {biezacy >= 0 && (
+        <ol className="etapy">
+          {etapy.map((nazwa, i) => {
+            const stan = i < biezacy ? "zrobiony" : i === biezacy ? "biezacy" : "przyszly";
+            const opis =
+              stan === "zrobiony"
+                ? i === 0 && c.kryteria_ustalone
+                  ? `ustalone ${data(c.kryteria_ustalone)}`
+                  : "zrobione"
+                : stan === "biezacy"
+                  ? c.termin
+                    ? `do ${data(c.termin.data)}`
+                    : "teraz"
+                  : "";
+            return (
+              <li key={nazwa} className={stan}>
+                <div className="etap">
+                  <span className={`znak-etapu ${stan}`} aria-hidden="true">
+                    {stan === "zrobiony" ? <Ikona nazwa="ok" rozmiar={16} /> : i + 1}
+                  </span>
+                  <span className="nazwa-etapu">{nazwa}</span>
+                  <span className="meta">{opis}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      <LiniaSamooceny ocena={dane.ocena} />
     </div>
   );
 }
 
-function NastepnyKrok({ dane, prowadzi, onOcen }: { dane: Dane; prowadzi: boolean; onOcen: () => void }) {
+/** Przycisk nazwany czynnością według etapu (#25): w okresie oceny bez przycisku oceny. */
+function NastepnyKrok({
+  dane,
+  prowadzi,
+  onOcen,
+  przelozony,
+}: {
+  dane: Dane;
+  prowadzi: boolean;
+  onOcen: () => void;
+  przelozony: Pracownik | null;
+}) {
+  const c = dane.cykl;
   const p = dane.proces;
-  const etap = p && ETAPY.find(([od, do_]) => p.krok >= od && p.krok <= do_);
-  const proponowana = dane.analiza?.sciezka.proponowana ?? null;
-  const tytul = p
-    ? p.status === "W_TOKU"
-      ? etap?.[2] ?? `Krok ${p.krok}`
-      : "Ocena zakończona"
-    : proponowana
-      ? `Rozpocznij ${NAZWA_SCIEZKI[proponowana]}`
-      : "Ustal ścieżkę oceny";
-  const przycisk = !prowadzi ? "Zobacz ocenę" : p && p.status === "W_TOKU" ? "Kontynuuj ocenę" : "Rozpocznij ocenę";
+  const tytul = c?.czynnosc ?? (p ? `Ocena w toku · krok ${p.krok}` : "Ustal ścieżkę oceny");
+  const przycisk = !c
+    ? p
+      ? "Kontynuuj ocenę"
+      : "Rozpocznij ocenę"
+    : c.etap === "kryteria"
+      ? p
+        ? "Dokończ ustalanie kryteriów"
+        : c.sciezka === "pierwsza"
+          ? "Rozpocznij pierwszą ocenę"
+          : "Ustal kryteria"
+      : c.etap === "ocena"
+        ? p && p.krok >= 6
+          ? "Sporządź ocenę na piśmie"
+          : "Oceń kompetencje"
+        : null;
   return (
     <div className="ramka nastepny">
       <span className="kafel-etykieta">Następny krok</span>
       <strong>{tytul}</strong>
-      {dane.termin?.najblizszy_termin && (
-        <span className={dane.termin.zagrozony ? "termin zagrozony" : "termin"}>
-          {dane.termin.najblizszy_termin.nazwa} do {data(dane.termin.najblizszy_termin.data)} ({kiedy(dane.termin.dni_do_terminu!)})
+      {c?.termin && (
+        <span className={c.po_terminie ? "termin zagrozony" : "termin"}>
+          {c.termin.nazwa} do {data(c.termin.data)}
+          {c.dni_do_terminu !== null && <> ({kiedy(c.dni_do_terminu)})</>}
         </span>
       )}
-      <button type="button" onClick={onOcen}>
-        {przycisk}
-      </button>
+      {c?.etap === "okres" && <span className="termin">Kryteria ustalone. Ocenę końcową zaczniesz bliżej terminu.</span>}
+      {prowadzi && przycisk && (
+        <button type="button" onClick={onOcen}>
+          {przycisk}
+        </button>
+      )}
+      {!prowadzi && (
+        <span className="termin">
+          Prowadzi przełożony{przelozony ? `: ${przelozony.imie} ${przelozony.nazwisko}` : ""}.
+        </span>
+      )}
+      {!prowadzi && p && (
+        <button type="button" className="jasny" onClick={onOcen}>
+          Zobacz ocenę
+        </button>
+      )}
     </div>
   );
 }
