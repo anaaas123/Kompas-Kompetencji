@@ -10,7 +10,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* Powłoka wersji MC (wzór mObywatela): menu boczne i treść; asystent w oknie na środku (okno-asystenta.css). */
 .powloka { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
 .tresc { min-width: 0; padding: var(--o-32) var(--o-48) var(--o-64); }
-.kolumna { max-width: 1120px; margin: 0 auto; container-type: inline-size; }
+/* Szeroki ekran (#69): do 1680 px treść zajmuje całą szerokość; długość wiersza ogranicza sam tekst, nie kolumna. */
+.kolumna { max-width: 1680px; margin: 0 auto; container-type: inline-size; }
 main.logowanie { max-width: 560px; margin: 0 auto; padding: var(--o-64) var(--o-24); }
 .ikona { flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
