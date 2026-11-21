@@ -1,7 +1,7 @@
 /* Karta pracownika (#55): opis osoby z podstawą, klikalne etapy, poprzednie oceny w cyklu, skrócony opis stanowiska. */
 
 /* Opis osoby: warstwa asystenta oznaczona cienką niebieską linią (kolor AI floty = info), tekst w kolorze treści. */
-.opis-osoby { margin-top: var(--o-8); padding-left: var(--o-12); border-left: 2px solid var(--k-info-text); display: flex; flex-direction: column; gap: var(--o-4); max-width: 68ch; }
+.opis-osoby { margin-top: var(--o-8); padding-left: var(--o-12); border-left: 2px solid var(--k-info-text); display: flex; flex-direction: column; gap: var(--o-4); max-width: 100ch; }
 .zdania-opisu { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); color: var(--k-text-secondary); }
 .podpis-opisu { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-4) var(--o-16); font-size: var(--t-small-r); line-height: var(--t-small-l); color: var(--k-text-muted); }
 .podpis-opisu button.link { min-height: 24px; font-size: var(--t-small-r); line-height: var(--t-small-l); }
