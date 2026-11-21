@@ -71,7 +71,12 @@ export interface Pracownik {
   korpus: "urzednik_sc" | "pracownik_sc";
   data_zatrudnienia: string;
   rodzaj_umowy: "nieokreslony" | "okreslony";
-  ostatnia_ocena_okresowa: { data: string; wynik: "pozytywna" | "negatywna" } | null;
+  /** `kryteria`: oceny cząstkowe z arkusza w aktach osobowych (§ 12 ust. 2 rozp. 2016); w mocku QNT dane demo. */
+  ostatnia_ocena_okresowa: {
+    data: string;
+    wynik: "pozytywna" | "negatywna";
+    kryteria?: { kompetencja_id: string; nazwa: string; punkty: number }[];
+  } | null;
   data_konca_zatrudnienia?: string | null;
   zmiana_oceniajacego?: { data: string; poprzedni_przelozony: string } | null;
   pierwsza_ocena?: {
@@ -589,6 +594,7 @@ export interface PytanieRozmowy {
     typ: "wskaznik" | "przyklad" | "zadanie_osp" | "przepis";
     kompetencja: string | null;
     wskaznik: string | null;
+    wskaznik_id?: string | null;
     zadanie_osp: number | null;
   };
   adnotacje: SourceRef[];

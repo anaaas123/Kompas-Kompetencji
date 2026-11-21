@@ -1,8 +1,10 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BladApi, pobierzOcene, przygotujRozmowe, pytajWczacieRozmowy, type DaneRozmowy, type OdpowiedzCzatuRozmowy, type PlanRozmowy, type Pracownik, type ProcesOceny, type PytanieRozmowy, type StanOceny } from "./api";
 import { AgendaRozbieznosci } from "./Samoocena";
-import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
+import { NAZWA_SCIEZKI, Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
+import { Ikona } from "./Ikona";
+import "./krok2.css";
 
 const TAK_NIE = [
   { wartosc: "tak", tekst: "tak" },
@@ -90,26 +92,18 @@ export function Rozmowa({
 
   const naglowek = (
     <section>
-      <div className="wiersz">
-        <div>
-          <div className="etykieta">Krok 6 z 8 · Rozmowa oceniająca</div>
-          <h2>
-            {osoba.imie} {osoba.nazwisko}
-          </h2>
-          <p className="opis">
-            {NAZWA_SCIEZKI[proces.sciezka]} · plan rozmowy
-          </p>
-        </div>
+      <div className="k2-naglowek">
         <button type="button" className="link" onClick={onWstecz}>
           Wróć do kroków 3–5
         </button>
+        <p className="meta">Krok 6 z 8</p>
+        <h1>Rozmowa oceniająca</h1>
+        <p className="opis">
+          {osoba.imie} {osoba.nazwisko} · {NAZWA_SCIEZKI[proces.sciezka]}
+        </p>
       </div>
       {!moznaProwadzic && <p className="brak">Plan rozmowy przygotowuje i widzi tylko przełożony, bo zawiera przykłady z oceny.</p>}
-      {plan && (
-        <p className="brak">
-          {plan.oznaczenie} Zmiany w pytaniach i szkicu nie są zapisywane. Tryb: szablony bez modelu językowego ({plan.wersja}).
-        </p>
-      )}
+      {plan && <p className="meta">Pytania i szkic to propozycja z szablonów. Możesz je zmienić; aplikacja ich nie zapisuje.</p>}
       {blad && <p className="blad">{blad}</p>}
       {moznaProwadzic && !plan && !blad && <p className="meta">Przygotowuję plan…</p>}
     </section>
@@ -124,6 +118,26 @@ export function Rozmowa({
       </>
     );
   }
+
+  // Wszystkie pytania zostają (Karol 21.11): grupy według § 10 i kryteriów, zwijane; najpierw obowiązki z OSP.
+  const grupy = new Map<string, PytanieRozmowy[]>();
+  for (const q of plan.pytania) {
+    const t = q.powiazanie.typ;
+    const nazwa =
+      t === "zadanie_osp" ? "Obowiązki z opisu stanowiska" : t === "przepis" ? "Cele i rozwój" : nazwaKryterium(q.powiazanie.kompetencja ?? "Inne");
+    grupy.set(nazwa, [...(grupy.get(nazwa) ?? []), q]);
+  }
+  const kolejnosc = (n: string) => (n === "Obowiązki z opisu stanowiska" ? 0 : n === "Cele i rozwój" ? 2 : 1);
+  const listaGrup = [...grupy].sort(([a], [b]) => kolejnosc(a) - kolejnosc(b));
+  // Wskaźniki poniżej oczekiwań (poziom niższy niż „na poziomie oczekiwań”) idą na górę rozmowy.
+  const ponizej = (stanOceny?.kryteria ?? []).flatMap((k) =>
+    k.wskazniki.flatMap((w) => {
+      const standard = w.poziomy.find((x) => /na poziomie oczekiwań/i.test(x.etykieta))?.poziom;
+      const wybrany = w.poziomy.find((x) => x.poziom === w.ocena?.poziom);
+      return standard !== undefined && wybrany && wybrany.poziom < standard ? [{ k: k.nazwa, w, wybrany }] : [];
+    }),
+  );
+  const przyklady = plan.argumenty.filter((a) => a.przyklad);
 
   return (
     <>
@@ -155,57 +169,73 @@ export function Rozmowa({
         </section>
       )}
 
-      <section>
-        <h2>Pytania ({plan.pytania.length})</h2>
-        <ul className="wskazniki">
-          {plan.pytania.map((q) => (
-            <li key={q.id} className="kryterium">
-              <div className="etykieta powiazanie">{powiazanie(q.powiazanie)}</div>
-              <textarea
-                rows={2}
-                aria-label="Treść pytania"
-                value={pytania[q.id] ?? ""}
-                onChange={(e) => setPytania((p) => ({ ...p, [q.id]: e.target.value }))}
-              />
-              <p className="meta">Dlaczego: {q.uzasadnienie}</p>
-              <Zrodla adnotacje={q.adnotacje} />
-            </li>
-          ))}
-        </ul>
-      </section>
+      {ponizej.length > 0 && (
+        <section>
+          <h2>Najpierw omów: poniżej oczekiwań</h2>
+          <ul className="oc-podstawa">
+            {ponizej.map(({ k, w, wybrany }) => (
+              <li key={w.wskaznik_id}>
+                <span>
+                  <span className="etykieta">{nazwaKryterium(k)}</span>
+                  <br />
+                  {w.nazwa}
+                </span>
+                <span className="oc-poziom">{wybrany.etykieta.toLowerCase()}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
-        <h2>Argumenty: zachowanie, przykład, rezultat</h2>
-        <ul className="wskazniki">
-          {plan.argumenty.map((a) => (
-            <li key={a.wskaznik_id} className="kryterium">
-              <strong>{a.wskaznik}</strong>
-              <p className="meta">
-                {a.kompetencja}
-                {a.poziom !== null && ` · ${a.poziom} (${a.etykieta})`}
-              </p>
-              {a.zachowanie && (
-                <p>
-                  <span className="etykieta">Zachowanie z modelu:</span> {a.zachowanie}
-                </p>
-              )}
-              {a.zachowanie_zrodlo && <Zrodla adnotacje={[a.zachowanie_zrodlo]} />}
-              {a.przyklad && (
-                <p>
-                  <span className="etykieta">Przykład:</span> {a.przyklad}
-                  {a.rezultat && (
-                    <>
-                      {" "}
-                      <span className="etykieta">Rezultat:</span> {a.rezultat}
-                    </>
-                  )}
-                </p>
-              )}
-              {a.uwaga && <p className="brak">{a.uwaga}</p>}
-            </li>
+        <h2>Pytania ({plan.pytania.length})</h2>
+        <div className="k2-grupa">
+          {listaGrup.map(([nazwa, lista]) => (
+            <GrupaPytan
+              key={nazwa}
+              nazwa={nazwa}
+              lista={lista}
+              pytania={pytania}
+              onZmien={(id, t) => setPytania((p) => ({ ...p, [id]: t }))}
+            />
           ))}
-        </ul>
+        </div>
       </section>
+
+      {przyklady.length > 0 && (
+        <section>
+          <h2>Przykłady z oceny</h2>
+          <ul className="wskazniki">
+            {przyklady.map((a) => (
+              <li key={a.wskaznik_id} className="kryterium">
+                <strong>{a.wskaznik}</strong>
+                <p className="meta">
+                  {a.kompetencja}
+                  {a.poziom !== null && ` · ${a.poziom} (${a.etykieta})`}
+                </p>
+                {a.zachowanie && (
+                  <p>
+                    <span className="etykieta">Zachowanie z modelu:</span> {a.zachowanie}
+                  </p>
+                )}
+                {a.zachowanie_zrodlo && <Zrodla adnotacje={[a.zachowanie_zrodlo]} />}
+                {a.przyklad && (
+                  <p>
+                    <span className="etykieta">Przykład:</span> {a.przyklad}
+                    {a.rezultat && (
+                      <>
+                        {" "}
+                        <span className="etykieta">Rezultat:</span> {a.rezultat}
+                      </>
+                    )}
+                  </p>
+                )}
+                {a.uwaga && <p className="brak">{a.uwaga}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2>Informacja zwrotna (szkic)</h2>
@@ -265,6 +295,50 @@ export function Rozmowa({
 
       {dalej}
     </>
+  );
+}
+
+/** Grupa pytań jako zwijany wiersz (wzór kroku 2); powód i źródło raz na grupę. */
+function GrupaPytan({
+  nazwa,
+  lista,
+  pytania,
+  onZmien,
+}: {
+  nazwa: string;
+  lista: PytanieRozmowy[];
+  pytania: Record<string, string>;
+  onZmien: (id: string, tresc: string) => void;
+}) {
+  const [otwarte, setOtwarte] = useState(false);
+  const zrodla = [...new Map(lista.flatMap((q) => q.adnotacje).map((a) => [`${a.doc_id}|${a.lokalizator}`, a])).values()];
+  const powody = [...new Set(lista.map((q) => q.uzasadnienie))];
+  return (
+    <div className="k2-kryterium">
+      <div className="k2-glowa">
+        <button type="button" className="k2-przelacz" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
+          <span className="k2-nazwa">{nazwa}</span>
+          <span className="k2-opis">{lista.length === 1 ? "1 pytanie" : `${lista.length} pytania`}</span>
+          <Ikona nazwa={otwarte ? "gora" : "dalej"} rozmiar={20} />
+        </button>
+      </div>
+      {otwarte && (
+        <div className="k2-cialo">
+          {lista.map((q) => (
+            <label key={q.id} className="etykieta rozmowa-pytanie">
+              {powiazanie(q.powiazanie)}
+              <textarea rows={2} value={pytania[q.id] ?? ""} onChange={(e) => onZmien(q.id, e.target.value)} />
+            </label>
+          ))}
+          {powody.map((p) => (
+            <p key={p} className="meta">
+              Dlaczego: {p}
+            </p>
+          ))}
+          <Zrodla adnotacje={zrodla} />
+        </div>
+      )}
+    </div>
   );
 }
 

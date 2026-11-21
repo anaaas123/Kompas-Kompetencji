@@ -1,0 +1,98 @@
+/* Ocena przełożonego (#46): krok 1 „zanim ocenisz” i kroki 3–5 prowadzone pytaniami. Wiersze jak w mObywatelu
+   (--k-wiersz, promień 8), układ dwóch kolumn i kolumna boczna z krok2.css. style.css ładuje się po tym pliku,
+   więc reguły dla przycisków mają selektor mocniejszy niż globalne `button`. */
+
+/* Krok 1 */
+.k1-glowna { gap: var(--o-32); }
+.k1-streszczenie { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); }
+.k1-blok { display: flex; flex-direction: column; gap: var(--o-8); }
+.k1-blok > p { margin: 0; }
+.k1-decyzja { display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.k1-decyzja p { margin: 0; }
+.k1-tytul { margin: 0; font-size: var(--t-value-r); line-height: var(--t-value-l); letter-spacing: var(--t-value-s); font-weight: var(--f-semibold); }
+.k1-blok button.link.k1-rozwin, .oc-ekran button.link.oc-brak { align-self: flex-start; min-height: 44px; white-space: normal; text-align: left; }
+.k1-szczegoly { display: flex; flex-direction: column; gap: var(--o-8); padding-left: var(--o-16); border-left: 2px solid var(--k-line); }
+.k1-szczegoly .przeslanki { margin: 0; }
+.k1-szczegoly > p { margin: 0; }
+.k1-wiersze { margin: 0; display: flex; flex-direction: column; gap: var(--o-4); }
+.k1-wiersze > div { display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.k1-wiersze dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
+.k1-wiersze dd { margin: 0; display: flex; flex-wrap: wrap; gap: var(--o-4) var(--o-12); }
+.k1-zadania { margin: 0; padding-left: var(--o-24); display: flex; flex-direction: column; gap: var(--o-8); }
+.k1-zadania.skrocone li { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.k1-start { display: flex; flex-direction: column; gap: var(--o-12); margin: 0; }
+.k1-start .meta { margin: 0; }
+.k1-start label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+
+/* Poprzednia ocena: punkty za kryteria jako pięć segmentów skali 1–9. */
+.poprzednia-glowa { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--o-8); }
+.poprzednia { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.poprzednia li { display: grid; grid-template-columns: minmax(0, 1fr) auto 56px; align-items: center; gap: var(--o-16); min-height: 44px; padding: var(--o-8) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.skala { display: flex; gap: var(--o-2); }
+.skala span { width: 20px; height: 8px; border-radius: var(--r-xs); background: var(--k-chart-track); }
+.skala span.pelny { background: var(--k-link); }
+.poprzednia-pkt { text-align: right; font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kategoria.zasada { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
+
+/* Kroki 3–5: jeden ekran na wskaźnik albo kryterium. */
+.oc-ekran { display: flex; flex-direction: column; gap: var(--o-16); }
+.oc-ekran > p { margin: 0; }
+.oc-tytul { font-size: var(--t-section-r); line-height: var(--t-section-l); }
+.oc-pytanie { display: flex; flex-direction: column; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-info-bg); color: var(--k-info-text); }
+.oc-pytanie p { margin: 0; }
+.oc-pytanie .etykieta, .oc-pytanie .meta { color: inherit; }
+
+.oc-odpowiedzi { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-odpowiedzi button.oc-odpowiedz {
+  display: flex; align-items: flex-start; gap: var(--o-12); width: 100%; min-height: 64px; padding: var(--o-12) var(--o-16);
+  border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  text-align: left; white-space: normal; font-weight: var(--f-regular);
+}
+.oc-odpowiedzi button.oc-odpowiedz[aria-checked="true"] { border-color: var(--k-link); }
+.oc-odpowiedzi button.oc-odpowiedz:active { background: var(--k-wiersz-pressed); }
+.oc-odpowiedzi button.oc-odpowiedz:disabled { color: var(--k-text); cursor: default; }
+.oc-znacznik { flex: none; width: 20px; height: 20px; margin-top: var(--o-2); border: 2px solid var(--k-line-control); border-radius: 999px; }
+.oc-odpowiedz[aria-checked="true"] .oc-znacznik { border: 6px solid var(--k-link); }
+.oc-tresc { display: flex; flex-direction: column; gap: var(--o-4); min-width: 0; }
+.oc-etykieta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8); font-weight: var(--f-semibold); }
+.oc-odpowiedz[aria-checked="true"] .oc-etykieta { color: var(--k-link); }
+.oc-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+
+.oc-podstawa { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-podstawa li { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.oc-poziom { flex: none; font-weight: var(--f-semibold); white-space: nowrap; }
+.oc-sugestia { display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-sugestia p { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8); }
+.oc-sugestia strong { font-size: var(--t-value-r); line-height: var(--t-value-l); }
+.oc-decyzja { display: flex; flex-direction: column; gap: var(--o-8); padding-top: var(--o-16); border-top: 1px solid var(--k-line); }
+.oc-decyzja .sukces { margin: 0; }
+.oc-decyzja label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+
+.oc-nawigacja { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-nawigacja button.link { min-height: 44px; }
+
+/* Plan w kolumnie bocznej */
+.oc-plan ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.oc-plan button.oc-plan-wiersz, .oc-plan-wskazniki button {
+  display: flex; align-items: center; gap: var(--o-8); width: 100%; min-height: 44px; padding: var(--o-8);
+  border: 0; border-radius: var(--r-sm); background: none; color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
+}
+.oc-plan button.oc-plan-wiersz[aria-current="step"] { font-weight: var(--f-semibold); }
+.oc-plan .oc-plan-wskazniki button[aria-current="step"] { background: var(--k-surface); color: var(--k-link); font-weight: var(--f-semibold); }
+.oc-plan button.oc-plan-wiersz:active, .oc-plan .oc-plan-wskazniki button:active { background: var(--k-wiersz-pressed); }
+.oc-plan-wskazniki { padding-left: var(--o-24); }
+.oc-plan-wskazniki button { min-height: 36px; font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.oc-plan-nazwa { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-plan .meta { flex: none; margin: 0; font-variant-numeric: tabular-nums; }
+.oc-kropka { flex: none; width: 16px; height: 16px; border: 2px solid var(--k-line-control); border-radius: 999px; }
+.oc-kropka.gotowe { border-color: var(--k-success-pelny); background: var(--k-success-pelny); }
+
+@media (hover: hover) and (pointer: fine) {
+  .oc-odpowiedzi button.oc-odpowiedz:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-plan button.oc-plan-wiersz:not(:disabled):hover, .oc-plan .oc-plan-wskazniki button:not(:disabled):hover { background: var(--k-wiersz-hover); }
+}
+.oc-odpowiedzi button.oc-odpowiedz:focus-visible, .oc-plan button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .oc-odpowiedzi button.oc-odpowiedz, .oc-plan button { transition: none; } }
+
+/* Krok 6: pytania w zwijanych grupach */
+label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }
