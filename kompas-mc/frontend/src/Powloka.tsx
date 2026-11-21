@@ -10,7 +10,7 @@ import znak from "./wydra/wydra-stoi.webp";
  * Powłoka wersji MC w stylu mObywatela: menu boczne z wydrą jako znakiem, treść i panel asystenta
  * formalnego z prawej. Panel zwęża stronę (nic nie zasłania); na telefonie menu jest dolnym paskiem.
  */
-export type Widok = "pulpit" | "pracownicy" | "zrodla";
+export type Widok = "pulpit" | "zespol" | "pracownicy" | "zrodla";
 
 const NAZWA_ROLI: Record<Rola, string> = { przelozony: "przełożony", hr: "HR / administrator", oceniany: "oceniany" };
 const PRZYKLADY = [
@@ -37,7 +37,8 @@ export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent
   const { login, rola } = sesja.uzytkownik;
   const pozycje: [Widok, NazwaIkony, string][] = [
     ["pulpit", "dom", "Pulpit"],
-    ["pracownicy", "osoby", rola === "oceniany" ? "Twoje dane" : "Pracownicy"],
+    // Zespół (działy, liczby, wykresy) zastępuje płaską listę pracowników; oceniany widzi swoje dane.
+    rola === "oceniany" ? ["pracownicy", "osoby", "Twoje dane"] : ["zespol", "osoby", "Zespół"],
     ...(rola === "hr" ? ([["zrodla", "ksiazka", "Źródła i braki"]] as [Widok, NazwaIkony, string][]) : []),
   ];
 

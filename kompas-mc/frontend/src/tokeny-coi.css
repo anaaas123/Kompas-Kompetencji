@@ -37,8 +37,9 @@
   --k-tag-bg:#eef0f4; --k-tag-border:#eef0f4; --k-tag-text:#3b4048;
   --k-tab-active:#e8f0fb; --k-table-head:#f4f6fb;
 
-  /* nowe w skórce: wiersz wyboru jak w mObywatelu */
+  /* nowe w skórce: wiersz wyboru jak w mObywatelu, kolor łącza i wybrana opcja przełącznika */
   --k-wiersz:#f4f6fb; --k-wiersz-hover:#eaeef7; --k-wiersz-pressed:#dfe5f2;
+  --k-link:#0452a8; --k-link-pressed:#022f61; --k-segment-wybrany:#ffffff;
 
   /* promienie: przycisk i pole 4 (gov.pl), znacznik pigułka, karta 12 */
   --r-mark:2px; --r-xs:24px; --r-sm:4px; --r-card:12px; --r-wiersz:8px;
@@ -48,4 +49,29 @@
 
   /* przycisk i pole 48 px */
   --c-action:48px; --c-field:48px;
+}
+
+/* Tryb ciemny: ten sam selektor co ciemny motyw Dopiny w tokeny.css (wyższa szczegółowość niż :root),
+   więc wartości COI wygrywają także przy ciemnym motywie systemu. Niebieski akcji jaśniejszy, łącza
+   i teksty informacyjne w jasnym niebieskim, żeby zachować kontrast na ciemnym tle. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-motyw="jasny"]){
+    color-scheme:dark;
+    --k-canvas:#111316; --k-surface:#111316; --k-surface-hover:#1d2026; --k-surface-pressed:#252932;
+    --k-text:#f1f3f6; --k-text-secondary:#d0d4da; --k-text-muted:#9aa1ab;
+    --k-line:#2c3038; --k-line-subtle:#23262c; --k-line-control:#4a505a; --k-field-border:#6b727d;
+    --k-action:#2f6fd1; --k-action-border:#2f6fd1; --k-action-hover:#3a7be0; --k-action-pressed:#2560bd; --k-action-text:#ffffff;
+    --k-disabled-bg:#1d2026; --k-disabled-border:#2c3038; --k-disabled-text:#6b727d;
+    --k-focus:#8ab8ff;
+    --k-info-bg:#16263d; --k-info-text:#8ab8ff;
+    --k-success-bg:#11301c; --k-success-text:#7dd49a; --k-success-pelny:#34a853;
+    --k-danger-bg:#3a1419; --k-danger-text:#ff8a95;
+    --k-attention-bg:#352a0d; --k-attention-text:#f3c969;
+    --k-neutral-bg:#23262c; --k-neutral-text:#c3c8cf;
+    --k-note-bg:#352a0d; --k-note-text:#f3d98a;
+    --k-tag-bg:#23262c; --k-tag-border:#23262c; --k-tag-text:#c3c8cf;
+    --k-tab-active:#16263d; --k-table-head:#1d2026;
+    --k-wiersz:#1d2026; --k-wiersz-hover:#252932; --k-wiersz-pressed:#2c313b;
+    --k-link:#8ab8ff; --k-link-pressed:#b3d0ff; --k-segment-wybrany:#2c313b;
+  }
 }

@@ -81,3 +81,24 @@ def router(auth: Autoryzacja, qnt: MockQnt) -> APIRouter:
         return skrzynka(request.app.state.baza, proces_id)
 
     return r
+
+
+def router_terminow(auth: Autoryzacja, qnt: MockQnt) -> APIRouter:
+    """Najbliższy termin każdego procesu, który użytkownik widzi: przełożony podwładnych, HR wszystkich,
+    oceniany siebie. Te same wiersze co w panelu HR (bez treści ocen); z nich pulpit liczy KPI terminów."""
+    r = APIRouter(prefix="/api", tags=["panel HR"])
+
+    @r.get("/terminy")
+    def terminy(request: Request, uz: Uzytkownik = auth.wymagaj("ocena.czytaj")) -> list[WierszPanelu]:
+        zrodlo = request.app.state.terminy
+        f = getattr(request.app.state, "dzis", None)
+        d = f() if f else date.today()
+        wynik = []
+        for w in request.app.state.baza.execute(f"SELECT {_KOLUMNY} FROM procesy ORDER BY id").fetchall():
+            proces = _z_wiersza(w)
+            p = qnt.pracownik(proces.osoba_id)
+            if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "ocena.czytaj"):
+                wynik.append(wiersz(proces, p, zrodlo(proces, p, d), d))
+        return wynik
+
+    return r

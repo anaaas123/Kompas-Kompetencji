@@ -114,6 +114,21 @@ def test_uprawnienia_panelu(klient, h, procesy):
                        json={"proces_id": 999999, "adresat": "P-001", "tresc": "x"}).status_code == 404
 
 
+def test_terminy_widzi_kazdy_w_swoim_zakresie(klient, h, procesy):
+    """/api/terminy: te same wiersze co panel HR, ale przełożony widzi tylko podwładnych, oceniany siebie."""
+    def osoby(login):
+        r = klient.get("/api/terminy", headers=h(login))
+        assert r.status_code == 200
+        return {w["osoba_id"]: w["dni_do_terminu"] for w in r.json()}
+
+    assert osoby("przelozony1") == {"P-101": 3, "P-202": None}
+    assert osoby("przelozony2") == {"P-102": 20}
+    assert osoby("oceniany") == {"P-101": 3}
+    assert osoby("hr") == {"P-101": 3, "P-102": 20, "P-202": None}
+    assert "TAJNA NOTATKA" not in klient.get("/api/terminy", headers=h("przelozony1")).text
+    assert klient.get("/api/terminy").status_code == 401
+
+
 def test_zakonczony_proces_nie_jest_zagrozony():
     from kompas_mc.hr import wiersz
 

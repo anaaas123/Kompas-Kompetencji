@@ -19,6 +19,7 @@ from .kompetencje import odczytaj as odczytaj_model
 from .korpus_mc import zaladuj
 from .hr import terminy_z_regul
 from .hr_api import router as router_hr
+from .hr_api import router_terminow
 from .krok1 import KonfiguracjaKroku1
 from .krok2 import KonfiguracjaKroku2
 from .krok2_api import StanKroku2
@@ -116,6 +117,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     app.include_router(pierwsza)
     app.include_router(router_wnioskow(auth, qnt, krok2, serwis_wyniku, czytaj_pierwsza))
     app.include_router(router_hr(auth, qnt))
+    app.include_router(router_terminow(auth, qnt))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:
