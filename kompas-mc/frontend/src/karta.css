@@ -30,3 +30,10 @@ button.etap:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2
 @media (prefers-reduced-motion: reduce) {
   .opis-osoby.szkielet-tekstu { animation: none; }
 }
+
+/* Braki dat w kartotece: jedna linia w tonie uwagi, lista przepisowa po rozwinięciu. */
+.braki-karty { border-radius: var(--r-wiersz); background: var(--k-attention-bg); color: var(--k-attention-text); }
+.braki-karty > summary { display: flex; align-items: center; min-height: 44px; padding: var(--o-8) var(--o-16); cursor: pointer; font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
+.braki-karty > summary:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.braki-karty > summary:active { background: var(--k-wiersz-pressed); }
+.braki-karty ul { margin: 0; padding: 0 var(--o-16) var(--o-12) var(--o-32); font-size: var(--t-small-r); line-height: var(--t-small-l); }

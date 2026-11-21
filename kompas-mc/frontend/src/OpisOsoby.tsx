@@ -6,7 +6,7 @@ import "./karta.css";
 /**
  * Opis osoby pod nazwiskiem (#55): 2–4 zdania z danych (kadry, opis stanowiska, etap cyklu, ostatnia ocena),
  * każde z podstawą. Domyślnie szablon bez modelu (od razu); „Opisz z pomocą modelu” woła łańcuch dostawców
- * (dane identyfikujące nie trafiają do modelu). Podpis „Sugestia asystenta – do edycji”: nic się nie zapisuje.
+ * (dane identyfikujące nie trafiają do modelu). Podpis „Opis asystenta”: nic się nie zapisuje.
  */
 export function OpisOsoby({ sesja, osoba }: { sesja: Sesja; osoba: Pracownik }) {
   const [opis, setOpis] = useState<Opis | null>(null);
@@ -45,7 +45,7 @@ export function OpisOsoby({ sesja, osoba }: { sesja: Sesja; osoba: Pracownik }) 
       <p className="zdania-opisu">{opis.zdania.map((z) => z.tekst).join(" ")}</p>
       <p className="podpis-opisu">
         <span>
-          {opis.oznaczenie} · {zModeluTryb ? `model ${opis.dostawca ?? ""}`.trim() : "z danych, bez modelu"}
+          {opis.oznaczenie} · {zModeluTryb ? `model ${opis.dostawca ?? ""}`.trim() : "z danych QNT i ocen, bez modelu"}
         </span>
         <button type="button" className="link" aria-expanded={podstawa} onClick={() => setPodstawa(!podstawa)}>
           {podstawa ? "Ukryj podstawę" : "Pokaż podstawę"}

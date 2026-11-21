@@ -28,6 +28,8 @@ OPERACJA = "opis_osoby"
 WERSJA = "opis-osoby@1"
 MAKS_ZDAN = 4
 NIE_DO_MODELU = {"kadry.stanowisko"}
+OZNACZENIE_OPISU = "Opis asystenta"
+"""Podpis opisu: nic się nie zapisuje i nie ma czego edytować, więc bez „do edycji” z celów."""
 """Stanowisko nie jest pseudonimizowane, a w małej komórce identyfikuje osobę (minimalizacja danych)."""
 
 POLECENIE = """Napisz od 2 do 4 krótkich zdań po polsku o Ocenianym do karty pracownika: kim jest w pracy,
@@ -176,7 +178,8 @@ def opis_z_szablonu(fakty: Sequence[Fakt]) -> list[Zdanie]:
             t = sep.join(przed + f.tekst for przed, f in czesci)
             zdania.append(Zdanie(tekst=t[0].upper() + t[1:] + ".", fakty=[f.id for _, f in czesci]))
 
-    kadry = ["kadry.stanowisko", "kadry.korpus", "kadry.staz", "kadry.umowa"]
+    # Stanowisko stoi w nagłówku karty tuż nad opisem, więc szablon go nie powtarza (fakt zostaje w podstawie).
+    kadry = ["kadry.korpus", "kadry.staz", "kadry.umowa"]
     if po_id.get("kadry.kierowanie") and po_id["kadry.kierowanie"].tekst == "kieruje pracownikami":
         kadry.append("kadry.kierowanie")
     zdanie([("", po_id.get(i)) for i in kadry], ", ")
@@ -186,7 +189,9 @@ def opis_z_szablonu(fakty: Sequence[Fakt]) -> list[Zdanie]:
     if len(czastkowe) > 1:
         ostatnia.append(("najniżej: ", czastkowe[-1]))
     zdanie(ostatnia)
-    zdanie([("", po_id.get(i)) for i in ("biezaca.decyzje", "samoocena", "cele")])
+    # „Cele: brak zapisanych” nic nie mówi, a sekcja celów stoi na karcie zaraz niżej.
+    cele = po_id.get("cele")
+    zdanie([("", po_id.get(i)) for i in ("biezaca.decyzje", "samoocena")] + [("", cele if cele and "brak" not in cele.tekst else None)])
     return zdania
 
 

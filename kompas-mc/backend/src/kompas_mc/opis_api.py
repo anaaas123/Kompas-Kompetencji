@@ -22,7 +22,7 @@ from .krok1 import Sciezka
 from .krok2_api import StanKroku2
 from .ocena import aktualne_decyzje
 from .ocena_api import _wczytaj_dane
-from .opis_osoby import NIE_DO_MODELU, Fakt, Zdanie, fakty, opis_z_modelu, opis_z_szablonu
+from .opis_osoby import NIE_DO_MODELU, OZNACZENIE_OPISU, Fakt, Zdanie, fakty, opis_z_modelu, opis_z_szablonu
 from .procesy import _KOLUMNY, _z_wiersza
 from .pseudonimizacja import Pseudonimizator
 from .qnt import MockQnt, Pracownik
@@ -41,7 +41,7 @@ class OpisOsoby(BaseModel):
     tryb: str
     """``SZABLON`` albo znacznik trybu odpowiedzi modelu (np. ``NA_ŻYWO``)."""
     dostawca: str | None = None
-    oznaczenie: str = c.OZNACZENIE
+    oznaczenie: str = OZNACZENIE_OPISU
     odrzucone: list[str] = Field(default_factory=list)
     """Powody odrzucenia zdań z modelu albo informacja, który dostawca zawiódł (szczegóły w ``llm.jsonl``)."""
 

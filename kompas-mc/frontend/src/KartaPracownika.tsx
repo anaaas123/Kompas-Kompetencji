@@ -344,12 +344,19 @@ function Cykl({
           )}
         </p>
       )}
+      {/* Braki dat w kartotece to język przepisów; przełożonemu wystarczy jedna linia, szczegóły po rozwinięciu. */}
       {c && c.braki.length > 0 && (
-        <ul className="brak">
-          {c.braki.map((b) => (
-            <li key={b}>{b}</li>
-          ))}
-        </ul>
+        <details className="braki-karty">
+          <summary>
+            W kartotece QNT brakuje {c.braki.length === 1 ? "jednej daty" : `${c.braki.length} dat`}, więc termin może być
+            niepełny
+          </summary>
+          <ul>
+            {c.braki.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        </details>
       )}
       {c && biezacy >= 0 && (
         <ol className="etapy">
@@ -393,15 +400,18 @@ function Cykl({
         </ol>
       )}
       <LiniaSamooceny ocena={dane.ocena} />
-      <PoprzednieOceny osoba={osoba} mapa={dane.mapa} />
+      <PoprzednieOceny osoba={osoba} mapa={dane.mapa} pierwsza={sciezka === "pierwsza"} />
     </div>
   );
 }
 
-/** Poprzednie oceny z kartoteki QNT; oceny cząstkowe ostatniej okresowej tylko dla przełożonego (mapa). */
-function PoprzednieOceny({ osoba, mapa }: { osoba: Pracownik; mapa: MapaKompetencji | null }) {
+/**
+ * Poprzednie oceny z kartoteki QNT; oceny cząstkowe ostatniej okresowej tylko dla przełożonego (mapa).
+ * Na ścieżce pierwszej oceny rekord `pierwsza_ocena` opisuje bieżącą służbę przygotowawczą, nie poprzednią ocenę.
+ */
+function PoprzednieOceny({ osoba, mapa, pierwsza }: { osoba: Pracownik; mapa: MapaKompetencji | null; pierwsza: boolean }) {
   const o = osoba.ostatnia_ocena_okresowa;
-  const p = osoba.pierwsza_ocena;
+  const p = pierwsza ? null : osoba.pierwsza_ocena;
   return (
     <div className="poprzednie">
       <span className="kafel-etykieta">Poprzednie oceny</span>
@@ -424,7 +434,11 @@ function PoprzednieOceny({ osoba, mapa }: { osoba: Pracownik; mapa: MapaKompeten
           </span>
         </p>
       )}
-      {!o && !p && <p className="meta zero">W kartotece QNT nie ma jeszcze żadnej oceny.</p>}
+      {!o && !p && (
+        <p className="meta zero">
+          {pierwsza ? "To pierwsza ocena, wcześniejszych nie ma." : "W kartotece QNT nie ma jeszcze żadnej oceny."}
+        </p>
+      )}
       <p className="meta zero">Źródło: kartoteka QNT</p>
     </div>
   );
@@ -437,7 +451,7 @@ function OpisStanowiska({ osp }: { osp: NonNullable<AnalizaKroku1["osp"]> }) {
     <div className={`sekcja opis-stanowiska${caly ? "" : " skrocone"}`}>
       <h2>Opis stanowiska</h2>
       <p className="meta zero">
-        OSP {osp.symbol} · {osp.zadania_dominujace.length} zadania dominujące
+        Opis stanowiska pracy z kadr · {osp.zadania_dominujace.length} zadania dominujące
       </p>
       <span className="kafel-etykieta">Cel stanowiska</span>
       <p className="zero cel-stanowiska">{osp.cel.tekst}</p>

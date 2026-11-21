@@ -145,7 +145,6 @@ button.pozycja-legendy:focus-visible { outline: 2px solid var(--k-focus); outlin
 .cykl .etap { min-height: 48px; }
 .cykl .etapy li.biezacy .etap { box-shadow: inset 0 0 0 var(--o-2) var(--k-link); }
 .czynnosc-wiersza { color: var(--k-text); font-weight: var(--f-semibold); }
-.cykl ul.brak { margin: 0; padding: var(--o-12) var(--o-16) var(--o-12) var(--o-32); }
 
 /* #33: mapa kompetencji zespołu (osoby × kryteria), wnioski, oceny cząstkowe na karcie. Kolor ze znaczeniem + liczba. */
 .mapa-kompetencji { display: flex; flex-direction: column; gap: var(--o-16); margin-bottom: 0; }
