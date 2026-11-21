@@ -8,6 +8,8 @@ import { Rozmowa } from "./Rozmowa";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
+import { Pierwsza } from "./Pierwsza";
+import PanelMetodyki from "./PanelMetodyki";
 import PanelHR from "./PanelHR";
 import type { Pracownik, ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
@@ -154,7 +156,17 @@ export default function App() {
           onDalej={() => setEtap("wynik")}
         />
       )}
-      {oceniany && proces && etap === "wynik" && (
+      {oceniany && proces && etap === "wynik" && proces.sciezka === "pierwsza" && (
+        <Pierwsza
+          token={sesja.token}
+          osoba={oceniany}
+          proces={proces}
+          moznaProwadzic={prowadzi}
+          onWstecz={() => setEtap("rozmowa")}
+          onDalej={() => setEtap("wnioski")}
+        />
+      )}
+      {oceniany && proces && etap === "wynik" && proces.sciezka === "okresowa" && (
         <Wynik
           token={sesja.token}
           osoba={oceniany}
@@ -180,7 +192,7 @@ export default function App() {
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("arkusz")}
+          onWstecz={() => setEtap(proces.sciezka === "pierwsza" ? "wynik" : "arkusz")}
         />
       )}
       {karta && samoocena !== null && (
@@ -199,6 +211,7 @@ export default function App() {
         />
       )}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
+      {!karta && !oceniany && widokZrodel && <PanelMetodyki token={sesja.token} mozeZarzadzac />}
       {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit

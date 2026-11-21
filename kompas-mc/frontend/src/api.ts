@@ -943,3 +943,125 @@ export const celeApi = {
   status: (t: string, id: number, status: "w_realizacji" | "osiągnięty" | "porzucony") =>
     wyslijCele<Cel>(t, `/api/cele/${id}/status`, "POST", { status }),
 };
+
+/* Pierwsza ocena: terminy, sprawozdanie, egzamin, wynik § 10 i arkusz (#34, kontrakt w issue #34). */
+
+export interface SprawozdaniePierwszej {
+  zadania: string;
+  problemy_i_rozwiazania: string;
+  nowe_umiejetnosci_i_wiedza: string;
+  propozycje_usprawnien: string;
+}
+
+export type PrzeslankaEgzaminu = "ksap_bez_wniosku" | "zastepstwo" | "wyzsze_stanowisko";
+
+export interface EgzaminPierwszej {
+  wynik: "tak" | "nie" | "nie_dotyczy";
+  przeslanka: PrzeslankaEgzaminu | null;
+}
+
+export interface PrzedluzeniePierwszej {
+  nowy_termin: string;
+  data_zawiadomienia: string;
+  przyczyna: "usprawiedliwiona_nieobecnosc" | "obowiazki_poza_miejscem_pracy" | "przedluzenie_umowy";
+  okres_od: string | null;
+  okres_do: string | null;
+  nowy_termin_od: string | null;
+}
+
+export interface DanePierwszej {
+  data_ustalenia_oceny_zastepstwa: string | null;
+  data_konca_zatrudnienia: string | null;
+  data_rozmowy_wstepnej: string | null;
+  termin_sprawozdania_od: string | null;
+  wyznaczony_termin_sprawozdania: string | null;
+  przedluzenie: PrzedluzeniePierwszej | null;
+  data_zlozenia_sprawozdania: string | null;
+  sprawozdanie_niezlozone: boolean;
+  sprawozdanie_okres_od: string | null;
+  sprawozdanie_okres_do: string | null;
+  data_rozmowy_oceniajacej: string | null;
+  data_sporzadzenia_oceny: string | null;
+  data_zapoznania_z_ocena: string | null;
+  sprawozdanie: SprawozdaniePierwszej | null;
+  egzamin: EgzaminPierwszej | null;
+  uzasadnienie: string | null;
+  wnioski_rozwojowe: string | null;
+  pola: Record<string, string | null>;
+}
+
+export interface StanPierwszejOceny {
+  proces_id: number;
+  wersja_regul: string;
+  dane: DanePierwszej;
+  terminy: Record<string, Termin | string | boolean | null | string[] | SladReguly[]> & {
+    slad: SladReguly[];
+    braki: string[];
+    uwagi: string[];
+  };
+  egzamin: EgzaminPierwszej | null;
+  przeslanki_egzaminu: Record<PrzeslankaEgzaminu, SourceRef>;
+  obliczenie: WynikOkresowy["obliczenie"] | null;
+  warunki: { id: string; opis: string; spelniony: boolean; zrodlo: SourceRef }[];
+  uzasadnienie_wymagane: boolean;
+  podstawa_uzasadnienia: SourceRef;
+  wnioski_dostepne: boolean;
+  podstawa_wnioskow: SourceRef;
+  mapowanie: { wartosci: Record<string, number>; adnotacje: SourceRef[] };
+  wersja_metodyki: string;
+  zawiadomienie_dostepne: boolean;
+  formularz: Omit<ArkuszOkresowy, "proces_id" | "arkusz" | "wersja_wzoru" | "rejestracja_ezd">;
+}
+
+const sciezkaPierwszej = (procesId: number) => `/api/procesy/${procesId}/pierwsza-ocena`;
+
+export const pobierzPierwsza = (token: string, procesId: number) =>
+  fetch(sciezkaPierwszej(procesId), { headers: autoryzacja(token) }).then((r) => odpowiedz<StanPierwszejOceny>(r));
+
+export const zapiszPierwsza = (token: string, procesId: number, dane: DanePierwszej, zatwierdz: boolean) =>
+  fetch(sciezkaPierwszej(procesId), {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ ...dane, zatwierdz }),
+  }).then((r) => odpowiedz<StanPierwszejOceny>(r));
+
+export async function pobierzPdfPierwszej(token: string, procesId: number, plik: "arkusz.pdf" | "zawiadomienie.pdf"): Promise<Blob> {
+  const r = await fetch(`${sciezkaPierwszej(procesId)}/${plik}`, { headers: autoryzacja(token) });
+  if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
+  return r.blob();
+}
+
+/* Wersje metodyki sugestii i mapowania 5→3 z zatwierdzaniem (#39, kontrakt w PR #67). */
+
+export interface WersjaMetodyki {
+  id: string;
+  numer: number;
+  status: "PROJEKT" | "ZATWIERDZONA" | "ZASTĄPIONA";
+  minimalny_udzial_ocenionych: number;
+  mapowanie_pierwsza: Record<string, number>;
+  zmiana: string;
+  utworzyl: string;
+  utworzono: string;
+  zatwierdzil: string | null;
+  data_zatwierdzenia: string | null;
+}
+
+export const pobierzMetodyke = (token: string) =>
+  fetch("/api/metodyka", { headers: autoryzacja(token) }).then((r) => odpowiedz<{ aktywna: string; wersje: WersjaMetodyki[] }>(r));
+
+export const utworzWersjeMetodyki = (
+  token: string,
+  dane: { minimalny_udzial_ocenionych: number; mapowanie_pierwsza: Record<string, number>; zmiana: string },
+) =>
+  fetch("/api/metodyka", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify(dane),
+  }).then((r) => odpowiedz<WersjaMetodyki>(r));
+
+export const zatwierdzMetodyke = (token: string, id: string, dane: { osoba: string | null; dzien: string | null }) =>
+  fetch(`/api/metodyka/${encodeURIComponent(id)}/zatwierdz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify(dane),
+  }).then((r) => odpowiedz<WersjaMetodyki>(r));

@@ -201,7 +201,7 @@ export function Wnioski({
             </div>
           </fieldset>
         ) : (
-          <p className="brak">Arkusza tej ścieżki jeszcze nie ma, więc wniosków nie da się zapisać.</p>
+          <p className="brak">Wnioski pierwszej oceny wpisuje się w kroku 7, w polu „Wnioski dotyczące rozwoju zawodowego”.</p>
         )}
         {zapisano && <p className="sukces">{zapisano}</p>}
         {zapisano && (

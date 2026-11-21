@@ -16,7 +16,7 @@ import { PoleDaty, poprawnaData, zapiszPlik } from "./Wynik";
 
 const data = (iso: string) => iso.split("-").reverse().join(".");
 
-function bladArkusza(err: unknown): { tekst: string; braki?: BrakArkusza[] } {
+export function bladArkusza(err: unknown): { tekst: string; braki?: BrakArkusza[] } {
   if (err instanceof BladApi) {
     const d = err.detail as { komunikat?: string; braki?: BrakArkusza[] } | string | null;
     if (err.status === 409) return { tekst: "Dane procesu zmieniły się w międzyczasie. Odśwież arkusz (wróć i wejdź ponownie)." };
@@ -34,7 +34,7 @@ function Wartosc({ p }: { p: PoleArkusza }) {
   return <span className="tekst-pola">{p.wartosc}</span>;
 }
 
-function Pole({
+export function Pole({
   p,
   wartosc,
   brak,
