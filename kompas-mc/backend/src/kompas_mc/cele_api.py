@@ -37,7 +37,7 @@ class ListaCelow(BaseModel):
     osoba_id: str
     pracownik_moze_edytowac: bool
     cele: list[c.Cel]
-    regula: c._Regula
+    regula: c.Regula
 
 
 def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
@@ -123,13 +123,13 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         return wykonaj(request, uz, cel_id, lambda cel, kto: c.zmien_tresc(cel, body, kto, konf(request)))
 
     @r.post("/cele/{cel_id}/zatwierdz")
-    def zatwierdz(cel_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("cele.proponuj")) -> c.Cel:
+    def zatwierdz(cel_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("cele.zatwierdz")) -> c.Cel:
         """Przełożony zatwierdza propozycję. Pracownik: 403, inny status: 409."""
         return wykonaj(request, uz, cel_id, c.zatwierdz)
 
     @r.post("/cele/{cel_id}/odrzuc")
     def odrzuc(
-        cel_id: int, body: Odrzucenie, request: Request, uz: Uzytkownik = auth.wymagaj("cele.proponuj")
+        cel_id: int, body: Odrzucenie, request: Request, uz: Uzytkownik = auth.wymagaj("cele.zatwierdz")
     ) -> c.Cel:
         """Przełożony odrzuca propozycję; pusty komentarz: 422."""
         return wykonaj(request, uz, cel_id, lambda cel, kto: c.odrzuc(cel, kto, body.komentarz))

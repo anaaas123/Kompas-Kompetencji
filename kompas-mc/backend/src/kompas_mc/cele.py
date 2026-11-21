@@ -24,7 +24,7 @@ StatusPostepu = Literal["w_realizacji", "osiągnięty", "porzucony"]
 Aktor = Literal["pracownik", "przelozony"]
 
 
-class _Regula(BaseModel):
+class Regula(BaseModel):
     id: str
     opis: str
     adnotacje: list[SourceRef]
@@ -32,7 +32,7 @@ class _Regula(BaseModel):
 
 class KonfiguracjaCelow(BaseModel):
     pracownik_moze_edytowac: bool
-    regula: _Regula
+    regula: Regula
 
     @classmethod
     def z_pliku(cls, plik: str | Path) -> KonfiguracjaCelow:
@@ -142,7 +142,8 @@ def zmien_tresc(cel: Cel, tresc: TrescCelu, aktor: Aktor, konf: KonfiguracjaCelo
     if cel.status in KONCOWE:
         raise BladCelu(409, f"Cel ma status „{cel.status}” i nie można go zmienić.")
     nowy = cel.model_copy(update=tresc.model_dump())
-    if aktor == "pracownik" and _tresc(nowy) != _tresc(cel):
+    # Odrzucona propozycja po poprawce (także bez zmian) wraca do akceptacji z komentarzem przełożonego.
+    if cel.status == "odrzucony" or (aktor == "pracownik" and _tresc(nowy) != _tresc(cel)):
         nowy.status, nowy.zgloszono_osiagniecie = "propozycja", False
     return nowy
 
@@ -166,11 +167,13 @@ def odrzuc(cel: Cel, aktor: Aktor, komentarz: str) -> Cel:
 
 def ustaw_status(cel: Cel, aktor: Aktor, docelowy: StatusPostepu) -> Cel:
     """Postęp zatwierdzonego celu. ``w_realizacji`` ustawia każdy z nich. ``osiągnięty``: pracownik
-    tylko zgłasza, przełożony potwierdza. ``porzucony`` ustawia przełożony."""
+    tylko zgłasza, przełożony potwierdza (także bez zgłoszenia). ``porzucony`` ustawia przełożony."""
     if cel.status in KONCOWE:
         raise BladCelu(409, f"Cel ma status „{cel.status}” i jest zamknięty.")
     if docelowy == "porzucony":
         _tylko_przelozony(aktor, "Cel porzuca przełożony.")
+        if cel.status not in ("zatwierdzony", "w_realizacji"):
+            raise BladCelu(409, f"Porzucić można cel zatwierdzony, a cel ma status „{cel.status}”.")
         return cel.model_copy(update={"status": "porzucony", "zgloszono_osiagniecie": False})
     if docelowy == "w_realizacji":
         if cel.status != "zatwierdzony":

@@ -150,9 +150,20 @@ def test_postep_i_potwierdzenie_osiagniecia(k, h):
 def test_status_tylko_postepu(k, h):
     cel = _nowy(k, h)
     url = f"/api/cele/{cel['id']}/status"
-    assert k.post(url, json={"status": "zatwierdzony"}, headers=h("przelozony1")).status_code == 422
-    r = k.post(url, json={"status": "porzucony"}, headers=h("przelozony1"))
+    hp = h("przelozony1")
+    assert k.post(url, json={"status": "zatwierdzony"}, headers=hp).status_code == 422
+    assert k.post(url, json={"status": "porzucony"}, headers=hp).status_code == 409  # propozycji się nie porzuca
+    k.post(f"/api/cele/{cel['id']}/zatwierdz", headers=hp)
+    r = k.post(url, json={"status": "porzucony"}, headers=hp)
     assert r.status_code == 200 and r.json()["status"] == "porzucony"
+
+
+def test_odrzucony_cel_wraca_jako_propozycja_bez_zmian_tresci(k, h):
+    cel = _nowy(k, h)
+    url = f"/api/cele/{cel['id']}"
+    k.post(f"{url}/odrzuc", json={"komentarz": "Porozmawiajmy o terminie"}, headers=h("przelozony1"))
+    r = k.put(url, json=CEL, headers=h("oceniany"))
+    assert r.json()["status"] == "propozycja" and r.json()["komentarz"] == "Porozmawiajmy o terminie"
 
 
 def test_bez_edycji_pracownika_cele_tworzy_przelozony(k_bez, h_bez):
@@ -171,6 +182,18 @@ def test_bez_edycji_pracownika_cele_tworzy_przelozony(k_bez, h_bez):
     assert r.status_code == 200 and r.json()["status"] == "w_realizacji"
     r = k_bez.post(f"{url}/status", json={"status": "osiągnięty"}, headers=ho)
     assert r.json()["zgloszono_osiagniecie"] is True
+
+
+def test_bez_edycji_pracownika_przelozony_poprawia_odrzucony_cel(k_bez, h_bez):
+    hp = h_bez("przelozony1")
+    cel = _nowy(k_bez, h_bez, login="przelozony1")
+    url = f"/api/cele/{cel['id']}"
+    assert k_bez.post(f"{url}/odrzuc", json={"komentarz": "Za szeroki"}, headers=hp).json()["status"] == "odrzucony"
+    assert k_bez.put(url, json=CEL, headers=h_bez("oceniany")).status_code == 403
+    r = k_bez.put(url, json={**CEL, "nazwa": "Węższy cel"}, headers=hp)
+    assert r.json()["status"] == "propozycja"
+    assert k_bez.post(f"{url}/zatwierdz", headers=hp).json()["status"] == "zatwierdzony"
+    assert k_bez.post(f"{url}/zatwierdz", headers=hp).status_code == 409
 
 
 def test_uprawnienia(k, h):
