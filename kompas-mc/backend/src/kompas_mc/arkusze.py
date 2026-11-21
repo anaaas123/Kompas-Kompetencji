@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from .krok2 import WyborKroku2
 from .qnt import Pracownik
+from .terminy_okresowej import TerminyOkresowej
 from .wynik_okresowy_api import WynikOkresowy
 
 KOMUNIKAT_PODPIS = "Wygenerowanie PDF i użycie „Zatwierdź” nie są podpisem."
@@ -125,14 +126,18 @@ def wypelnij(
     kryteria: WyborKroku2 | None,
     ids_obowiazkowych: list[str],
     wynik: WynikOkresowy | None,
+    terminy: TerminyOkresowej | None,
 ) -> tuple[list[SekcjaArkusza], list[BrakArkusza]]:
-    """Połącz wartości ze źródeł i pola uzupełniane przez przełożonego."""
+    """Połącz wartości ze źródeł i pola uzupełniane przez przełożonego.
+
+    ``terminy`` są dostępne od kroku 2, także przed wystawieniem oceny (część I, § 5 ust. 3 rozp. 2016).
+    """
     dane = wynik.dane if wynik else None
     poprzednia = wynik.poprzednia_ocena if wynik else None
     czesc_iii = bool(wynik and wynik.czesc_iii.dolaczana)
     pozytywna = bool(wynik and wynik.obliczenie.wynik == "pozytywna")
     urzednik = pracownik.korpus == "urzednik_sc"
-    termin = wynik.terminy.termin_sporzadzenia_oceny if wynik else None
+    termin = terminy.termin_sporzadzenia_oceny if terminy else None
     zmiana = dane.zmiana_stanowiska if dane else None
     data_oceny = dane.data_sporzadzenia_oceny if dane else None
     koniec_przed_zmiana = bool(

@@ -66,6 +66,7 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 - `GET /api/procesy/{id}/krok2` zwraca kryteria obowiązkowe według arkusza: § 4 ust. 2 (B) i § 4 ust. 3 (C) rozp. 2016 albo § 2 pkt 1 rozp. 2015. Pokazuje też propozycje najwyżej 3 kryteriów dodatkowych (w pierwszej ocenie 0) oraz przy każdym wskaźniku zadania z OSP, które go uzasadniają.
 - `PUT /api/procesy/{id}/krok2 {"dodatkowe": [...], "wskazniki": {kompetencja_id: [wskaznik_id]}}` (akcja `ocena.prowadz`) zapisuje wybór przełożonego. Limit dodatkowych sprawdza API.
 - Dobór zadań do wskaźników i punktacja kryteriów dodatkowych to `DECYZJA_PROJEKTOWA` („wymaga zatwierdzenia”). Słowa kluczowe są jawne w `konfiguracja/krok2.yaml`.
+- `GET /api/procesy/{id}/arkusz-okresowy/czesc-i/pdf` (akcja `ocena.tresc`) zwraca samą część I arkusza B albo C do podpisu po rozmowie na początku okresu (§ 5 ust. 3 i § 6 rozp. 2016). Wydruk zawiera dane obu stron, kryteria obowiązkowe i dodatkowe, termin sporządzenia oceny z kalendarza terminów oraz miejsca na podpisy i daty. Jest dostępny od zapisu kroku 2, bez wyniku oceny; wcześniej API zwraca 409. Gdy terminu nie da się wyliczyć (np. po ocenie negatywnej brak daty zapoznania z nią), API zwraca 422 z listą `braki_terminu`. Zmiana kryteriów zmienia wydruk i jego odcisk w stopce.
 
 ## Kroki 3–5: zachowania, sugestia, decyzja
 
