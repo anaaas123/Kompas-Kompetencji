@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pobierzCzescIPdf, zapiszZapoznanie, type EtapOsoby, type ProcesOceny, type WyborKroku2 } from "./api";
 import { opisBledu } from "./Krok1";
 import { PoleDaty, poprawnaData, zapiszPlik } from "./Wynik";
@@ -40,6 +40,13 @@ export function ZakonczenieCzesciI({
   const [drukuje, setDrukuje] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
   const zakonczona = Boolean(wybor.zapoznanie);
+  // Panel stoi pod listą kryteriów: po zatwierdzeniu przewiń do niego i ustaw fokus na tytule.
+  const tytul = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    const bezRuchu = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    tytul.current?.scrollIntoView({ block: "start", behavior: bezRuchu ? "auto" : "smooth" });
+    tytul.current?.focus({ preventScroll: true });
+  }, []);
   const dodatkowe = wybor.kryteria.filter((k) => k.rodzaj === "DODATKOWE").length;
 
   async function zapisz() {
@@ -69,7 +76,9 @@ export function ZakonczenieCzesciI({
 
   return (
     <div className="k2-ustalone czesc-i" role="status">
-      <h2>{zakonczona ? "Część I arkusza zakończona" : "Zakończ część I arkusza"}</h2>
+      <h2 ref={tytul} tabIndex={-1}>
+        {zakonczona ? "Część I arkusza zakończona" : "Zakończ część I arkusza"}
+      </h2>
       <p className="meta">
         {wybor.kryteria.length - dodatkowe} kryteriów obowiązkowych
         {dodatkowe > 0 && ` i ${dodatkowe} dodatkowe`}

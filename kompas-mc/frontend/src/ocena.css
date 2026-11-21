@@ -172,3 +172,7 @@ label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var
 .oc-zakonczenie, .czesc-i { display: flex; flex-direction: column; gap: var(--o-12); }
 .oc-zakonczenie { padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
 .oc-zakonczenie h3, .czesc-i h2, .czesc-i > p, .czesc-i > div > p { margin: 0; }
+/* Zakończenie części I jest wysokie: na końcu kroku 2 zwykły blok, nie pasek przyklejony do dołu (telefon 390). */
+.k2-pasek:has(.czesc-i) { position: static; }
+.czesc-i h2 { scroll-margin-top: var(--o-24); }
+.czesc-i h2:focus { outline: none; }
