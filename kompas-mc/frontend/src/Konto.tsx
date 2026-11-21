@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { pobierzJa, pobierzPracownikow, zaloguj, type Pracownik, type Rola, type Uzytkownik } from "./api";
+import { Inicjaly, SzkieletListy, WierszListy } from "./Lista";
+import { Wydra } from "./wydra/Wydra";
 
 export interface Sesja {
   token: string;
@@ -7,10 +9,11 @@ export interface Sesja {
 }
 
 const KONTA_DEMO = ["przelozony1", "przelozony2", "hr", "oceniany"];
-const NAZWA_ROLI: Record<Rola, string> = { przelozony: "przełożony", hr: "HR / administrator", oceniany: "oceniany" };
 const TYTUL_LISTY: Record<Rola, string> = { przelozony: "Twoi podwładni", hr: "Pracownicy", oceniany: "Twoje dane" };
 
 const data = (iso: string) => iso.split("-").reverse().join(".");
+// Komórka z QNT ma postać „Departament … / Wydział …”: na liście wystarcza wydział.
+const komorka = (pelna: string) => pelna.split(" / ").pop() ?? pelna;
 
 export function Logowanie({ onZalogowano }: { onZalogowano: (s: Sesja) => void }) {
   const [login, setLogin] = useState("");
@@ -33,8 +36,9 @@ export function Logowanie({ onZalogowano }: { onZalogowano: (s: Sesja) => void }
   }
 
   return (
-    <section>
-      <h2>Logowanie</h2>
+    <div className="logowanie-karta">
+      <Wydra poza="stoi" szerokosc={120} naStart="machanie" />
+      <h1>Kompas Kompetencji</h1>
       <p className="opis">
         Konta demo:{" "}
         {KONTA_DEMO.map((k, i) => (
@@ -47,19 +51,26 @@ export function Logowanie({ onZalogowano }: { onZalogowano: (s: Sesja) => void }
         ))}
         ; hasło <code>demo</code>.
       </p>
-      <form onSubmit={wyslij} className="wiersz">
-        <input aria-label="Login" placeholder="login" value={login} onChange={(e) => setLogin(e.target.value)} />
+      <form onSubmit={wyslij} className="logowanie-formularz">
+        <input
+          aria-label="Login"
+          placeholder="Login…"
+          autoComplete="username"
+          value={login}
+          onChange={(e) => setLogin(e.target.value)}
+        />
         <input
           aria-label="Hasło"
           type="password"
-          placeholder="hasło"
+          placeholder="Hasło…"
+          autoComplete="current-password"
           value={haslo}
           onChange={(e) => setHaslo(e.target.value)}
         />
         <button disabled={czekam || !login || !haslo}>{czekam ? "Loguję…" : "Zaloguj"}</button>
       </form>
       {blad && <p className="blad">{blad}</p>}
-    </section>
+    </div>
   );
 }
 
@@ -83,68 +94,38 @@ export function Pracownicy({
   }, [sesja.token, onWyloguj]);
 
   return (
-    <section>
-      <div className="wiersz">
-        <h2>{TYTUL_LISTY[uz.rola]}</h2>
-        <span className="meta">
-          {uz.login} · {NAZWA_ROLI[uz.rola]} ·{" "}
-          <button type="button" className="link" onClick={onWyloguj}>
-            Wyloguj
-          </button>
-        </span>
-      </div>
+    <div className="sekcja">
+      <h1>{TYTUL_LISTY[uz.rola]}</h1>
       {blad && <p className="blad">{blad}</p>}
-      {!blad && lista === null && <p className="meta">Wczytuję…</p>}
+      {!blad && lista === null && <SzkieletListy />}
       {lista?.length === 0 && <p className="brak">Brak osób w Twoim zakresie.</p>}
       {lista && lista.length > 0 && (
-        <table className="pracownicy">
-          <thead>
-            <tr>
-              <th>Osoba</th>
-              <th>Komórka</th>
-              <th>Zatrudnienie</th>
-              <th>Ostatnia ocena okresowa</th>
-              {onWybierz && <th aria-label="Akcja" />}
-            </tr>
-          </thead>
-          <tbody>
-            {lista.map((p) => (
-              <tr key={p.osoba_id}>
-                <td className="osoba">
-                  {p.imie} {p.nazwisko}
-                  <div className="meta">{p.stanowisko}</div>
-                </td>
-                <td className="meta">{p.komorka}</td>
-                <td>
+        <div className="lista">
+          {lista.map((p) => (
+            <WierszListy
+              key={p.osoba_id}
+              lewa={<Inicjaly imie={p.imie} nazwisko={p.nazwisko} />}
+              tytul={`${p.imie} ${p.nazwisko}`}
+              znacznik={
+                p.ostatnia_ocena_okresowa && (
+                  <span className={`status ${p.ostatnia_ocena_okresowa.wynik}`}>
+                    ocena {p.ostatnia_ocena_okresowa.wynik} {data(p.ostatnia_ocena_okresowa.data)}
+                  </span>
+                )
+              }
+              opis={`${p.stanowisko} · ${komorka(p.komorka)}`}
+              prawa={
+                <>
                   od {data(p.data_zatrudnienia)}
-                  <div className="meta">czas {p.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}</div>
-                </td>
-                <td>
-                  {p.ostatnia_ocena_okresowa ? (
-                    <>
-                      {data(p.ostatnia_ocena_okresowa.data)}
-                      <div>
-                        <span className={`status ${p.ostatnia_ocena_okresowa.wynik}`}>
-                          {p.ostatnia_ocena_okresowa.wynik}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                {onWybierz && (
-                  <td>
-                    <button type="button" className="jasny" onClick={() => onWybierz(p)}>
-                      {uz.rola === "przelozony" ? "Otwórz ocenę" : "Podgląd oceny"}
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <br />
+                  czas {p.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}
+                </>
+              }
+              onClick={onWybierz ? () => onWybierz(p) : undefined}
+            />
+          ))}
+        </div>
       )}
-    </section>
+    </div>
   );
 }

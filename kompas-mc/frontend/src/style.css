@@ -63,6 +63,13 @@ button.ikona-przycisk:active { background: var(--k-wiersz-pressed); }
 .pozycja.szkielet { min-height: 88px; animation: szkielet 1.2s ease-in-out infinite alternate; }
 @keyframes szkielet { from { opacity: 1; } to { opacity: 0.5; } }
 
+/* Logowanie: wydra wita, formularz w jednej kolumnie */
+.logowanie-karta { display: flex; flex-direction: column; align-items: center; gap: var(--o-16); text-align: center; }
+.logowanie-karta h1 { font-size: var(--t-title-r); line-height: var(--t-title-l); }
+.logowanie-karta .opis { margin: 0; }
+.logowanie-formularz { display: flex; flex-direction: column; gap: var(--o-12); width: 100%; max-width: 400px; }
+.logowanie-formularz button { width: 100%; }
+
 /* czat asystenta w wąskim panelu: przykłady i wybór ścieżki zawijają się, nie wychodzą poza krawędź */
 .panel-cialo .czat .przyklady { flex-direction: column; align-items: stretch; }
 .panel-cialo .czat .przyklady button { white-space: normal; text-align: left; height: auto; padding: var(--o-12) var(--o-16); }
