@@ -106,10 +106,11 @@ export default function App() {
   // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
   // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
   // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie.
-  const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null) => {
+  /** `wymus`: etap wybrany na karcie (#55), np. kryteria procesu, który jest już dalej. */
+  const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null, wymus?: Etap) => {
     const k = p?.krok ?? 0;
-    const nowyEtap: Etap =
-      k >= 8
+    const nowyEtap: Etap = wymus ??
+      (k >= 8
         ? "wnioski"
         : k === 7 && p?.sciezka === "okresowa"
           ? await pobierzWynik(sesja.token, p.id).then(
@@ -120,7 +121,7 @@ export default function App() {
             ? "rozmowa"
             : k >= 3
               ? "ocena"
-              : "krok2";
+              : "krok2");
     setEtap(nowyEtap);
     setProces(p);
     setOceniany(osoba);
@@ -214,7 +215,7 @@ export default function App() {
           sesja={sesja}
           osoba={karta}
           onWroc={() => setKarta(null)}
-          onOcen={(p) => otworzProces(karta, p)}
+          onOcen={(p, e) => otworzProces(karta, p, e)}
           onSamoocena={setSamoocena}
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}

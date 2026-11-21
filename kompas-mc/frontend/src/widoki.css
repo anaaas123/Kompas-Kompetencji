@@ -68,11 +68,10 @@ button.kafel:active { background: var(--k-wiersz-pressed); }
 /* Karta pracownika: nagłówek z inicjałami, dwie kolumny (treść i bok 320 px z „Następny krok”). */
 .karta { gap: var(--o-24); }
 .karta button.link.wstecz { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--o-4); min-height: 44px; text-decoration: none; }
-.karta-glowa { display: flex; align-items: center; gap: var(--o-16); }
+.karta-glowa { display: flex; align-items: flex-start; gap: var(--o-16); }
 .karta-glowa .opis { margin: var(--o-4) 0 0; font-size: var(--t-body-r); line-height: var(--t-body-l); }
 .inicjaly.duze { width: 56px; height: 56px; font-size: var(--t-ui-r); }
 .sekcje-karty, .bok-karty { display: flex; flex-direction: column; gap: var(--o-32); min-width: 0; }
-.streszczenie { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); color: var(--k-text-secondary); }
 .meta.zero, .sekcja > p.zero { margin: 0; }
 .zadania-karty { margin: 0; padding-left: var(--o-24); display: flex; flex-direction: column; gap: var(--o-8); }
 .notatki { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-12); }
@@ -145,13 +144,7 @@ button.pozycja-legendy:focus-visible { outline: 2px solid var(--k-focus); outlin
 .teraz.po-terminie strong { color: var(--k-danger-text); }
 .cykl .etap { min-height: 48px; }
 .cykl .etapy li.biezacy .etap { box-shadow: inset 0 0 0 var(--o-2) var(--k-link); }
-details.opis-stanowiska > summary { display: flex; flex-direction: column; gap: var(--o-4); min-height: 44px; cursor: pointer; list-style: none; }
-details.opis-stanowiska > summary::-webkit-details-marker { display: none; }
-details.opis-stanowiska > summary .meta { color: var(--k-link); }
-details.opis-stanowiska[open] > summary .meta { color: var(--k-text-muted); }
-details.opis-stanowiska > summary:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 .czynnosc-wiersza { color: var(--k-text); font-weight: var(--f-semibold); }
-.cykl ul.brak { margin: 0; padding: var(--o-12) var(--o-16) var(--o-12) var(--o-32); }
 
 /* #33: mapa kompetencji zespołu (osoby × kryteria), wnioski, oceny cząstkowe na karcie. Kolor ze znaczeniem + liczba. */
 .mapa-kompetencji { display: flex; flex-direction: column; gap: var(--o-16); margin-bottom: 0; }

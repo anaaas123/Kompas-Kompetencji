@@ -484,6 +484,25 @@ export const pobierzModelKompetencji = (token: string) =>
     odpowiedzApi<{ kompetencje: { id: string; nazwa: string }[] }>(r),
   );
 
+/** Opis osoby na karcie (#55): zdania z podstawą w faktach; nic się nie zapisuje. */
+export interface FaktOpisu {
+  id: string;
+  tekst: string;
+  zrodlo: string;
+}
+export interface OpisOsoby {
+  zdania: { tekst: string; fakty: FaktOpisu[] }[];
+  /** "SZABLON" bez modelu, inaczej tryb dostawcy z łańcucha. */
+  tryb: string;
+  dostawca: string | null;
+  oznaczenie: string;
+  odrzucone: string[];
+}
+export const pobierzOpisOsoby = (token: string, osobaId: string, model: boolean) =>
+  fetch(`/api/pracownicy/${encodeURIComponent(osobaId)}/opis?model=${model}`, { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<OpisOsoby>(r),
+  );
+
 /** Błąd niesie kod i komunikat z API (np. 403 dla pracownika przed przekazaniem samooceny). */
 export const pobierzOcene = (token: string, procesId: number) =>
   fetch(`/api/procesy/${procesId}/ocena`, { headers: autoryzacja(token) }).then((r) => odpowiedzApi<StanOceny>(r));
