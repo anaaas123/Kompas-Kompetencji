@@ -1,13 +1,7 @@
 /* Wersja MC na tokenach Dopiny (kanon v3, rejestr narzędziowy): kolory --k-*, pismo --t-*, odstępy --o-*,
-   promienie --r-*, cienie --s-*, wysokości kontrolek --c-*. Wartości tylko z tokenów (tokeny.css). */
+   promienie --r-*, cienie --s-*, wysokości kontrolek --c-*. Wartości z tokeny.css, nadpisane skórką COI (tokeny-coi.css). */
 
-/* Fonty Inter (OFL) i reset z @dopina/ui (styl/baza.css), bez warstwy szkła. */
-@font-face{font-family:Inter;font-weight:400;font-display:block;src:url('./fonty/inter-latin-400-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-@font-face{font-family:Inter;font-weight:400;font-display:block;src:url('./fonty/inter-latin-ext-400-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
-@font-face{font-family:Inter;font-weight:500;font-display:block;src:url('./fonty/inter-latin-500-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-@font-face{font-family:Inter;font-weight:500;font-display:block;src:url('./fonty/inter-latin-ext-500-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
-@font-face{font-family:Inter;font-weight:600;font-display:block;src:url('./fonty/inter-latin-600-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-@font-face{font-family:Inter;font-weight:600;font-display:block;src:url('./fonty/inter-latin-ext-600-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+/* Fonty Open Sans (OFL) są w tokeny-coi.css razem z wartościami tokenów; tu reset z @dopina/ui (styl/baza.css), bez warstwy szkła. */
 *,*::before,*::after{box-sizing:border-box}
 html{font-family:var(--f-rodzina);font-weight:var(--f-regular);-webkit-font-smoothing:antialiased;text-size-adjust:100%}
 body{margin:0;background:var(--k-canvas);color:var(--k-text)}
@@ -74,14 +68,14 @@ button {
   transition: background-color var(--ruch-szybki) var(--ruch-krzywa), color var(--ruch-szybki) var(--ruch-krzywa);
 }
 button:active { background: var(--k-action-pressed); }
-button.jasny { background: var(--k-surface); border-color: var(--k-line-control); color: var(--k-text-secondary); }
-button.jasny:active { background: var(--k-surface-pressed); }
+button.jasny { background: var(--k-wiersz); border-color: transparent; color: var(--k-action); }
+button.jasny:active { background: var(--k-wiersz-pressed); }
 button.link { min-height: 0; padding: 0; border: 0; background: none; color: var(--k-text); text-decoration: underline; text-underline-offset: 2px; font-weight: var(--f-regular); }
 button.link:active { color: var(--k-text-muted); }
 button:disabled { border-color: var(--k-disabled-border); background: var(--k-disabled-bg); color: var(--k-disabled-text); cursor: default; }
 @media (hover: hover) and (pointer: fine) {
   button:not(:disabled):hover { background: var(--k-action-hover); }
-  button.jasny:not(:disabled):hover { background: var(--k-surface-hover); }
+  button.jasny:not(:disabled):hover { background: var(--k-wiersz-hover); }
   button.link:not(:disabled):hover { background: none; color: var(--k-text-muted); }
 }
 :focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
