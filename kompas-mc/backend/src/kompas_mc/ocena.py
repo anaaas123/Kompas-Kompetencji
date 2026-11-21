@@ -160,12 +160,24 @@ class OpisPoziomuWidok(BaseModel):
     opis: str
 
 
+class SamoocenaWskaznika(BaseModel):
+    """Odpowiedź pracownika przy wskaźniku (#8); nie wchodzi do sugestii ani do oceny."""
+
+    poziom: int | None
+    brak_zdania: bool
+    przyklad: Przyklad | None
+
+
 class WskaznikOceny(BaseModel):
     wskaznik_id: str
     nazwa: str
     poziomy: list[OpisPoziomuWidok]
     ocena: OcenaWskaznika | None
     ostrzezenia: list[str]
+    samoocena: SamoocenaWskaznika | None = None
+    """Tylko dla przełożonego i tylko po przekazaniu samooceny (#8)."""
+    rozbieznosc: bool | None = None
+    """|samoocena − ocena przełożonego| ≥ próg z ``samoocena.yaml``; None, gdy brak obu poziomów."""
 
 
 class KryteriumOceny(BaseModel):
@@ -205,6 +217,8 @@ class SkalaWidok(BaseModel):
 
 
 class StanOceny(BaseModel):
+    samoocena_status: Literal["brak", "szkic", "przekazana"] | None = None
+    """Status samooceny (#8), tylko dla przełożonego; treść przy wskaźnikach po przekazaniu."""
     proces_id: int
     sciezka: Sciezka
     arkusz: str

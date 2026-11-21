@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-WERSJA_SCHEMATU = "7"
+WERSJA_SCHEMATU = "8"
 
 
 def polacz(plik: str | Path) -> sqlite3.Connection:
@@ -32,6 +32,15 @@ def polacz(plik: str | Path) -> sqlite3.Connection:
         "CREATE TABLE IF NOT EXISTS rejestr_ezd (id INTEGER PRIMARY KEY, proces_id INTEGER NOT NULL,"
         " odcisk TEXT NOT NULL, zarejestrowano TEXT NOT NULL, sha256_pdf TEXT NOT NULL,"
         " pdf BLOB NOT NULL, UNIQUE (proces_id, odcisk))"
+    )
+    # Samoocena pracownika (#8): nagłówek procesu i pozycje przy wskaźnikach wybranych w kroku 2.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS samoocena (proces_id INTEGER PRIMARY KEY, status TEXT NOT NULL,"
+        " zmieniono TEXT NOT NULL, przekazano TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS samoocena_pozycje (proces_id INTEGER NOT NULL, wskaznik_id TEXT NOT NULL,"
+        " poziom INTEGER, brak_zdania INTEGER NOT NULL, przyklad TEXT, PRIMARY KEY (proces_id, wskaznik_id))"
     )
     conn.execute(
         "INSERT OR IGNORE INTO meta (klucz, wartosc) VALUES ('wersja_aplikacji', 'mc-bdg')"
