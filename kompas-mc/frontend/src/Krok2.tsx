@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useState } from "react";
 import {
   BladApi,
   pobierzCykl,
@@ -67,6 +67,19 @@ function zrodlaKryterium(k: KryteriumKroku2): SourceRef[] {
     });
 }
 
+/** Cicha linia wskaźników w wierszu kryterium: ile i skąd, bez „X z Y”, które myli się z liczbą kryteriów. */
+function opisWskaznikow(k: KryteriumKroku2, wybrane: string[]): string {
+  const n = wybrane.length;
+  if (n === 0) return "Nie wybrano żadnego wskaźnika";
+  const system = domyslne(k);
+  const jakSystem = n === system.length && system.every((id) => wybrane.includes(id));
+  if (!jakSystem) return `${n} ${odmiana(n, "wskaźnik wybrany", "wskaźniki wybrane", "wskaźników wybranych")} ręcznie`;
+  if (k.wskazniki.some((w) => w.proponowany)) {
+    return `${n} ${odmiana(n, "wskaźnik dobrany", "wskaźniki dobrane", "wskaźników dobranych")} do zadań z OSP`;
+  }
+  return `${n} ${odmiana(n, "wskaźnik", "wskaźniki", "wskaźników")}: żaden nie pasuje do zadań z OSP, więc wszystkie`;
+}
+
 type PropsKryterium = {
   k: KryteriumKroku2;
   wybrane: string[];
@@ -74,47 +87,57 @@ type PropsKryterium = {
   otwarte: boolean;
   onPrzelacz: () => void;
   onWskaznik: (id: string) => void;
-  /** Kryterium dodatkowe: pole wyboru całego kryterium w nagłówku wiersza. */
+  /** Kryterium dodatkowe: cały nagłówek wiersza wybiera albo odznacza kryterium. */
   dodatkowe?: { wybrane: boolean; zablokowane: boolean; onWybierz: () => void };
 };
 
-/** Kryterium jako zwijany wiersz: nagłówek z licznikiem, po rozwinięciu wskaźniki i źródło raz na kryterium. */
+/** Wiersz kryterium (wzór makiety v2): obowiązkowe ze stałym znakiem, dodatkowe z kółkiem wyboru.
+ *  Wskaźniki dobiera system; w wierszu tylko cicha linia i łącze do zmiany. */
 function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, dodatkowe }: PropsKryterium) {
   const aktywne = !dodatkowe || dodatkowe.wybrane;
-  const pasujace = k.wskazniki.filter((w) => w.proponowany).length;
+  const nazwa = (
+    <span className="k2-nazwa">
+      {k.nazwa.charAt(0) + k.nazwa.slice(1).toLowerCase()}
+      {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
+    </span>
+  );
   return (
-    <div className={`k2-kryterium ${otwarte && aktywne ? "otwarte" : ""} ${aktywne ? "" : "nieaktywne"}`}>
-      <div className="k2-glowa">
-        {dodatkowe && (
-          <label className="k2-wybierz">
-            <input
-              type="checkbox"
-              aria-label={`Wybierz kryterium ${k.nazwa}`}
-              checked={dodatkowe.wybrane}
-              disabled={tylkoOdczyt || dodatkowe.zablokowane}
-              onChange={dodatkowe.onWybierz}
-            />
-          </label>
-        )}
-        <button type="button" className="k2-przelacz" aria-expanded={otwarte && aktywne} disabled={!aktywne} onClick={onPrzelacz}>
-          <span className="k2-nazwa">
-            {k.nazwa.charAt(0) + k.nazwa.slice(1).toLowerCase()}
-            {!dodatkowe && <span className="k2-etykieta">obowiązkowe z arkusza</span>}
-            {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
-          </span>
-          <span className="k2-opis">
-            {aktywne
-              ? `Wskaźniki: wybrano ${wybrane.length} z ${k.wskazniki.length}${pasujace ? ` · ${pasujace} ${odmiana(pasujace, "pasuje", "pasują", "pasuje")} do zadań z OSP` : ""}`
-              : k.propozycja
-                ? k.propozycja.powody.join("; ")
-                : `${k.wskazniki.length} wskaźników`}
-          </span>
-          {aktywne && <Ikona nazwa={otwarte ? "gora" : "dalej"} rozmiar={20} />}
+    <div className={`k2-wiersz ${dodatkowe?.wybrane ? "wybrany" : ""} ${dodatkowe?.zablokowane ? "zablokowany" : ""}`}>
+      {dodatkowe ? (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={dodatkowe.wybrane}
+          className="k2-glowa"
+          disabled={tylkoOdczyt || dodatkowe.zablokowane}
+          onClick={dodatkowe.onWybierz}
+        >
+          <span className="k2-znak kolo">{dodatkowe.wybrane && <Ikona nazwa="ok" rozmiar={16} />}</span>
+          {nazwa}
         </button>
-      </div>
+      ) : (
+        <div className="k2-glowa">
+          <span className="k2-znak">
+            <Ikona nazwa="ok" rozmiar={20} />
+          </span>
+          {nazwa}
+        </div>
+      )}
+      {aktywne ? (
+        <p className="k2-linia">
+          <span className={wybrane.length === 0 ? "blad" : undefined}>{opisWskaznikow(k, wybrane)}</span>
+          <button type="button" className="link" aria-expanded={otwarte} onClick={onPrzelacz}>
+            {otwarte ? "Zwiń wskaźniki" : tylkoOdczyt ? "Pokaż wskaźniki" : "Zmień wskaźniki"}
+          </button>
+        </p>
+      ) : (
+        k.propozycja && <p className="k2-linia">{k.propozycja.powody.join("; ")}</p>
+      )}
       {otwarte && aktywne && (
         <div className="k2-cialo">
-          {k.propozycja && <p className="meta">Dlaczego: {k.propozycja.powody.join("; ")}</p>}
+          <p className="meta">
+            Dobierz wskaźniki do zadań z opisu stanowiska. System zaznaczył te, które pasują do zadań z OSP.
+          </p>
           <ul className="k2-wskazniki">
             {k.wskazniki.map((w) => (
               <li key={w.wskaznik_id}>
@@ -141,6 +164,38 @@ function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, d
         </div>
       )}
     </div>
+  );
+}
+
+/** Sekcja kryteriów: tytuł z liczbą, z prawej podstawa prawna, która rozwija cytat. */
+function Sekcja({
+  tytul,
+  liczba,
+  podstawa,
+  children,
+}: {
+  tytul: string;
+  liczba?: string;
+  podstawa: SourceRef[];
+  children: ReactNode;
+}) {
+  const [cytat, setCytat] = useState(false);
+  return (
+    <section className="k2-sekcja">
+      <div className="k2-sekcja-glowa">
+        <h2>
+          {tytul} {liczba && <span className="k2-liczba">{liczba}</span>}
+        </h2>
+        {podstawa[0] && (
+          <button type="button" className="k2-podstawa" aria-expanded={cytat} onClick={() => setCytat((v) => !v)}>
+            <Ikona nazwa="dokument" rozmiar={16} />
+            {podstawa[0].lokalizator}
+          </button>
+        )}
+      </div>
+      {cytat && <Zrodla adnotacje={podstawa} />}
+      {children}
+    </section>
   );
 }
 
@@ -202,7 +257,6 @@ export function Krok2({
   const dostepne = dane.kryteria.filter((k) => k.rodzaj === "DODATKOWE_DOSTEPNE");
   const wybrane = [...obowiazkowe.map((k) => k.kompetencja_id), ...dodatkowe];
   const pusteKryteria = wybrane.filter((id) => (wskazniki[id] ?? []).length === 0);
-  const liczbaWskaznikow = wybrane.reduce((n, id) => n + (wskazniki[id] ?? []).length, 0);
 
   function przelaczWskaznik(kompetencja: string, id: string) {
     setUstalone(null);
@@ -309,125 +363,108 @@ export function Krok2({
         </p>
       </div>
 
-      <div className="dwie">
-        <div className="sekcja k2-glowna">
-          {tylkoOdczyt && !dane.wybor && (
-            <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
-          )}
-          <div className="k2-grupa">
-            <h2>
-              Obowiązkowe <span className="meta">{obowiazkowe.length}</span>
-            </h2>
+      {tylkoOdczyt && !dane.wybor && (
+        <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
+      )}
+
+      <Sekcja tytul="Obowiązkowe" liczba={String(obowiazkowe.length)} podstawa={dane.podstawa_obowiazkowych}>
+        <p className="meta">
+          Wynikają z arkusza {nazwaArkusza}, więc się ich nie wybiera. Wskaźniki system dobrał do zadań z opisu
+          stanowiska; możesz je zmienić.
+        </p>
+        <div className="k2-lista">{obowiazkowe.map((k) => wiersz(k, false))}</div>
+      </Sekcja>
+
+      <Sekcja
+        tytul="Dodatkowe"
+        liczba={dane.limit_dodatkowych > 0 ? `${dodatkowe.length} z ${dane.limit_dodatkowych}` : undefined}
+        podstawa={dane.podstawa_dodatkowych}
+      >
+        {dane.limit_dodatkowych === 0 ? (
+          <p className="meta">Pierwsza ocena nie ma kryteriów dodatkowych, więc nie ma tu nic do wybrania.</p>
+        ) : (
+          <>
             <p className="meta">
-              Tych kryteriów się nie wybiera: wynikają z arkusza {nazwaArkusza}. Dobierz do każdego wskaźniki pasujące
-              do zadań z opisu stanowiska.
+              Możesz wybrać najwyżej {dane.limit_dodatkowych} kryteria najważniejsze dla obowiązków z opisu stanowiska
+              albo żadnego.
             </p>
-            {obowiazkowe.map((k) => wiersz(k, false))}
-          </div>
-
-          <div className="k2-grupa">
-            <h2>
-              Dodatkowe{" "}
-              {dane.limit_dodatkowych > 0 && (
-                <span className="meta">
-                  wybrano {dodatkowe.length} z {dane.limit_dodatkowych}
-                </span>
-              )}
-            </h2>
-            {dane.limit_dodatkowych === 0 ? (
-              <p className="meta">Pierwsza ocena nie ma kryteriów dodatkowych, więc nie ma tu nic do wybrania.</p>
-            ) : (
-              <>
-                <p className="meta">
-                  Możesz wybrać najwyżej {dane.limit_dodatkowych} kryteria najważniejsze dla obowiązków z opisu
-                  stanowiska albo żadnego.
-                </p>
-                {proponowane.map((k) => wiersz(k, true))}
-                {dostepne.length > 0 && (
-                  <>
-                    <button type="button" className="link k2-pozostale" aria-expanded={pozostale} onClick={() => setPozostale((v) => !v)}>
-                      {pozostale ? "Ukryj pozostałe kompetencje" : `Pozostałe kompetencje (${dostepne.length})`}
-                    </button>
-                    {pozostale && dostepne.map((k) => wiersz(k, true))}
-                  </>
-                )}
-              </>
+            <div className="k2-lista">
+              {proponowane.map((k) => wiersz(k, true))}
+              {pozostale && dostepne.map((k) => wiersz(k, true))}
+            </div>
+            {dostepne.length > 0 && (
+              <button type="button" className="link k2-pozostale" aria-expanded={pozostale} onClick={() => setPozostale((v) => !v)}>
+                {pozostale ? "Ukryj pozostałe kompetencje" : `Pozostałe kompetencje (${dostepne.length})`}
+              </button>
             )}
-          </div>
-        </div>
+          </>
+        )}
+      </Sekcja>
 
-        <aside className="sekcja k2-boczna">
-          <div className="k2-podsumowanie">
-            <h2>Podsumowanie</h2>
-            <dl>
-              <div>
-                <dt>Kryteria</dt>
-                <dd>
-                  {obowiazkowe.length} obowiązkowych{dodatkowe.length > 0 && ` + ${dodatkowe.length} dodatkowe`}
-                </dd>
-              </div>
-              <div>
-                <dt>Wskaźniki</dt>
-                <dd>{liczbaWskaznikow}</dd>
-              </div>
-            </dl>
-            {dane.wybor && !ustalonoDnia && (
-              <p className="sukces">
+      <div className="k2-metodyka">
+        <button type="button" className="link" aria-expanded={metodyka} onClick={() => setMetodyka((v) => !v)}>
+          {metodyka ? "Ukryj, jak system dobrał wskaźniki" : "Jak system dobrał wskaźniki?"}
+        </button>
+        {metodyka && (
+          <>
+            <p>
+              <span className="status uwaga">{dane.metodyka.status}</span>
+            </p>
+            <p className="meta">{dane.metodyka.opis}</p>
+            <Zrodla adnotacje={[...dane.metodyka.adnotacje, ...dane.podstawa_obowiazkowych, ...dane.podstawa_dodatkowych]} />
+          </>
+        )}
+      </div>
+
+      <div className="k2-pasek">
+        {ustalonoDnia ? (
+          <div className="k2-ustalone" role="status">
+            <p className="sukces">
+              <strong>Kryteria ustalone {ustalonoDnia}</strong>
+              {cykl?.termin && ` · ${cykl.termin.nazwa} do ${data(cykl.termin.data)}`}
+            </p>
+            {cykl?.etap === "brak_danych" && cykl.braki.length > 0 && (
+              <p className="meta">Termin oceny ustalisz po uzupełnieniu danych kadrowych: {cykl.braki.join(" ")}</p>
+            )}
+            <div className="k2-akcje">
+              <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
+                Wróć do pracownika
+              </button>
+              {moznaProwadzic && proces.sciezka === "okresowa" && cykl?.etap !== "brak_danych" && (
+                <button type="button" disabled={drukuje} onClick={drukuj}>
+                  {drukuje ? "Przygotowuję PDF…" : "Wydrukuj część I do podpisu"}
+                </button>
+              )}
+            </div>
+            {blad && <p className="blad">{blad}</p>}
+          </div>
+        ) : (
+          <>
+            {dane.wybor && (
+              <p className="meta">
                 Zapisany wybór: {dane.wybor.kryteria.length} kryteriów, zapisał {dane.wybor.zapisal}.
               </p>
             )}
-            {moznaProwadzic && !ustalone && (
-              <form onSubmit={zapisz}>
-                {pusteKryteria.length > 0 && (
-                  <p className="brak">Każde wybrane kryterium musi mieć co najmniej jeden wskaźnik.</p>
-                )}
-                <button className="k2-zatwierdz" disabled={czekam || pusteKryteria.length > 0}>
-                  {czekam ? "Zapisuję…" : "Zatwierdź kryteria i dalej"}
-                </button>
-              </form>
-            )}
-            {tylkoOdczyt && dane.wybor && cykl?.etap === "ocena" && (
-              <button type="button" className="k2-zatwierdz" onClick={onDalej}>
-                Dalej: ocena kompetencji
-              </button>
-            )}
-            {ustalonoDnia && (
-              <div className="k2-ustalone" role="status">
-                <p className="sukces">
-                  <strong>Kryteria ustalone {ustalonoDnia}</strong>
-                  {cykl?.termin && ` · ${cykl.termin.nazwa} do ${data(cykl.termin.data)}`}
-                </p>
-                {cykl?.etap === "brak_danych" && cykl.braki.length > 0 && (
-                  <p className="meta">Termin oceny ustalisz po uzupełnieniu danych kadrowych: {cykl.braki.join(" ")}</p>
-                )}
-                {moznaProwadzic && proces.sciezka === "okresowa" && cykl?.etap !== "brak_danych" && (
-                  <button type="button" className="k2-zatwierdz" disabled={drukuje} onClick={drukuj}>
-                    {drukuje ? "Przygotowuję PDF…" : "Wydrukuj część I do podpisu"}
-                  </button>
-                )}
-                <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
-                  Wróć do pracownika
-                </button>
-              </div>
+            {moznaProwadzic && pusteKryteria.length > 0 && (
+              <p className="blad">Każde wybrane kryterium musi mieć co najmniej jeden wskaźnik.</p>
             )}
             {blad && <p className="blad">{blad}</p>}
-          </div>
-
-          <div className="k2-metodyka">
-            <button type="button" className="link" aria-expanded={metodyka} onClick={() => setMetodyka((v) => !v)}>
-              {metodyka ? "Ukryj, jak system dobrał wskaźniki" : "Jak system dobrał wskaźniki?"}
-            </button>
-            {metodyka && (
-              <>
-                <p>
-                  <span className="status uwaga">{dane.metodyka.status}</span>
-                </p>
-                <p className="meta">{dane.metodyka.opis}</p>
-                <Zrodla adnotacje={[...dane.metodyka.adnotacje, ...dane.podstawa_obowiazkowych, ...dane.podstawa_dodatkowych]} />
-              </>
-            )}
-          </div>
-        </aside>
+            <div className="k2-akcje">
+              {moznaProwadzic && (
+                <form onSubmit={zapisz}>
+                  <button disabled={czekam || pusteKryteria.length > 0}>
+                    {czekam ? "Zapisuję…" : "Zatwierdź kryteria i dalej"}
+                  </button>
+                </form>
+              )}
+              {tylkoOdczyt && dane.wybor && cykl?.etap === "ocena" && (
+                <button type="button" onClick={onDalej}>
+                  Dalej: ocena kompetencji
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
