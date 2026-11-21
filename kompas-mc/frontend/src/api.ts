@@ -464,8 +464,9 @@ async function odpowiedzApi<T>(r: Response): Promise<T> {
   return tresc as T;
 }
 
+/** Błąd niesie kod i komunikat z API (np. 403 dla pracownika przed przekazaniem samooceny). */
 export const pobierzOcene = (token: string, procesId: number) =>
-  fetch(`/api/procesy/${procesId}/ocena`, { headers: autoryzacja(token) }).then((r) => json<StanOceny>(r));
+  fetch(`/api/procesy/${procesId}/ocena`, { headers: autoryzacja(token) }).then((r) => odpowiedzApi<StanOceny>(r));
 
 async function zapiszOcene(token: string, procesId: number, sciezka: string, dane: object): Promise<StanOceny> {
   const r = await fetch(`/api/procesy/${procesId}/ocena/${sciezka}`, {

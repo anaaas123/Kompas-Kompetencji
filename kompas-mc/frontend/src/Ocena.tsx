@@ -21,6 +21,8 @@ const ZLOZONOSC = { NISKA: "niska", SREDNIA: "średnia", WYSOKA: "wysoka" } as c
 
 function bladZapisu(err: unknown): string {
   if (err instanceof BladApi && err.status === 409) return "Proces oceny nie jest w toku albo krok 2 nie jest zapisany.";
+  // Pracownik przed przekazaniem samooceny: komunikat z API („Ocena przełożonego będzie widoczna…”).
+  if (err instanceof BladApi && err.status === 403 && typeof err.detail === "string") return err.detail;
   const bledy = err instanceof BladApi ? (err.detail as { bledy?: string[] } | null)?.bledy : undefined;
   return Array.isArray(bledy) ? bledy.join(" ") : opisBledu(err);
 }
