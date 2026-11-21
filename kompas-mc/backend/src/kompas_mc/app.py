@@ -35,6 +35,7 @@ from .ocena import KonfiguracjaOceny
 from .metodyka import RejestrMetodyk
 from .metodyka_api import router as router_metodyki
 from .ocena_api import router as router_oceny
+from .opis_api import router as router_opisu
 from .osp import KatalogOsp
 from .pierwsza_ocena_api import router as router_pierwszej
 from .pracownicy import router as router_pracownikow
@@ -137,6 +138,10 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     app.include_router(router_samooceny(auth, qnt, krok2))
     app.include_router(router_zespolu(auth, qnt, krok2, KonfiguracjaOceny.z_pliku(ust.ocena)))
     app.include_router(router_celow(auth, qnt, krok2))
+    app.include_router(router_opisu(
+        auth, qnt, krok2, konf_terminow_okresowej, konf_terminow_pierwszej,
+        lambda p: proponuj_sciezke(p, konf_krok1).proponowana,
+    ))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:
