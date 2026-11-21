@@ -1,0 +1,65 @@
+.k7 { min-height: calc(100dvh - var(--o-64)); width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.k7 section { margin: 0; padding: 0; border: 0; }
+.k7 :is(p, blockquote, .tekst-pola, .slad li) { max-width: 75ch; }
+.k7 button, .k7 summary, .k7 input:not([type="checkbox"]), .k7 .zaznacz { min-height: 44px; }
+.k7 button.link { min-width: 44px; min-height: 44px; white-space: normal; text-align: left; }
+.k7 .k2-naglowek button, .k7-pasek > .link { display: inline-flex; align-items: center; gap: var(--o-4); }
+.k7 summary { align-content: center; cursor: pointer; color: var(--k-link); }
+.k7 :is(button, summary, input, textarea):focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.k7 .k7-rozwin:active, .k7 summary:active { background: var(--k-wiersz-pressed); }
+
+.k7 .k7-sekcja { gap: 0; }
+.k7 .k7-rozwin {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--o-12);
+  padding: var(--o-12) var(--o-16); border: 0; border-radius: var(--r-wiersz);
+  background: var(--k-wiersz); color: var(--k-text); text-align: left; white-space: normal;
+  font-size: var(--t-section-r); line-height: var(--t-section-l); font-weight: var(--f-semibold);
+}
+.k7 .k7-rozwin .ikona { color: var(--k-link); }
+.k7 .k7-rozwin[aria-expanded="true"] .ikona { transform: rotate(90deg); }
+.k7-sekcja > div > .zwijane { display: grid; min-width: 0; gap: var(--o-12); padding: var(--o-12) 0 var(--o-16); }
+.k7 .k7-sekcja .k7-sekcja .k7-rozwin { background: var(--k-surface); border-bottom: 1px solid var(--k-line); border-radius: 0; font-size: var(--t-ui-r); line-height: var(--t-ui-l); }
+.k7 .pola-arkusza, .k7 .siatka-dat { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); margin: 0; }
+.k7 fieldset.formularz { margin: 0; }
+.k7 .wybor { align-self: start; max-width: 100%; }
+.k7 .wybor button { min-width: 44px; min-height: 44px; white-space: normal; }
+.k7 .k7-braki > button { align-self: start; color: var(--k-link); }
+.k7 .k7-braki .lista button.pozycja { min-height: 44px; padding: var(--o-8) var(--o-16); }
+.k7 .k7-braki .pozycja-opis { max-width: 75ch; font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.k7-boczna { gap: var(--o-16); }
+.k7-boczna label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+.k7-werdykt { padding: var(--o-16) var(--o-24); background: var(--k-wiersz); border-radius: var(--r-card); }
+.k7-werdykt h2 { font-size: var(--t-title-r); line-height: var(--t-title-l); }
+.k7-werdykt p { margin: var(--o-4) 0 0; color: var(--k-text-secondary); font-variant-numeric: tabular-nums; }
+.k7-werdykt.pozytywna { background: var(--k-success-bg); color: var(--k-success-text); }
+.k7-werdykt.negatywna { background: var(--k-danger-bg); color: var(--k-danger-text); }
+.k7 .k7-warunki li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--o-8); padding: var(--o-4) 0; background: none; }
+.k7-tak { color: var(--k-success-text); }
+.k7-nie { color: var(--k-danger-text); }
+.k7 .k7-warunki .zrodla { margin: 0; }
+.k7 .k7-terminy { width: 100%; }
+.k7-terminy td:last-child { white-space: nowrap; vertical-align: top; font-variant-numeric: tabular-nums; }
+.k7-akcje { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8) var(--o-16); }
+.k7-pasek { margin-top: auto; }
+.k7-komunikat { display: grid; gap: var(--o-4); margin-left: auto; text-align: right; max-width: 75ch; }
+.k7-komunikat [role="status"]:empty { display: none; }
+
+@container (min-width: 880px) {
+  .k7-boczna {
+    grid-column: 2; grid-row: 1; position: sticky; top: var(--o-16);
+    max-height: calc(100dvh - var(--o-64) - var(--o-48)); overflow-y: auto; padding: var(--o-4);
+  }
+  .k7-tresc { grid-column: 1; grid-row: 1; }
+}
+@container (max-width: 560px) {
+  .k7 .k7-pasek { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--o-4) var(--o-8); padding: var(--o-8) 0; }
+  .k7-komunikat { grid-row: 1; grid-column: 1 / -1; margin: 0; text-align: left; }
+  .k7-pasek > button:last-child { justify-self: end; white-space: normal; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .k7 button.k7-rozwin:hover, .k7 summary:hover { background: var(--k-wiersz-hover); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k7, .k7 .zwijane { animation: none; }
+  .k7 button { transition: none; }
+}

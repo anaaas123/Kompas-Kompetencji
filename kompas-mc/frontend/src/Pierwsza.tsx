@@ -7,20 +7,31 @@ import {
   type DanePierwszej,
   type EgzaminPierwszej,
   type Pracownik,
-  type ProcesOceny,
   type PrzedluzeniePierwszej,
   type PrzeslankaEgzaminu,
-  type SladReguly,
   type SprawozdaniePierwszej,
   type StanPierwszejOceny,
   type Termin,
 } from "./api";
-import { Pole, bladArkusza } from "./Arkusz";
+import { PolaWzoru, bladArkusza, brakiPol } from "./Arkusz";
 import { Zrodla } from "./Krok1";
 import { Wybor } from "./Ocena";
-import { PoleDaty, poprawnaData, zapiszPlik } from "./Wynik";
-
-const data = (iso: string) => iso.split("-").reverse().join(".");
+import {
+  Naglowek,
+  Podsumowanie,
+  PoleDaty,
+  Sekcja,
+  Slad,
+  TabelaTerminow,
+  Wczytywanie,
+  Werdykt,
+  data,
+  poprawnaData,
+  zapiszPlik,
+  type Brak,
+  type Krok7Props,
+} from "./Wynik";
+import "./krok7.css";
 
 const NAZWY_TERMINOW: Record<string, string> = {
   termin_rozmowy_wstepnej: "Rozmowa wstępna (termin)",
@@ -71,20 +82,12 @@ const PRZYCZYNY: Record<PrzedluzeniePierwszej["przyczyna"], string> = {
   przedluzenie_umowy: "przedłużenie umowy",
 };
 
-const PUSTE_SPRAWOZDANIE: SprawozdaniePierwszej = { zadania: "", problemy_i_rozwiazania: "", nowe_umiejetnosci_i_wiedza: "", propozycje_usprawnien: "" };
-
-function Slad({ slad }: { slad: SladReguly[] }) {
-  return (
-    <ol className="slad">
-      {slad.map((s) => (
-        <li key={s.regula.id + s.opis}>
-          {s.opis}
-          <Zrodla adnotacje={[s.regula.zrodlo]} />
-        </li>
-      ))}
-    </ol>
-  );
-}
+const PUSTE_SPRAWOZDANIE: SprawozdaniePierwszej = {
+  zadania: "",
+  problemy_i_rozwiazania: "",
+  nowe_umiejetnosci_i_wiedza: "",
+  propozycje_usprawnien: "",
+};
 
 /** Wysyłamy komplet danych z GET; puste sprawozdanie idzie jako null, bo API wymaga wszystkich czterech pól. */
 function doZapisu(d: DanePierwszej): DanePierwszej {
@@ -99,43 +102,139 @@ function Formularz({
   osoba,
   edycja,
   onZapisano,
+  onWstecz,
+  onDalej,
 }: {
   stan: StanPierwszejOceny;
   token: string;
   osoba: Pracownik;
   edycja: boolean;
+  onWstecz: () => void;
+  onDalej: () => void;
   onZapisano: (s: StanPierwszejOceny) => void;
 }) {
-  const [d, setD] = useState<DanePierwszej>({ ...stan.dane, egzamin: stan.dane.egzamin ?? stan.egzamin });
+  const poczatkowe = { ...stan.dane, egzamin: stan.dane.egzamin ?? stan.egzamin };
+  const [d, setD] = useState<DanePierwszej>(poczatkowe);
   const [braki, setBraki] = useState<BrakArkusza[]>(stan.formularz.braki);
   const [czekam, setCzekam] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
   const ustaw = (z: Partial<DanePierwszej>) => setD((p) => ({ ...p, ...z }));
   const egz = d.egzamin;
   const prz = d.przedluzenie;
-  const ustawPrz = (z: Partial<PrzedluzeniePierwszej>) => ustaw({ przedluzenie: { ...(prz as PrzedluzeniePierwszej), ...z } });
+  const ustawPrz = (z: Partial<PrzedluzeniePierwszej>) =>
+    ustaw({ przedluzenie: { ...(prz as PrzedluzeniePierwszej), ...z } });
   const sprawozdanie = d.sprawozdanie ?? PUSTE_SPRAWOZDANIE;
 
-  const daty = [
-    ...DATY.map(([k]) => d[k] as string | null),
-    prz?.nowy_termin,
-    prz?.data_zawiadomienia,
-    prz?.okres_od,
-    prz?.okres_do,
-    prz?.nowy_termin_od,
-  ];
-  const zlaData = daty.some((x) => !poprawnaData(x));
-  const brakPrzeslanki = egz?.wynik === "nie_dotyczy" && !egz.przeslanka;
-  const brakUzasadnienia = stan.uzasadnienie_wymagane && !d.uzasadnienie?.trim();
-  const niepelnePrzedluzenie = prz !== null && (!prz.nowy_termin || !prz.data_zawiadomienia);
-  const zablokowany = czekam || zlaData || brakPrzeslanki || brakUzasadnienia || niepelnePrzedluzenie;
-  const brakPola = Object.fromEntries(braki.map((b) => [b.id, b]));
+  const t = stan.terminy;
+  const terminy: [string, Termin][] = [];
+  for (const [k, nazwa] of Object.entries(NAZWY_TERMINOW)) {
+    const v = t[k];
+    if (v && typeof v === "object" && "data" in v) terminy.push([nazwa, v]);
+  }
+  const terminyBraki: Brak[] = t.braki.map((tekst) => {
+    const cel = tekst.includes("początku lub końca")
+      ? "sprawozdanie_okres_od"
+      : tekst.includes("końca zatrudnienia")
+        ? "data_konca_zatrudnienia"
+        : tekst.includes("zastępstwo")
+          ? "data_ustalenia_oceny_zastepstwa"
+          : tekst.includes("rozmowy wstępnej")
+            ? "data_rozmowy_wstepnej"
+            : tekst.includes("wyznaczonej")
+              ? "wyznaczony_termin_sprawozdania"
+              : "data_zlozenia_sprawozdania";
+    return { tekst, cel, grupa: "dane/daty", tylkoTermin: true };
+  });
+  const brakDaty = (cel: string, tekst: string, grupa: string): Brak => ({
+    cel,
+    tekst,
+    grupa,
+    opis: "Podaj datę w formacie RRRR-MM-DD.",
+  });
+  const lokalne: Brak[] = [];
+  for (const [k, nazwa] of DATY) {
+    if (!poprawnaData(d[k] as string | null)) lokalne.push(brakDaty(k, nazwa, "dane/daty"));
+  }
+  if (prz) {
+    for (const [k, nazwa] of [
+      ["nowy_termin", "Nowy termin"],
+      ["data_zawiadomienia", "Data zawiadomienia"],
+      ["okres_od", "Nieobecność od"],
+      ["okres_do", "Nieobecność do"],
+      ["nowy_termin_od", "Nowy początek terminu"],
+    ] as const) {
+      if (!poprawnaData(prz[k]) || (!prz[k] && (k === "nowy_termin" || k === "data_zawiadomienia"))) {
+        lokalne.push(brakDaty("prz-" + k, nazwa, "dane/przedluzenie"));
+      }
+    }
+  }
+  if (egz?.wynik === "nie_dotyczy" && !egz.przeslanka)
+    lokalne.push({ tekst: "Przesłanka dla egzaminu", cel: "przeslanka", grupa: "dane/egzamin" });
+  if (!d.sprawozdanie_niezlozone && Object.values(sprawozdanie).some((v) => v.trim())) {
+    for (const [k, nazwa] of SPRAWOZDANIE) {
+      if (!sprawozdanie[k].trim())
+        lokalne.push({
+          tekst: `Sprawozdanie: ${nazwa.toLowerCase()}`,
+          cel: "sprawozdanie-" + k,
+          grupa: "dane/sprawozdanie",
+        });
+    }
+  }
+  const uzasadnienieWymagane = stan.uzasadnienie_wymagane || braki.some((b) => b.id === "uzasadnienie");
+  if (uzasadnienieWymagane && !d.uzasadnienie?.trim()) lokalne.push({ tekst: "Uzasadnienie oceny", cel: "uzasadnienie" });
+
+  const celeDat: Record<string, string> = {
+    "rozmowa_wstepna.data": "data_rozmowy_wstepnej",
+    "termin_sprawozdania.od": "termin_sprawozdania_od",
+    "termin_sprawozdania.do": "wyznaczony_termin_sprawozdania",
+    "okres_pierwszej_oceny.do": "data_konca_zatrudnienia",
+    "dokonanie_oceny.przelozony.data": "data_sporzadzenia_oceny",
+    "rozmowa_oceniajaca.data": "data_rozmowy_oceniajacej",
+    "zapoznanie.oceniany.data": "data_zapoznania_z_ocena",
+    sprawozdanie_okres: "sprawozdanie_okres_od",
+    sprawozdanie_w_terminie: "data_zlozenia_sprawozdania",
+    data_zlozenia_sprawozdania: "data_zlozenia_sprawozdania",
+  };
+  const polaBraki = brakiPol(
+    stan.formularz,
+    d.pola,
+    braki.filter((b) => b.id !== "uzasadnienie"),
+    (b) => {
+      if (b.id === "aktualne_decyzje") return { cel: "zapis", grupa: undefined };
+      if (b.id === "sprawozdanie")
+        return { cel: d.sprawozdanie_niezlozone ? "sprawozdanie" : "sprawozdanie-zadania", grupa: "dane/sprawozdanie" };
+      if (b.id === "egzamin") return { cel: "egzamin", grupa: "dane/egzamin" };
+      const cel =
+        celeDat[b.id] ??
+        (b.id.endsWith(".data") && b.id.startsWith("potwierdzenie_rozmowy")
+          ? b.id.includes("wstepnej")
+            ? "data_rozmowy_wstepnej"
+            : "data_rozmowy_oceniajacej"
+          : null);
+      if (cel) return { cel, grupa: "dane/daty" };
+    },
+  );
+  const lista = [...lokalne, ...polaBraki, ...terminyBraki];
+  const ruszone = JSON.stringify(d) !== JSON.stringify(poczatkowe);
+  const edytowalne = stan.formularz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne);
+  const zlaDataPola = edytowalne.some(
+    (p) => p.rodzaj === "data" && !poprawnaData(p.id in d.pola ? d.pola[p.id] : p.wartosc),
+  );
+  const blokadaZapisu = !edycja || czekam || lokalne.length > 0 || zlaDataPola;
+  const blokadaZatwierdzenia = blokadaZapisu || polaBraki.length > 0;
+  const pdf = !czekam && !ruszone && stan.formularz.pdf_dostepny && !lista.some((b) => !b.tylkoTermin);
+  const zatwierdzony = stan.formularz.zatwierdzony && !ruszone;
+  const takNie = (v: unknown) => (v == null ? "jeszcze nie ustalono" : v ? "tak" : "nie");
 
   async function zapisz(zatwierdz: boolean) {
+    if (blokadaZapisu || (zatwierdz && blokadaZatwierdzenia)) return;
     setCzekam(true);
     setBlad(null);
     try {
-      onZapisano(await zapiszPierwsza(token, stan.proces_id, doZapisu(d), zatwierdz));
+      const po = await zapiszPierwsza(token, stan.proces_id, doZapisu(d), zatwierdz);
+      setD({ ...po.dane, egzamin: po.dane.egzamin ?? po.egzamin });
+      setBraki(po.formularz.braki);
+      onZapisano(po);
     } catch (err) {
       const b = bladArkusza(err);
       setBlad(b.tekst);
@@ -144,352 +243,339 @@ function Formularz({
       setCzekam(false);
     }
   }
-
   async function pobierz(plik: "arkusz.pdf" | "zawiadomienie.pdf") {
+    if (czekam || (plik === "arkusz.pdf" ? !pdf : !stan.zawiadomienie_dostepne || ruszone)) return;
     setBlad(null);
+    setCzekam(true);
     try {
-      zapiszPlik(await pobierzPdfPierwszej(token, stan.proces_id, plik), `${plik === "arkusz.pdf" ? "arkusz-pierwszej-oceny" : "zawiadomienie-5"}-${osoba.nazwisko}.pdf`);
+      zapiszPlik(
+        await pobierzPdfPierwszej(token, stan.proces_id, plik),
+        `${plik === "arkusz.pdf" ? "arkusz-pierwszej-oceny" : "zawiadomienie-5"}-${osoba.nazwisko}.pdf`,
+      );
     } catch (err) {
-      setBlad(bladArkusza(err).tekst);
+      const b = bladArkusza(err);
+      setBlad(b.tekst);
+      if (b.braki) setBraki(b.braki);
+    } finally {
+      setCzekam(false);
     }
   }
-
   return (
-    <>
-      {braki.length > 0 && (
-        <section>
-          <h2>Braki ({braki.length})</h2>
-          <p className="meta">PDF i zatwierdzenie wymagają kompletnego arkusza.</p>
-          <ul className="lista-brakow">
-            {braki.map((b) => (
-              <li key={b.id}>
-                <strong>{b.etykieta}:</strong> {b.komunikat}
-              </li>
+    <Podsumowanie
+      key={JSON.stringify(braki)}
+      braki={lista}
+      blad={blad}
+      podpis={stan.formularz.komunikat_podpis}
+      onWstecz={onWstecz}
+      dzieci={
+        <>
+          <TabelaTerminow terminy={terminy} slad={t.slad}>
+            {typeof t.data_rozmowy_wstepnej === "string" && (
+              <p>Rozmowa wstępna odbyła się {data(t.data_rozmowy_wstepnej)}.</p>
+            )}
+            <p>
+              Sprawozdanie w terminie: {takNie(t.sprawozdanie_w_terminie)}. Obejmuje co najmniej 7 miesięcy:{" "}
+              {takNie(t.sprawozdanie_min_7_miesiecy)}.
+            </p>
+            {t.uwagi.map((u) => (
+              <p className="meta" key={u}>
+                {u}
+              </p>
             ))}
-          </ul>
-        </section>
-      )}
-
-      <section>
-        <h2>Daty, sprawozdanie i egzamin</h2>
-        <fieldset className="formularz" disabled={!edycja || czekam}>
-          <div className="siatka-dat">
-            {DATY.map(([k, nazwa]) => (
-              <PoleDaty key={k} nazwa={nazwa} wartosc={d[k] as string | null} onZmiana={(v) => ustaw({ [k]: v } as Partial<DanePierwszej>)} />
-            ))}
-          </div>
-          {zlaData && <p className="blad">Podaj datę w formacie RRRR-MM-DD, np. 2026-11-21.</p>}
-
-          <label className="zaznacz">
-            <input type="checkbox" checked={d.sprawozdanie_niezlozone} onChange={(e) => ustaw({ sprawozdanie_niezlozone: e.target.checked })} />
-            <span>Sprawozdanie niezłożone (świadomy zapis braku)</span>
-          </label>
-          {!d.sprawozdanie_niezlozone &&
-            SPRAWOZDANIE.map(([k, nazwa]) => (
-              <label key={k} className="etykieta">
-                Sprawozdanie: {nazwa.toLowerCase()}
-                <textarea rows={2} value={sprawozdanie[k]} onChange={(e) => ustaw({ sprawozdanie: { ...sprawozdanie, [k]: e.target.value } })} />
-              </label>
-            ))}
-
-          <div className="etykieta">Egzamin kończący służbę przygotowawczą</div>
-          <Wybor
-            etykieta="Egzamin"
-            opcje={EGZAMIN.map((o) => ({ ...o }))}
-            wartosc={egz?.wynik ?? null}
-            zablokowane={!edycja}
-            onWybierz={(w) => ustaw({ egzamin: w ? ({ wynik: w, przeslanka: null } as EgzaminPierwszej) : null })}
+          </TabelaTerminow>
+          <Sekcja id="dane" tytul="Daty i dane">
+            <Sekcja id="dane/daty" tytul="Daty oceny i sprawozdania">
+              <fieldset className="formularz" disabled={!edycja || czekam}>
+                <div className="siatka-dat">
+                  {DATY.map(([k, nazwa]) => (
+                    <PoleDaty
+                      key={k}
+                      id={k}
+                      nazwa={nazwa}
+                      wartosc={d[k] as string | null}
+                      onZmiana={(v) => ustaw({ [k]: v } as Partial<DanePierwszej>)}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            </Sekcja>
+            <Sekcja id="dane/sprawozdanie" tytul="Sprawozdanie">
+              <fieldset className="formularz" disabled={!edycja || czekam}>
+                <label className="zaznacz">
+                  <input
+                    id="sprawozdanie"
+                    type="checkbox"
+                    checked={d.sprawozdanie_niezlozone}
+                    onChange={(e) => ustaw({ sprawozdanie_niezlozone: e.target.checked })}
+                  />
+                  <span>Sprawozdanie nie zostało złożone</span>
+                </label>
+                {!d.sprawozdanie_niezlozone &&
+                  SPRAWOZDANIE.map(([k, nazwa]) => (
+                    <label key={k} className="etykieta">
+                      Sprawozdanie: {nazwa.toLowerCase()}
+                      <textarea
+                        id={"sprawozdanie-" + k}
+                        rows={2}
+                        value={sprawozdanie[k]}
+                        onChange={(e) => ustaw({ sprawozdanie: { ...sprawozdanie, [k]: e.target.value } })}
+                      />
+                    </label>
+                  ))}
+              </fieldset>
+            </Sekcja>
+            <Sekcja id="dane/egzamin" tytul="Egzamin">
+              <fieldset id="egzamin" tabIndex={-1} className="formularz" disabled={!edycja || czekam}>
+                <div className="etykieta">Egzamin kończący służbę przygotowawczą</div>
+                <Wybor
+                  etykieta="Egzamin"
+                  opcje={EGZAMIN.map((o) => ({ ...o }))}
+                  wartosc={egz?.wynik ?? null}
+                  zablokowane={!edycja || czekam}
+                  onWybierz={(w) => ustaw({ egzamin: w ? ({ wynik: w, przeslanka: null } as EgzaminPierwszej) : null })}
+                />
+                {egz?.wynik === "nie_dotyczy" && (
+                  <>
+                    <div id="przeslanka" tabIndex={-1} className="etykieta">
+                      Przesłanka z § 10 ust. 3 (wymagana)
+                    </div>
+                    <Wybor
+                      etykieta="Przesłanka egzaminu"
+                      opcje={(Object.keys(PRZESLANKI) as PrzeslankaEgzaminu[]).map((w) => ({
+                        wartosc: w,
+                        tekst: PRZESLANKI[w],
+                      }))}
+                      wartosc={egz.przeslanka}
+                      zablokowane={!edycja || czekam}
+                      onWybierz={(w) => ustaw({ egzamin: { wynik: "nie_dotyczy", przeslanka: w } })}
+                    />
+                    {!egz.przeslanka && <p className="blad">Wskaż przesłankę dla „nie dotyczy”.</p>}
+                  </>
+                )}
+              </fieldset>
+              {egz?.wynik === "nie_dotyczy" && egz.przeslanka && (
+                <Zrodla adnotacje={[stan.przeslanki_egzaminu[egz.przeslanka]]} />
+              )}
+            </Sekcja>
+            <Sekcja id="dane/przedluzenie" tytul="Przedłużenie terminu">
+              <fieldset className="formularz" disabled={!edycja || czekam}>
+                <label className="zaznacz">
+                  <input
+                    type="checkbox"
+                    checked={prz !== null}
+                    onChange={(e) =>
+                      ustaw({
+                        przedluzenie: e.target.checked
+                          ? {
+                              nowy_termin: "",
+                              data_zawiadomienia: "",
+                              przyczyna: "usprawiedliwiona_nieobecnosc",
+                              okres_od: null,
+                              okres_do: null,
+                              nowy_termin_od: null,
+                            }
+                          : null,
+                      })
+                    }
+                  />
+                  <span>Przedłużenie terminu sprawozdania (zawiadomienie § 5)</span>
+                </label>
+                {prz && (
+                  <div className="nowy-przyklad">
+                    <div className="siatka-dat">
+                      <PoleDaty
+                        id="prz-nowy_termin"
+                        nazwa="Nowy termin"
+                        wartosc={prz.nowy_termin || null}
+                        onZmiana={(v) => ustawPrz({ nowy_termin: v ?? "" })}
+                      />
+                      <PoleDaty
+                        id="prz-data_zawiadomienia"
+                        nazwa="Data zawiadomienia"
+                        wartosc={prz.data_zawiadomienia || null}
+                        onZmiana={(v) => ustawPrz({ data_zawiadomienia: v ?? "" })}
+                      />
+                      <PoleDaty
+                        id="prz-okres_od"
+                        nazwa="Nieobecność od"
+                        wartosc={prz.okres_od}
+                        onZmiana={(v) => ustawPrz({ okres_od: v })}
+                      />
+                      <PoleDaty
+                        id="prz-okres_do"
+                        nazwa="Nieobecność do"
+                        wartosc={prz.okres_do}
+                        onZmiana={(v) => ustawPrz({ okres_do: v })}
+                      />
+                      <PoleDaty
+                        id="prz-nowy_termin_od"
+                        nazwa="Nowy początek terminu"
+                        wartosc={prz.nowy_termin_od}
+                        onZmiana={(v) => ustawPrz({ nowy_termin_od: v })}
+                      />
+                    </div>
+                    <div className="etykieta">Przyczyna</div>
+                    <Wybor
+                      etykieta="Przyczyna przedłużenia"
+                      opcje={(Object.keys(PRZYCZYNY) as PrzedluzeniePierwszej["przyczyna"][]).map((w) => ({
+                        wartosc: w,
+                        tekst: PRZYCZYNY[w],
+                      }))}
+                      wartosc={prz.przyczyna}
+                      zablokowane={!edycja || czekam}
+                      onWybierz={(w) => w && ustawPrz({ przyczyna: w })}
+                    />
+                  </div>
+                )}
+              </fieldset>
+            </Sekcja>
+          </Sekcja>
+          <PolaWzoru
+            formularz={stan.formularz}
+            wartosci={d.pola}
+            braki={lista}
+            edycja={edycja && !czekam}
+            ustaw={(id, v) => ustaw({ pola: { ...d.pola, [id]: v } })}
           />
-          {egz?.wynik === "nie_dotyczy" && (
-            <>
-              <div className="etykieta">Przesłanka z § 10 ust. 3 (wymagana)</div>
-              <Wybor
-                etykieta="Przesłanka egzaminu"
-                opcje={(Object.keys(PRZESLANKI) as PrzeslankaEgzaminu[]).map((w) => ({ wartosc: w, tekst: PRZESLANKI[w] }))}
-                wartosc={egz.przeslanka}
-                zablokowane={!edycja}
-                onWybierz={(w) => ustaw({ egzamin: { wynik: "nie_dotyczy", przeslanka: w } })}
-              />
-              {egz.przeslanka && <Zrodla adnotacje={[stan.przeslanki_egzaminu[egz.przeslanka]]} />}
-              {brakPrzeslanki && <p className="blad">Wskaż przesłankę dla „nie dotyczy”.</p>}
-            </>
+          <Sekcja id="obliczenie" tytul="Jak policzono wynik">
+            <p>Skala pierwszej oceny: 3, 5 lub 7 pkt.</p>
+            <p>
+              Poziomy modelu i odpowiadające im punkty:{" "}
+              {Object.entries(stan.mapowanie.wartosci)
+                .map(([z, na]) => `${z} → ${na}`)
+                .join(", ")}
+              .
+            </p>
+            <Zrodla adnotacje={stan.mapowanie.adnotacje} />
+            {stan.obliczenie && (
+              <>
+                <Slad slad={stan.obliczenie.slad} />
+                <Zrodla adnotacje={[stan.obliczenie.regula_rozstrzygajaca.zrodlo]} />
+              </>
+            )}
+          </Sekcja>
+        </>
+      }
+      bok={
+        <>
+          <Werdykt wynik={stan.obliczenie} warunki={stan.warunki} />
+          {!stan.obliczenie && (
+            <p className="meta">Do wyliczenia wyniku potrzebne są oceny cząstkowe, dane sprawozdania i egzaminu.</p>
           )}
-
-          <label className="zaznacz">
-            <input
-              type="checkbox"
-              checked={prz !== null}
-              onChange={(e) =>
-                ustaw({
-                  przedluzenie: e.target.checked
-                    ? { nowy_termin: "", data_zawiadomienia: "", przyczyna: "usprawiedliwiona_nieobecnosc", okres_od: null, okres_do: null, nowy_termin_od: null }
-                    : null,
-                })
-              }
-            />
-            <span>Przedłużenie terminu sprawozdania (zawiadomienie § 5)</span>
-          </label>
-          {prz && (
-            <div className="nowy-przyklad">
-              <div className="siatka-dat">
-                <PoleDaty nazwa="Nowy termin" wartosc={prz.nowy_termin || null} onZmiana={(v) => ustawPrz({ nowy_termin: v ?? "" })} />
-                <PoleDaty nazwa="Data zawiadomienia" wartosc={prz.data_zawiadomienia || null} onZmiana={(v) => ustawPrz({ data_zawiadomienia: v ?? "" })} />
-                <PoleDaty nazwa="Nieobecność od" wartosc={prz.okres_od} onZmiana={(v) => ustawPrz({ okres_od: v })} />
-                <PoleDaty nazwa="Nieobecność do" wartosc={prz.okres_do} onZmiana={(v) => ustawPrz({ okres_do: v })} />
-                <PoleDaty nazwa="Nowy początek terminu" wartosc={prz.nowy_termin_od} onZmiana={(v) => ustawPrz({ nowy_termin_od: v })} />
-              </div>
-              <div className="etykieta">Przyczyna</div>
-              <Wybor
-                etykieta="Przyczyna przedłużenia"
-                opcje={(Object.keys(PRZYCZYNY) as PrzedluzeniePierwszej["przyczyna"][]).map((w) => ({ wartosc: w, tekst: PRZYCZYNY[w] }))}
-                wartosc={prz.przyczyna}
-                zablokowane={!edycja}
-                onWybierz={(w) => w && ustawPrz({ przyczyna: w })}
-              />
-            </div>
-          )}
-
           <label className="etykieta">
-            Uzasadnienie oceny{stan.uzasadnienie_wymagane ? " (wymagane przy ocenie negatywnej)" : " (opcjonalnie)"}
-            <textarea rows={3} value={d.uzasadnienie ?? ""} onChange={(e) => ustaw({ uzasadnienie: e.target.value || null })} />
+            Uzasadnienie {uzasadnienieWymagane ? "(wymagane)" : "(opcjonalnie)"}
+            <textarea
+              id="uzasadnienie"
+              rows={3}
+              required={uzasadnienieWymagane}
+              disabled={!edycja || czekam}
+              value={d.uzasadnienie ?? ""}
+              onChange={(e) => ustaw({ uzasadnienie: e.target.value || null })}
+            />
           </label>
           <Zrodla adnotacje={[stan.podstawa_uzasadnienia]} />
-
-          {stan.wnioski_dostepne ? (
-            <label className="etykieta">
-              Wnioski dotyczące rozwoju zawodowego (pisze przełożony)
-              <textarea rows={3} value={d.wnioski_rozwojowe ?? ""} onChange={(e) => ustaw({ wnioski_rozwojowe: e.target.value || null })} />
-            </label>
-          ) : (
-            <p className="meta">Wnioski rozwojowe można sporządzić tylko po pozytywnej pierwszej ocenie.</p>
-          )}
-          <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
-        </fieldset>
-      </section>
-
-      {stan.formularz.sekcje
-        .filter((s) => s.widoczna)
-        .map((s) => (
-          <section key={s.tytul}>
-            <h2>{s.tytul}</h2>
-            <div className="pola-arkusza">
-              {s.pola
-                .filter((p) => p.widoczne)
-                .map((p) => (
-                  <Pole
-                    key={p.id}
-                    p={p}
-                    wartosc={p.edytowalne ? (d.pola[p.id] ?? p.wartosc ?? null) : p.wartosc}
-                    brak={brakPola[p.id]}
-                    edycja={edycja && !czekam && p.edytowalne}
-                    onZmiana={(v) => ustaw({ pola: { ...d.pola, [p.id]: v } })}
-                  />
-                ))}
+          {stan.wnioski_dostepne && (
+            <div>
+              <label className="etykieta">
+                Wnioski rozwojowe
+                <textarea
+                  rows={3}
+                  disabled={!edycja || czekam}
+                  value={d.wnioski_rozwojowe ?? ""}
+                  onChange={(e) => ustaw({ wnioski_rozwojowe: e.target.value || null })}
+                />
+              </label>
+              <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
             </div>
-          </section>
-        ))}
-
-      <section>
-        <h2>Dokument</h2>
-        <div className="wiersz">
-          <div className="etykiety">
-            <button type="button" className="jasny" disabled={!stan.formularz.pdf_dostepny} onClick={() => pobierz("arkusz.pdf")}>
-              Pobierz arkusz PDF
-            </button>
-            {stan.zawiadomienie_dostepne && (
-              <button type="button" className="jasny" onClick={() => pobierz("zawiadomienie.pdf")}>
-                Pobierz zawiadomienie § 5 (PDF)
+          )}
+          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
+        </>
+      }
+      akcje={
+        <>
+          <div id="zapis" tabIndex={-1}>
+            {edycja ? (
+              <button type="button" className="jasny" disabled={blokadaZapisu} onClick={() => zapisz(false)}>
+                Zapisz szkic
               </button>
+            ) : (
+              <span className="meta">Arkusz uzupełnia przełożony.</span>
             )}
           </div>
-          {edycja && (
-            <div className="etykiety">
-              <button type="button" className="jasny" disabled={zablokowany} onClick={() => zapisz(false)}>
-                Zapisz
-              </button>
-              <button type="button" disabled={zablokowany} onClick={() => zapisz(true)}>
-                {czekam ? "Zapisuję…" : "Zatwierdź arkusz"}
-              </button>
-            </div>
+          {ruszone && <span className="meta">Masz niezapisane zmiany. Zapisz szkic, żeby przeliczyć wynik i terminy.</span>}
+          {stan.formularz.pdf_dostepny && edycja && !zatwierdzony && (
+            <button type="button" className="link" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>
+              Pobierz zapisany arkusz (PDF)
+            </button>
           )}
-        </div>
-        {blad && <p className="blad">{blad}</p>}
-        <details className="pozostale">
-          <summary>Przypisy wzoru</summary>
-          <ol className="slad">
-            {Object.entries(stan.formularz.przypisy).map(([nr, tekst]) => (
-              <li key={nr} value={Number(nr)} className="meta">
-                {tekst}
-              </li>
-            ))}
-          </ol>
-        </details>
-      </section>
-    </>
+          {stan.zawiadomienie_dostepne && (
+            <button type="button" className="link" disabled={czekam || ruszone} onClick={() => pobierz("zawiadomienie.pdf")}>
+              Pobierz zawiadomienie § 5 (PDF)
+            </button>
+          )}
+          {stan.wnioski_dostepne && (
+            <button type="button" className="link" onClick={onDalej}>
+              Dalej: wnioski rozwojowe
+            </button>
+          )}
+        </>
+      }
+      glowna={
+        zatwierdzony || !edycja ? (
+          <button type="button" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>
+            Pobierz arkusz (PDF)
+          </button>
+        ) : (
+          <button type="button" disabled={blokadaZatwierdzenia} onClick={() => zapisz(true)}>
+            Zatwierdź arkusz
+          </button>
+        )
+      }
+    />
   );
 }
 
-export function Pierwsza({
-  token,
-  osoba,
-  proces,
-  moznaProwadzic,
-  onWstecz,
-  onDalej,
-}: {
-  token: string;
-  osoba: Pracownik;
-  proces: ProcesOceny;
-  moznaProwadzic: boolean;
-  onWstecz: () => void;
-  onDalej: () => void;
-}) {
+export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDalej }: Krok7Props) {
   const [stan, setStan] = useState<StanPierwszejOceny | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
-
   useEffect(() => {
+    let aktywny = true;
+    setStan(null);
+    setBlad(null);
     pobierzPierwsza(token, proces.id)
-      .then(setStan)
-      .catch((err) => setBlad(bladArkusza(err).tekst));
+      .then((s) => {
+        if (aktywny) setStan(s);
+      })
+      .catch((err) => {
+        if (aktywny) setBlad(bladArkusza(err).tekst);
+      });
+    return () => {
+      aktywny = false;
+    };
   }, [token, proces.id]);
-
-  const naglowek = (
-    <section>
-      <div className="wiersz">
-        <div>
-          <div className="etykieta">Krok 7 z 8 · Wynik, terminy i arkusz pierwszej oceny</div>
-          <h2>
-            {osoba.imie} {osoba.nazwisko}
-          </h2>
-          <p className="opis">pierwsza ocena · arkusz z załącznika nr 2{stan && ` (${stan.wersja_regul})`}</p>
-        </div>
-        <button type="button" className="link" onClick={onWstecz}>
-          Wróć do rozmowy
-        </button>
-      </div>
-      {stan && <p className="brak">{stan.formularz.komunikat_podpis} Podpisy składa się odręcznie na wydruku.</p>}
-      {stan?.formularz.zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
-      {blad && <p className="blad">{blad}</p>}
-      {!stan && !blad && <p className="meta">Wczytuję pierwszą ocenę…</p>}
-    </section>
-  );
-  if (!stan) return naglowek;
-
-  const o = stan.obliczenie;
-  const t = stan.terminy;
-  const terminy = Object.entries(t).filter(([, v]) => v && typeof v === "object" && "data" in (v as object)) as [string, Termin][];
-  const takNie = (v: unknown) => (v === null || v === undefined ? "—" : v ? "tak" : "nie");
-
   return (
-    <>
-      {naglowek}
-
-      <section>
-        <h2>Wynik pierwszej oceny</h2>
-        {o ? (
-          <>
-            <p className="wartosc">
-              <span className={`status ${o.wynik}`}>ocena {o.wynik}</span> średnia {o.srednia.replace(".", ",")}
-              {o.poziom && ` · ${o.poziom}`}
-            </p>
-            <p className="meta">Rozstrzyga: {o.regula_rozstrzygajaca.zrodlo.lokalizator}</p>
-            <Zrodla adnotacje={[o.regula_rozstrzygajaca.zrodlo]} />
-          </>
-        ) : (
-          <p className="meta">Wynik policzy się po zapisaniu ocen cząstkowych wszystkich kryteriów, sprawozdania i egzaminu.</p>
-        )}
-        {stan.warunki.length > 0 && (
-          <ul className="przeslanki">
-            {stan.warunki.map((w) => (
-              <li key={w.id}>
-                <div className="wiersz-przeslanki">
-                  <span className={`status ${w.spelniony ? "pozytywna" : "negatywna"}`}>{w.spelniony ? "spełniony" : "niespełniony"}</span>
-                  <span>{w.opis}</span>
-                </div>
-                <Zrodla adnotacje={[w.zrodlo]} />
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="meta">
-          Skala pierwszej oceny 3/5/7 pkt. Poziomy modelu przechodzą na nią tak:{" "}
-          {Object.entries(stan.mapowanie.wartosci)
-            .map(([z, na]) => `${z}→${na}`)
-            .join(", ")}{" "}
-          ({stan.wersja_metodyki}).
-        </p>
-        <Zrodla adnotacje={stan.mapowanie.adnotacje} />
-        {o && (
-          <details className="zadania-osp">
-            <summary>Jak policzono wynik</summary>
-            <Slad slad={o.slad} />
-          </details>
-        )}
-      </section>
-
-      <section>
-        <h2>Terminy</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Termin</th>
-              <th>Data</th>
-              <th>Skąd</th>
-            </tr>
-          </thead>
-          <tbody>
-            {terminy.map(([k, v]) => (
-              <tr key={k}>
-                <td>{NAZWY_TERMINOW[k] ?? k}</td>
-                <td>{data(v.data)}</td>
-                <td>
-                  <Slad slad={v.slad} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {typeof t.data_rozmowy_wstepnej === "string" && <p className="meta">Rozmowa wstępna odbyła się {data(t.data_rozmowy_wstepnej)}.</p>}
-        <p className="meta">
-          Sprawozdanie w terminie: {takNie(t.sprawozdanie_w_terminie)} · obejmuje co najmniej 7 miesięcy: {takNie(t.sprawozdanie_min_7_miesiecy)}
-        </p>
-        {t.slad.length > 0 && <Slad slad={t.slad} />}
-        {t.uwagi.map((u) => (
-          <p key={u} className="meta">
-            {u}
-          </p>
-        ))}
-        {t.braki.length > 0 && (
-          <div className="brak">
-            System nie zgaduje, brakuje danych:
-            <ul>
-              {t.braki.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-
-      <Formularz
-        key={JSON.stringify(stan.dane) + String(stan.formularz.zatwierdzony)}
-        stan={stan}
-        token={token}
+    <div className="oc-ekran k7">
+      <Naglowek
         osoba={osoba}
-        edycja={moznaProwadzic}
-        onZapisano={setStan}
+        tytul="Podsumowanie pierwszej oceny"
+        opis="Pierwsza ocena · arkusz z załącznika nr 2"
+        wstecz="Wróć do rozmowy"
+        onWstecz={onWstecz}
       />
-
-      {stan.wnioski_dostepne && (
-        <section>
-          <div className="wiersz">
-            <span className="meta">Propozycje form rozwoju do wniosków.</span>
-            <button type="button" className="jasny" onClick={onDalej}>
-              Dalej: wnioski rozwojowe
-            </button>
-          </div>
-        </section>
+      {stan && stan.proces_id === proces.id ? (
+        <Formularz
+          key={proces.id}
+          stan={stan}
+          token={token}
+          osoba={osoba}
+          edycja={moznaProwadzic}
+          onZapisano={setStan}
+          onWstecz={onWstecz}
+          onDalej={onDalej}
+        />
+      ) : (
+        <Wczytywanie blad={blad} />
       )}
-    </>
+    </div>
   );
 }
