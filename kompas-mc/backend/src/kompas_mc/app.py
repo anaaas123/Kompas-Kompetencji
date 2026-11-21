@@ -17,12 +17,13 @@ from .baza import polacz
 from .braki import PanelBrakow, zbuduj_panel
 from .kompetencje import odczytaj as odczytaj_model
 from .korpus_mc import zaladuj
+from .cykl import router as router_cyklu
 from .hr import terminy_z_regul
 from .hr_api import router as router_hr
 from .hr_api import router_terminow
 from .samoocena import KonfiguracjaSamooceny
 from .samoocena_api import router as router_samooceny
-from .krok1 import KonfiguracjaKroku1
+from .krok1 import KonfiguracjaKroku1, proponuj_sciezke
 from .krok2 import KonfiguracjaKroku2
 from .krok2_api import StanKroku2
 from .krok2_api import router as router_kroku2
@@ -92,9 +93,8 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     qnt = MockQnt.z_pliku(ust.qnt)
     katalog = KatalogOsp()
     app.include_router(router_pracownikow(auth, qnt))
-    app.include_router(
-        router_procesow(auth, qnt, katalog, KonfiguracjaKroku1.z_pliku(ust.krok1))
-    )
+    konf_krok1 = KonfiguracjaKroku1.z_pliku(ust.krok1)
+    app.include_router(router_procesow(auth, qnt, katalog, konf_krok1))
     krok2 = StanKroku2()
     konf_krok2 = KonfiguracjaKroku2.z_pliku(ust.krok2)
     app.include_router(router_kroku2(auth, qnt, katalog, konf_krok2, krok2))
@@ -122,6 +122,10 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     app.include_router(router_hr(auth, qnt))
     app.include_router(router_terminow(auth, qnt))
     app.include_router(router_samooceny(auth, qnt, krok2))
+    app.include_router(router_cyklu(
+        auth, qnt, konf_terminow_okresowej, konf_terminow_pierwszej,
+        lambda p: proponuj_sciezke(p, konf_krok1).proponowana,
+    ))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:
