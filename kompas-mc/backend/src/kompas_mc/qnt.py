@@ -25,6 +25,9 @@ class OstatniaOcenaOkresowa(_Model):
     oceny_czastkowe: dict[str, int] = Field(default_factory=dict, exclude=True)
     """Punkty ocen cząstkowych z arkusza w aktach (kompetencja_id → 1/3/5/7/9). Treść oceny: poza
     ``model_dump`` (lista pracowników, HR); udostępnia ją tylko ``/api/zespol/kompetencje`` (#33)."""
+    data_zapoznania: date | None = None
+    """Data zapoznania ocenianego z oceną (podpis na arkuszu w aktach osobowych, § 12 rozp. 2016).
+    Po ocenie negatywnej wyznacza termin ponownej oceny (§ 7 pkt 2, art. 81 ust. 3 ustawy wg poradnika)."""
 
 
 class ZmianaOceniajacego(_Model):

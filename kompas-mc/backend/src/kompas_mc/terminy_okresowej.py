@@ -232,7 +232,8 @@ def oblicz_terminy(
             wynik.termin_bazowy = _dzien_roboczy(konf.cykl_podstawowy.od(kotwica), konf)
 
     if po_negatywnej:
-        poprzednie_zapoznanie = dane.data_zapoznania_z_poprzednia_ocena
+        # Formularz kroku 7 ma pierwszeństwo; bez niego data z akt osobowych (kartoteka QNT).
+        poprzednie_zapoznanie = dane.data_zapoznania_z_poprzednia_ocena or ostatnia.data_zapoznania
         if poprzednie_zapoznanie is None:
             braki.append("Brak daty zapoznania z poprzednią oceną negatywną potrzebnej do wyznaczenia ponownej oceny.")
         elif ostatnia_data is not None and poprzednie_zapoznanie < ostatnia_data:
