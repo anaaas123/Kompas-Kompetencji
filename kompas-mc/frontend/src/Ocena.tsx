@@ -14,12 +14,15 @@ import {
   type WskaznikOceny,
 } from "./api";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
+import { LegendaPorownania, SamoocenaPrzyWskazniku, StatusSamoocenyPrzelozonego } from "./Samoocena";
 
 const POWTARZALNOSC = { JEDNORAZOWE: "jednorazowe", KILKAKROTNE: "kilkakrotne", REGULARNE: "regularne" } as const;
 const ZLOZONOSC = { NISKA: "niska", SREDNIA: "średnia", WYSOKA: "wysoka" } as const;
 
 function bladZapisu(err: unknown): string {
   if (err instanceof BladApi && err.status === 409) return "Proces oceny nie jest w toku albo krok 2 nie jest zapisany.";
+  // Pracownik przed przekazaniem samooceny: komunikat z API („Ocena przełożonego będzie widoczna…”).
+  if (err instanceof BladApi && err.status === 403 && typeof err.detail === "string") return err.detail;
   const bledy = err instanceof BladApi ? (err.detail as { bledy?: string[] } | null)?.bledy : undefined;
   return Array.isArray(bledy) ? bledy.join(" ") : opisBledu(err);
 }
@@ -157,6 +160,7 @@ function Wskaznik({
           <span className="etykieta">{wybrany.etykieta}:</span> {wybrany.opis}
         </p>
       )}
+      <SamoocenaPrzyWskazniku w={w} />
       <details className="zadania-osp">
         <summary>Opisy poziomów</summary>
         {w.poziomy.map((p) => (
@@ -401,6 +405,8 @@ export function Ocena({
           Ocenione wskaźniki: {k.wskazniki_ocenione} z {k.wskazniki_wybrane} · oceny cząstkowe: {k.kryteria_z_decyzja} z{" "}
           {k.kryteria}
         </p>
+        <StatusSamoocenyPrzelozonego status={dane.samoocena_status} />
+        {dane.samoocena_status === "przekazana" && <LegendaPorownania />}
       </section>
 
       <section>

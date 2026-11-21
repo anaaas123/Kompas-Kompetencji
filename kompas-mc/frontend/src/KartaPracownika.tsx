@@ -5,11 +5,13 @@ import {
   pobierzOcene,
   pobierzPracownikow,
   pobierzProcesy,
+  pobierzSamoocene,
   pobierzTerminy,
   type AnalizaKroku1,
   type Notatka,
   type Pracownik,
   type ProcesOceny,
+  type Samoocena,
   type StanOceny,
   type TerminProcesu,
 } from "./api";
@@ -55,6 +57,8 @@ interface Dane {
   proces: ProcesOceny | null;
   termin: TerminProcesu | null;
   ocena: StanOceny | null;
+  /** Własna samoocena (konto pracownika); dla innych ról null. */
+  samoocena: Samoocena | null;
   notatki: Notatka[];
   przelozony: Pracownik | null;
 }
@@ -64,6 +68,7 @@ export function KartaPracownika({
   osoba,
   onWroc,
   onOcen,
+  onSamoocena,
   onZapytaj,
   onWyloguj,
 }: {
@@ -71,6 +76,8 @@ export function KartaPracownika({
   osoba: Pracownik;
   onWroc: () => void;
   onOcen: () => void;
+  /** Pracownik otwiera „Moją samoocenę” procesu (#9). */
+  onSamoocena?: (procesId: number) => void;
   onZapytaj: (pytanie: string) => void;
   onWyloguj: () => void;
 }) {
@@ -95,6 +102,9 @@ export function KartaPracownika({
         const proces = wlasne.find((p) => p.status === "W_TOKU") ?? wlasne[wlasne.length - 1] ?? null;
         // Ocena kryteriów istnieje dopiero po zapisaniu kroku 2.
         const ocena = proces ? await pobierzOcene(token, proces.id).catch(() => null) : null;
+        // Samoocena: tylko konto pracownika (własny proces); przed krokiem 2 API zwraca 409.
+        const samoocena =
+          proces && sesja.uzytkownik.rola === "oceniany" ? await pobierzSamoocene(token, proces.id).catch(() => null) : null;
         if (!aktualne) return;
         setDane({
           analiza,
@@ -103,6 +113,7 @@ export function KartaPracownika({
           ocena,
           notatki,
           przelozony: ludzie.find((p) => p.osoba_id === osoba.przelozony_id) ?? null,
+          samoocena,
         });
       } catch (err) {
         if (String(err).includes("401")) onWyloguj();
@@ -242,7 +253,11 @@ export function KartaPracownika({
           </div>
 
           <aside className="bok-karty">
-            <NastepnyKrok dane={dane} prowadzi={prowadzi} onOcen={onOcen} />
+            {dane.samoocena && onSamoocena ? (
+              <NastepnySamoocena s={dane.samoocena} onOtworz={() => onSamoocena(dane.samoocena!.proces_id)} />
+            ) : (
+              <NastepnyKrok dane={dane} prowadzi={prowadzi} onOcen={onOcen} />
+            )}
 
             {dane.analiza?.arkusz_okresowy.arkusz && (
               <div className="ramka">
@@ -339,6 +354,7 @@ function Proces({ dane, onOcen }: { dane: Dane; onOcen: () => void }) {
         </span>
       </div>
       <PostepKrokow krok={p.krok} krokow={KROKOW} etykieta="Postęp oceny" />
+      <LiniaSamooceny ocena={dane.ocena} />
       <p className="meta zero">
         Krok {p.krok} z {KROKOW} · rozpoczęta {data(p.rozpoczeto)} przez {p.rozpoczal}
         {t?.najblizszy_termin && (
@@ -403,6 +419,42 @@ function NastepnyKrok({ dane, prowadzi, onOcen }: { dane: Dane; prowadzi: boolea
         {przycisk}
       </button>
     </div>
+  );
+}
+
+/** Konto pracownika: zamiast „Następnego kroku” procesu — własna samoocena (#9). */
+function NastepnySamoocena({ s, onOtworz }: { s: Samoocena; onOtworz: () => void }) {
+  const tytul =
+    s.status === "przekazana"
+      ? `Samoocena przekazana ${s.przekazano ? data(s.przekazano) : ""}`
+      : s.status === "szkic"
+        ? `Samoocena: odpowiedzi ${s.wypelniono} z ${s.wybrano}`
+        : "Wypełnij samoocenę";
+  return (
+    <div className="ramka nastepny">
+      <span className="kafel-etykieta">Następny krok</span>
+      <strong>{tytul}</strong>
+      <span className="termin">Samoocena nie zmienia oceny. Przełożony omówi ją z Tobą na rozmowie.</span>
+      <button type="button" onClick={onOtworz}>
+        {s.status === "przekazana" ? "Zobacz samoocenę" : s.status === "szkic" ? "Dokończ samoocenę" : "Rozpocznij samoocenę"}
+      </button>
+    </div>
+  );
+}
+
+/** Przełożony: status samooceny i rozbieżności (≥ 4 pkt) z podstawą; HR i pracownik nie dostają tych pól. */
+function LiniaSamooceny({ ocena }: { ocena: StanOceny | null }) {
+  const st = ocena?.samoocena_status;
+  if (!ocena || !st) return null;
+  if (st !== "przekazana")
+    return <p className="meta zero">Samoocena pracownika: {st === "szkic" ? "w przygotowaniu" : "nierozpoczęta"}.</p>;
+  const w = ocena.kryteria.flatMap((k) => k.wskazniki);
+  const porownane = w.filter((x) => x.rozbieznosc !== null && x.rozbieznosc !== undefined).length;
+  const rozbiezne = w.filter((x) => x.rozbieznosc).length;
+  return (
+    <p className="meta zero">
+      Samoocena przekazana · do omówienia {rozbiezne} z {porownane} porównanych wskaźników (różnica co najmniej 4 pkt)
+    </p>
   );
 }
 
