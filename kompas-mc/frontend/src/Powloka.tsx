@@ -3,6 +3,7 @@ import type { Rola, Sciezka } from "./api";
 import { Ikona, type NazwaIkony } from "./Ikona";
 import type { Sesja } from "./Konto";
 import { OknoAsystenta } from "./OknoAsystenta";
+import { przelaczMotyw, useMotyw } from "./motyw";
 import znak from "./wydra/wydra-stoi.webp";
 
 /**
@@ -29,6 +30,7 @@ interface Props {
 
 export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent, sciezka, pytanie, children }: Props) {
   const { login, rola } = sesja.uzytkownik;
+  const motyw = useMotyw();
   const pozycje: [Widok, NazwaIkony, string][] = [
     ["pulpit", "dom", "Pulpit"],
     ["pracownicy", "osoby", rola === "oceniany" ? "Twoje dane" : "Pracownicy"],
@@ -81,6 +83,9 @@ export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent
               <span className="meta">{NAZWA_ROLI[rola]}</span>
               <button type="button" className="link" onClick={onWyloguj}>
                 Wyloguj
+              </button>
+              <button type="button" className="link" aria-pressed={motyw === "ciemny"} onClick={przelaczMotyw}>
+                {motyw === "ciemny" ? "Jasny motyw" : "Ciemny motyw"}
               </button>
             </span>
           </div>

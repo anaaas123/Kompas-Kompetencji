@@ -274,3 +274,8 @@ input:disabled, textarea:disabled { background: var(--k-disabled-bg); color: var
 .tekst-pola { white-space: pre-line; overflow-wrap: anywhere; }
 .lista-brakow { margin: var(--o-8) 0 var(--o-12); padding-left: var(--o-16); display: flex; flex-direction: column; gap: var(--o-4); }
 .pole-arkusza sup { line-height: 0; }
+
+/* Przełączenie motywu (#65): kolory przechodzą łagodnie przez 240 ms; klasę zdejmuje motyw.ts, ruch ograniczony = bez przejścia. */
+html.motyw-przejscie, html.motyw-przejscie * {
+  transition: background-color 240ms ease, color 240ms ease, border-color 240ms ease, fill 240ms ease, stroke 240ms ease !important;
+}
