@@ -1,0 +1,51 @@
+/* Tokeny COI (gov.pl, mObywatel) nad tokenami Dopiny: te same nazwy zmiennych, inne wartości.
+   Nadpisuje tylko zmienne używane w style.css i komponentach. Pomiar 21.11.2026 na mobywatel.gov.pl
+   (ekran wyboru logowania): Open Sans, tekst #101317, opis #52575F, niebieski #0452A8, wiersz #F4F6FB
+   z promieniem 8, przycisk i pole z promieniem 4, znacznik w kształcie pigułki, treść 16/24, tytuł 28/36. */
+@font-face{font-family:"Open Sans";font-weight:400;font-display:swap;src:url('./fonty/open-sans-latin-400-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Open Sans";font-weight:400;font-display:swap;src:url('./fonty/open-sans-latin-ext-400-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Open Sans";font-weight:600;font-display:swap;src:url('./fonty/open-sans-latin-600-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Open Sans";font-weight:600;font-display:swap;src:url('./fonty/open-sans-latin-ext-600-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Open Sans";font-weight:700;font-display:swap;src:url('./fonty/open-sans-latin-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Open Sans";font-weight:700;font-display:swap;src:url('./fonty/open-sans-latin-ext-700-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+:root{
+  /* pismo: Open Sans; „medium” = 600, „semibold” = 700 */
+  --f-rodzina:"Open Sans", Arial, sans-serif; --f-regular:400; --f-medium:600; --f-semibold:700;
+  --t-micro-r:12px; --t-micro-l:16px;
+  --t-small-r:14px; --t-small-l:20px;
+  --t-ui-r:16px; --t-ui-l:24px;
+  --t-body-r:16px; --t-body-l:24px;
+  --t-field-r:16px; --t-field-l:24px;
+  --t-section-r:20px; --t-section-l:28px;
+  --t-value-r:24px; --t-value-l:32px; --t-value-s:0;
+  --t-title-r:28px; --t-title-l:36px; --t-title-s:0;
+
+  /* kolory: białe tło, niebieski COI jako akcja i łącze */
+  --k-canvas:#ffffff; --k-surface:#ffffff; --k-surface-hover:#f4f6fb; --k-surface-pressed:#eaeef7;
+  --k-text:#101317; --k-text-secondary:#2c3138; --k-text-muted:#52575f;
+  --k-line:#dde1e8; --k-line-subtle:#ebeef3; --k-line-control:#b7bcc5; --k-field-border:#8a9099;
+  --k-action:#0452a8; --k-action-border:#0452a8; --k-action-hover:#033f82; --k-action-pressed:#022f61; --k-action-text:#ffffff;
+  --k-disabled-bg:#eef0f4; --k-disabled-border:#d5d9e0; --k-disabled-text:#7a8089;
+  --k-focus:#0452a8;
+  --k-info-bg:#e8f0fb; --k-info-text:#0452a8;
+  --k-success-bg:#e6f4ea; --k-success-text:#176b2c; --k-success-pelny:#1e8e3e;
+  --k-danger-bg:#fdecee; --k-danger-text:#b0162f;
+  --k-attention-bg:#fff4d6; --k-attention-text:#6b4800;
+  --k-neutral-bg:#eef0f4; --k-neutral-text:#3b4048;
+  --k-note-bg:#fff4d6; --k-note-text:#5c3d00;
+  --k-tag-bg:#eef0f4; --k-tag-border:#eef0f4; --k-tag-text:#3b4048;
+  --k-tab-active:#e8f0fb; --k-table-head:#f4f6fb;
+
+  /* nowe w skórce: wiersz wyboru jak w mObywatelu */
+  --k-wiersz:#f4f6fb; --k-wiersz-hover:#eaeef7; --k-wiersz-pressed:#dfe5f2;
+
+  /* promienie: przycisk i pole 4 (gov.pl), znacznik pigułka, karta 12 */
+  --r-mark:2px; --r-xs:24px; --r-sm:4px; --r-card:12px; --r-wiersz:8px;
+
+  /* karty bez cienia, jak w gov.pl */
+  --s-card:none;
+
+  /* przycisk i pole 48 px */
+  --c-action:48px; --c-field:48px;
+}
