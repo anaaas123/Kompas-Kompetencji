@@ -1,7 +1,7 @@
 """Ocena okresowa od karty do PDF wyłącznie klikaniem (jak jury), bez zapisów przez API.
 
 Część I („Rozpocznij ocenę”, rozp. 2016 § 5–7): Piotr Nowak-Demo (P-102, przełożony 2) jest w etapie kryteriów.
-Karta → krok 1 → kryteria z jednym dodatkowym → „Kryteria ustalone” → PDF części I → karta pokazuje okres oceny.
+Karta → krok 1 → kryteria z jednym dodatkowym → PDF części I → „Zapisz i zakończ część I” → karta pokazuje okres oceny.
 
 Część II („Zakończ ocenę”, § 10–11): Anna Zielińska-Demo (P-101, przełożony 1) jest w oknie oceny końcowej bez
 procesu w aplikacji, więc „Zakończ ocenę” zaczyna od kroku 1. Krok 1 → kryteria (jedno dodatkowe) → karta →
@@ -135,9 +135,13 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     _kryteria_z_jednym_dodatkowym(page)
     s.krok("I-krok2-kryteria")
     page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
-    expect(page.get_by_text(re.compile(r"^Kryteria ustalone"))).to_be_visible()
-    s.krok("I-krok2-ustalone")
-    s.pdf("Wydrukuj część I do podpisu")
+    # Część I arkusza (§ 5 ust. 3, § 6): wydruk do podpisu, data rozmowy i zapoznania (domyślnie dziś), zakończenie.
+    expect(page.get_by_role("heading", name="Zakończ część I arkusza")).to_be_visible()
+    s.krok("I-krok2-czesc-I")
+    s.pdf("Pobierz część I do podpisu")
+    page.get_by_role("button", name="Zapisz i zakończ część I").click()
+    expect(page.get_by_role("heading", name="Część I arkusza zakończona")).to_be_visible()
+    s.krok("I-czesc-I-zakonczona")
 
     page.get_by_role("button", name="Wróć do pracownika").click()
     expect(page.locator(".cykl li.biezacy")).to_contain_text("Okres oceny")
@@ -169,6 +173,13 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
         dodatkowe = _kryteria_z_jednym_dodatkowym(page)
         s.krok("II-krok2-kryteria")
         page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
+        # Koniec okresu: kryteria przepisane z podpisanej części I, data jej zapoznania z początku okresu.
+        expect(page.get_by_role("heading", name="Zakończ część I arkusza")).to_be_visible()
+        page.get_by_label("Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)").fill("2024-12-20")
+        page.get_by_role("button", name="Zapisz i zakończ część I").click()
+        expect(page.get_by_role("heading", name="Część I arkusza zakończona")).to_be_visible()
+        s.krok("II-czesc-I-przepisana")
+        page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
         expect(rozmowa).to_be_visible()
         s.krok("II-rozmowa-wejscie")
 
