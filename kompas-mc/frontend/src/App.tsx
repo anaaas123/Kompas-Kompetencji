@@ -9,7 +9,7 @@ import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
 import PanelHR from "./PanelHR";
-import type { Pracownik, ProcesOceny } from "./api";
+import { pobierzWynik, type Pracownik, type ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
 import { Pulpit } from "./Pulpit";
@@ -103,6 +103,29 @@ export default function App() {
   const widokZrodel = widok === "zrodla" && sesja.uzytkownik.rola === "hr";
   const widokProcesow = widok === "procesy" && sesja.uzytkownik.rola === "hr";
 
+  // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
+  // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
+  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie.
+  const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null) => {
+    const k = p?.krok ?? 0;
+    const nowyEtap: Etap =
+      k >= 8
+        ? "wnioski"
+        : k === 7 && p?.sciezka === "okresowa"
+          ? await pobierzWynik(sesja.token, p.id).then(
+              (w): Etap => (w.zapisany ? "arkusz" : "wynik"),
+              (): Etap => "wynik",
+            )
+          : k >= 6
+            ? "rozmowa"
+            : k >= 3
+              ? "ocena"
+              : "krok2";
+    setEtap(nowyEtap);
+    setProces(p);
+    setOceniany(osoba);
+  };
+
   return (
     <Powloka
       sesja={sesja}
@@ -191,7 +214,7 @@ export default function App() {
           sesja={sesja}
           osoba={karta}
           onWroc={() => setKarta(null)}
-          onOcen={() => setOceniany(karta)}
+          onOcen={(p) => otworzProces(karta, p)}
           onSamoocena={setSamoocena}
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
