@@ -33,10 +33,15 @@ import "./widoki.css";
  * Każda sekcja pojawia się tylko, gdy API ma dla niej dane; jedyny przycisk główny jest w „Następny krok”.
  */
 
-/** Trzy etapy cyklu z rozporządzeń (rada UX 21.11): kolejność = indeks etapu z /api/cykl. */
+/**
+ * Trzy etapy cyklu: jeden arkusz wypełniany w dwóch momentach – „Rozpocznij ocenę” (część I, rozp. 2016 § 5–7;
+ * pierwsza: rozmowa wstępna, rozp. 2015 § 3–4) i „Zakończ ocenę” (część II: rozmowa oceniająca i ocena na piśmie,
+ * § 10–11), między nimi okres oceny. Nazwy jak na grafice organizatora i w poradniku KPRM (tab. 1, wzór s. 42).
+ * Kolejność = indeks etapu z /api/cykl. Tak samo dla arkuszy A, B i C.
+ */
 const ETAPY_CYKLU: Record<"okresowa" | "pierwsza", [string, string, string]> = {
-  okresowa: ["Ustalenie kryteriów", "Okres oceny", "Ocena: rozmowa i arkusz"],
-  pierwsza: ["Rozmowa wstępna", "Okres przed pierwszą oceną", "Pierwsza ocena"],
+  okresowa: ["Rozpoczęcie oceny", "Okres oceny", "Zakończenie oceny"],
+  pierwsza: ["Rozpoczęcie: rozmowa wstępna", "Okres przed pierwszą oceną", "Zakończenie oceny"],
 };
 const PODPOWIEDZI_PIERWSZA = [
   "Kiedy przeprowadza się rozmowę wstępną?",
@@ -502,15 +507,9 @@ function NastepnyKrok({
       ? "Kontynuuj ocenę"
       : "Rozpocznij ocenę"
     : c.etap === "kryteria"
-      ? p
-        ? "Dokończ ustalanie kryteriów"
-        : c.sciezka === "pierwsza"
-          ? "Rozpocznij pierwszą ocenę"
-          : "Ustal kryteria"
+      ? "Rozpocznij ocenę"
       : c.etap === "ocena"
-        ? p && p.krok >= 6
-          ? "Sporządź ocenę na piśmie"
-          : "Oceń kompetencje"
+        ? "Zakończ ocenę"
         : null;
   return (
     <div className="ramka nastepny">
