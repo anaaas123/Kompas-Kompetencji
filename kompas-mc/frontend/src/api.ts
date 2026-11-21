@@ -721,6 +721,14 @@ export async function pobierzArkuszPdf(token: string, procesId: number): Promise
   return r.blob();
 }
 
+/** Sama część I arkusza do podpisu po rozmowie na początku okresu (rozp. 2016 § 5 ust. 3, § 6).
+ *  409 przed zapisem kroku 2, 422 gdy nie da się ustalić terminu oceny. */
+export async function pobierzCzescIPdf(token: string, procesId: number): Promise<Blob> {
+  const r = await fetch(`${sciezkaArkusza(procesId)}/czesc-i/pdf`, { headers: autoryzacja(token) });
+  if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
+  return r.blob();
+}
+
 export const zarejestrujEzd = (token: string, procesId: number) =>
   fetch(`${sciezkaArkusza(procesId)}/ezd`, { method: "POST", headers: autoryzacja(token) }).then((r) =>
     odpowiedz<RejestracjaEzd>(r),

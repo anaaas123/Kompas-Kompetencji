@@ -109,7 +109,7 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     page.locator(".lista button.pozycja", has_text="Zielińska").first.click()
     page.get_by_role("button", name="Kontynuuj ocenę").click()
     page.get_by_role("button", name="Dalej: krok 2").click()
-    page.get_by_role("button", name="Dalej: kroki 3–5").click()
+    page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
     expect(page.get_by_text("Pracownik przekazał samoocenę")).to_be_visible()
     rozbieznosc = page.locator(".porownanie.rozbieznosc").first
     expect(rozbieznosc).to_be_visible()

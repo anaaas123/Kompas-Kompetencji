@@ -1,8 +1,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
   BladApi,
+  pobierzCykl,
+  pobierzCzescIPdf,
   pobierzKrok2,
   zapiszKrok2,
+  type EtapOsoby,
   type Krok2 as DaneKroku2,
   type KryteriumKroku2,
   type Pracownik,
@@ -11,9 +14,27 @@ import {
 } from "./api";
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
 import { Ikona } from "./Ikona";
+import { zapiszPlik } from "./Wynik";
+import { data, odmiana } from "./zespol-dane";
 import "./krok2.css";
 
 type Wskazniki = Record<string, string[]>;
+
+/** Etap cyklu osoby z /api/cykl; null, gdy API nie odpowiedziało albo nie zna osoby. */
+const etapOsoby = (token: string, osobaId: string): Promise<EtapOsoby | null> =>
+  pobierzCykl(token)
+    .then((lista) => lista.find((e) => e.osoba_id === osobaId) ?? null)
+    .catch(() => null);
+
+/** Komunikat z API (tekst albo pole „komunikat”), inaczej ogólny opis błędu. */
+function komunikatApi(err: unknown): string {
+  const d = err instanceof BladApi ? err.detail : null;
+  if (typeof d === "string") return d;
+  const { komunikat, braki_terminu = [] } = (d ?? {}) as { komunikat?: string; braki_terminu?: string[] };
+  return komunikat ? [komunikat, ...braki_terminu].join(" ") : opisBledu(err);
+}
+
+const dzisiaj = () => new Date().toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 function poczatek(d: DaneKroku2): { dodatkowe: string[]; wskazniki: Wskazniki } {
   if (d.wybor) {
@@ -78,11 +99,12 @@ function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, d
         <button type="button" className="k2-przelacz" aria-expanded={otwarte && aktywne} disabled={!aktywne} onClick={onPrzelacz}>
           <span className="k2-nazwa">
             {k.nazwa.charAt(0) + k.nazwa.slice(1).toLowerCase()}
+            {!dodatkowe && <span className="k2-etykieta">obowiązkowe z arkusza</span>}
             {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
           </span>
           <span className="k2-opis">
             {aktywne
-              ? `${wybrane.length} z ${k.wskazniki.length} wskaźników${pasujace ? ` · ${pasujace} pasuje do zadań z OSP` : ""}`
+              ? `Wskaźniki: wybrano ${wybrane.length} z ${k.wskazniki.length}${pasujace ? ` · ${pasujace} ${odmiana(pasujace, "pasuje", "pasują", "pasuje")} do zadań z OSP` : ""}`
               : k.propozycja
                 ? k.propozycja.powody.join("; ")
                 : `${k.wskazniki.length} wskaźników`}
@@ -129,6 +151,7 @@ export function Krok2({
   moznaProwadzic,
   onWstecz,
   onDalej,
+  onPracownik,
 }: {
   token: string;
   osoba: Pracownik;
@@ -136,13 +159,19 @@ export function Krok2({
   moznaProwadzic: boolean;
   onWstecz: () => void;
   onDalej: () => void;
+  onPracownik: () => void;
 }) {
   const [dane, setDane] = useState<DaneKroku2 | null>(null);
+  const [cykl, setCykl] = useState<EtapOsoby | null>(null);
   const [dodatkowe, setDodatkowe] = useState<string[]>([]);
   const [wskazniki, setWskazniki] = useState<Wskazniki>({});
   const [blad, setBlad] = useState<string | null>(null);
   const [czekam, setCzekam] = useState(false);
-  const [zapisano, setZapisano] = useState<string | null>(null);
+  const [drukuje, setDrukuje] = useState(false);
+  /** Dzień zapisu (dd.mm.rrrr), gdy po zapisie okres oceny dopiero się zaczyna; wtedy nie idziemy do kroków 3–5. */
+  const [ustalone, setUstalone] = useState<string | null>(null);
+  /** Wybór różni się od zapisanego; bez zmian ponowny zapis przesunąłby datę ustalenia kryteriów. */
+  const [zmieniono, setZmieniono] = useState(false);
   const [otwarte, setOtwarte] = useState<string[]>([]);
   const [pozostale, setPozostale] = useState(false);
   const [metodyka, setMetodyka] = useState(false);
@@ -156,7 +185,8 @@ export function Krok2({
         setWskazniki(p.wskazniki);
       })
       .catch((err) => setBlad(opisBledu(err)));
-  }, [token, proces.id]);
+    etapOsoby(token, osoba.osoba_id).then(setCykl);
+  }, [token, proces.id, osoba.osoba_id]);
 
   if (!dane) {
     return (
@@ -175,7 +205,8 @@ export function Krok2({
   const liczbaWskaznikow = wybrane.reduce((n, id) => n + (wskazniki[id] ?? []).length, 0);
 
   function przelaczWskaznik(kompetencja: string, id: string) {
-    setZapisano(null);
+    setUstalone(null);
+    setZmieniono(true);
     setWskazniki((w) => {
       const obecne = w[kompetencja] ?? [];
       return { ...w, [kompetencja]: obecne.includes(id) ? obecne.filter((x) => x !== id) : [...obecne, id] };
@@ -183,7 +214,8 @@ export function Krok2({
   }
 
   function przelaczDodatkowe(k: KryteriumKroku2) {
-    setZapisano(null);
+    setUstalone(null);
+    setZmieniono(true);
     if (dodatkowe.includes(k.kompetencja_id)) {
       setDodatkowe((d) => d.filter((x) => x !== k.kompetencja_id));
     } else {
@@ -197,19 +229,40 @@ export function Krok2({
     setCzekam(true);
     setBlad(null);
     try {
-      await zapiszKrok2(token, proces.id, {
-        dodatkowe,
-        wskazniki: Object.fromEntries(wybrane.map((id) => [id, wskazniki[id] ?? []])),
-      });
-      setZapisano(`Zapisano krok 2: ${wybrane.length} kryteriów, ${liczbaWskaznikow} wskaźników.`);
+      if (!dane?.wybor || zmieniono) {
+        await zapiszKrok2(token, proces.id, {
+          dodatkowe,
+          wskazniki: Object.fromEntries(wybrane.map((id) => [id, wskazniki[id] ?? []])),
+        });
+        setZmieniono(false);
+      }
     } catch (err) {
       setBlad(
         err instanceof BladApi && err.status === 409
           ? "Proces oceny nie jest w toku, więc wyboru nie można zapisać."
           : opisBledu(err),
       );
-    } finally {
       setCzekam(false);
+      return;
+    }
+    // Kryteria ustala się na początku okresu, ocenia po jego końcu (rozp. 2016 § 5–7, § 10–11):
+    // do kroków 3–5 prowadzi tylko etap „ocena”, także gdy cyklu nie udało się wczytać (#25).
+    const etap = await etapOsoby(token, osoba.osoba_id);
+    setCykl(etap);
+    setCzekam(false);
+    if (etap?.etap === "ocena") onDalej();
+    else setUstalone(etap?.kryteria_ustalone ? data(etap.kryteria_ustalone) : dzisiaj());
+  }
+
+  async function drukuj() {
+    setDrukuje(true);
+    setBlad(null);
+    try {
+      zapiszPlik(await pobierzCzescIPdf(token, proces.id), `arkusz-${proces.arkusz}-${proces.id}-czesc-I.pdf`);
+    } catch (err) {
+      setBlad(komunikatApi(err));
+    } finally {
+      setDrukuje(false);
     }
   }
 
@@ -237,12 +290,11 @@ export function Krok2({
       />
     );
   };
-  const dalej = (
-    <button type="button" className="jasny" onClick={onDalej}>
-      Dalej: kroki 3–5
-    </button>
-  );
   const nazwaArkusza = dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz;
+  // Podgląd bez prawa prowadzenia: zapisany wybór prowadzi dalej tylko w etapie oceny, wcześniej pokazuje stan.
+  const podgladUstalonych =
+    tylkoOdczyt && dane.wybor && cykl?.etap !== "ocena" ? data(cykl?.kryteria_ustalone ?? dane.wybor.zapisano) : null;
+  const ustalonoDnia = ustalone ?? podgladUstalonych;
 
   return (
     <div className="k2">
@@ -266,6 +318,10 @@ export function Krok2({
             <h2>
               Obowiązkowe <span className="meta">{obowiazkowe.length}</span>
             </h2>
+            <p className="meta">
+              Tych kryteriów się nie wybiera: wynikają z arkusza {nazwaArkusza}. Dobierz do każdego wskaźniki pasujące
+              do zadań z opisu stanowiska.
+            </p>
             {obowiazkowe.map((k) => wiersz(k, false))}
           </div>
 
@@ -279,9 +335,13 @@ export function Krok2({
               )}
             </h2>
             {dane.limit_dodatkowych === 0 ? (
-              <p className="meta">W pierwszej ocenie nie ma kryteriów dodatkowych.</p>
+              <p className="meta">Pierwsza ocena nie ma kryteriów dodatkowych, więc nie ma tu nic do wybrania.</p>
             ) : (
               <>
+                <p className="meta">
+                  Możesz wybrać najwyżej {dane.limit_dodatkowych} kryteria najważniejsze dla obowiązków z opisu
+                  stanowiska albo żadnego.
+                </p>
                 {proponowane.map((k) => wiersz(k, true))}
                 {dostepne.length > 0 && (
                   <>
@@ -311,23 +371,45 @@ export function Krok2({
                 <dd>{liczbaWskaznikow}</dd>
               </div>
             </dl>
-            {dane.wybor && !zapisano && (
+            {dane.wybor && !ustalonoDnia && (
               <p className="sukces">
                 Zapisany wybór: {dane.wybor.kryteria.length} kryteriów, zapisał {dane.wybor.zapisal}.
               </p>
             )}
-            {moznaProwadzic && (
+            {moznaProwadzic && !ustalone && (
               <form onSubmit={zapisz}>
                 {pusteKryteria.length > 0 && (
                   <p className="brak">Każde wybrane kryterium musi mieć co najmniej jeden wskaźnik.</p>
                 )}
                 <button className="k2-zatwierdz" disabled={czekam || pusteKryteria.length > 0}>
-                  {czekam ? "Zapisuję…" : "Zatwierdź kryteria i wskaźniki"}
+                  {czekam ? "Zapisuję…" : "Zatwierdź kryteria i dalej"}
                 </button>
               </form>
             )}
-            {zapisano && <p className="sukces">{zapisano}</p>}
-            {(zapisano || dane.wybor) && dalej}
+            {tylkoOdczyt && dane.wybor && cykl?.etap === "ocena" && (
+              <button type="button" className="k2-zatwierdz" onClick={onDalej}>
+                Dalej: ocena kompetencji
+              </button>
+            )}
+            {ustalonoDnia && (
+              <div className="k2-ustalone" role="status">
+                <p className="sukces">
+                  <strong>Kryteria ustalone {ustalonoDnia}</strong>
+                  {cykl?.termin && ` · ${cykl.termin.nazwa} do ${data(cykl.termin.data)}`}
+                </p>
+                {cykl?.etap === "brak_danych" && cykl.braki.length > 0 && (
+                  <p className="meta">Termin oceny ustalisz po uzupełnieniu danych kadrowych: {cykl.braki.join(" ")}</p>
+                )}
+                {moznaProwadzic && proces.sciezka === "okresowa" && cykl?.etap !== "brak_danych" && (
+                  <button type="button" className="k2-zatwierdz" disabled={drukuje} onClick={drukuj}>
+                    {drukuje ? "Przygotowuję PDF…" : "Wydrukuj część I do podpisu"}
+                  </button>
+                )}
+                <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
+                  Wróć do pracownika
+                </button>
+              </div>
+            )}
             {blad && <p className="blad">{blad}</p>}
           </div>
 
