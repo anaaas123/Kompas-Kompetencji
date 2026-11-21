@@ -75,7 +75,7 @@ def test_karta_otwiera_kroki_3_5_jednym_kliknieciem(przegladarka, proces_w_kroku
 
 
 def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_5):
-    """#55: etap zrobiony „Ustalenie kryteriów” otwiera krok 2 procesu, bieżący „Ocena” kroki 3–5; przyszłych brak."""
+    """#55: etap zrobiony „Rozpoczęcie oceny” otwiera krok 2 procesu, bieżący „Zakończenie oceny” kroki 3–5."""
     _, b = przegladarka
     tryb = os.environ.get("TRYB", "light")
     page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=tryb)
@@ -88,7 +88,7 @@ def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_
 
     etapy = page.locator(".cykl .etapy button.etap")
     expect(etapy).to_have_count(3)
-    etapy.filter(has_text="Ustalenie kryteriów").click()
+    etapy.filter(has_text="Rozpoczęcie oceny").click()
     expect(page.get_by_text("Krok 2 z 8")).to_be_visible()
 
     page.locator("nav.menu button.poz", has_text="Pulpit").click()
