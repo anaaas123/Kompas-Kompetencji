@@ -46,6 +46,57 @@ function wnioski(m: Mapa, osoby: Mapa["osoby"]): { slabe: Wniosek | null; mocne:
   };
 }
 
+/**
+ * Profil zespołu: średnia na kryterium na skali arkusza (1–9) z linią poziomu oczekiwań. Średnia zaokrąglona
+ * do 0,1 decyduje o tonie: poniżej oczekiwań attention, powyżej success, równa neutralny. Przy każdej liczba i podstawa.
+ */
+function ProfilKompetencji({ mapa, osoby, kryteria }: { mapa: Mapa; osoby: Mapa["osoby"]; kryteria: Mapa["kryteria"] }) {
+  const [min, max] = [Math.min(...mapa.skala), Math.max(...mapa.skala)];
+  const pozycja = (v: number) => `${((v - min) / (max - min)) * 100}%`;
+  return (
+    <figure className="udzialy profil">
+      <figcaption>
+        <span className="kafel-etykieta">Średnia zespołu na kryterium</span>
+        <span className="meta">
+          skala {min}–{max} pkt; pionowa linia to poziom oczekiwań ({mapa.poziom_oczekiwan} pkt); liczba osób z punktami za kryterium
+        </span>
+      </figcaption>
+      <ul className="profil-lista">
+        {kryteria.map((k) => {
+          const w = osoby.map((o) => o.punkty[k.kompetencja_id]).filter((x): x is number => x !== undefined);
+          const sr = Math.round(srednia(w) * 10) / 10;
+          const t = ton(sr, mapa.poziom_oczekiwan);
+          const nazwa = nazwaKryterium(k.nazwa);
+          return (
+            <li key={k.kompetencja_id}>
+              <span className="nazwa-slupka">{nazwa}</span>
+              <span className="tor-profilu" role="img" aria-label={`${nazwa}: średnio ${liczba(sr)} pkt u ${osobyTxt(w.length)}`}>
+                <span className={`wypelnienie-profilu ${t}`} style={{ width: pozycja(sr) }} />
+                <span className="linia-oczekiwan" style={{ left: pozycja(mapa.poziom_oczekiwan) }} />
+              </span>
+              <span className="wartosc-profilu">
+                <strong className={t}>{liczba(sr)}</strong>
+                <span className="meta">{osobyTxt(w.length)}</span>
+              </span>
+            </li>
+          );
+        })}
+        <li className="skala-profilu" aria-hidden="true">
+          <span />
+          <span className="podzialka-profilu">
+            {mapa.skala.map((v) => (
+              <span key={v} style={{ left: pozycja(v) }}>
+                {v}
+              </span>
+            ))}
+          </span>
+          <span />
+        </li>
+      </ul>
+    </figure>
+  );
+}
+
 export function MapaKompetencji({
   mapa,
   ludzie,
@@ -86,6 +137,7 @@ export function MapaKompetencji({
               </p>
             )}
           </div>
+          <ProfilKompetencji mapa={mapa} osoby={osoby} kryteria={kryteria} />
           <div className="tabela-mapy" role="region" aria-label="Mapa kompetencji: osoby i kryteria" tabIndex={0}>
             <table>
               <thead>

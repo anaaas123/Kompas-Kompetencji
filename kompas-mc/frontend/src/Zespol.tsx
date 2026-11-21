@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapaKompetencji } from "./Kompetencje";
+import { MapaKompetencji, nazwaKryterium } from "./Kompetencje";
 import {
   pobierzCykl,
   pobierzKrok1,
@@ -7,15 +7,30 @@ import {
   pobierzPracownikow,
   pobierzProcesy,
   pobierzTerminy,
+  type EtapOsoby,
   type MapaKompetencji as Mapa,
   type Pracownik,
 } from "./api";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
 import { Ikona } from "./Ikona";
-import { Kafel, PasekUdzialow, type Udzial } from "./Wykresy";
-import { data, osoby, podzial, poTerminie, wkrotce, doZrobienia, type FiltrPracownikow, type Sprawa } from "./zespol-dane";
+import { Kafel, OsTerminow, PasekUdzialow, type PunktOsi, type Udzial } from "./Wykresy";
+import {
+  data,
+  kiedy,
+  nastepnyKrok,
+  osoby,
+  podzial,
+  poTerminie,
+  wkrotce,
+  doZrobienia,
+  NAZWA_ETAPU,
+  NAZWA_SCIEZKI,
+  type FiltrPracownikow,
+  type Sprawa,
+} from "./zespol-dane";
 import "./widoki.css";
+import "./zespol.css";
 
 /**
  * Sprawy osób w zakresie użytkownika: przełożony podwładnych, HR wszystkich, oceniany siebie.
@@ -78,9 +93,14 @@ function wZakresie(s: Sprawa, w: Wybor): boolean {
   return (!w.departament || departament === w.departament) && (!w.wydzial || wydzial === w.wydzial);
 }
 
+const ETAPY: EtapOsoby["etap"][] = ["kryteria", "okres", "ocena", "brak_danych"];
+/** Zasięg osi terminów w dniach. */
+const HORYZONT = 90;
+
 function policz(lista: Sprawa[]) {
   return {
     osob: lista.length,
+    etapy: Object.fromEntries(ETAPY.map((e) => [e, lista.filter((s) => s.cykl?.etap === e).length])) as Record<EtapOsoby["etap"], number>,
     poTerminie: lista.filter(poTerminie),
     wkrotce: lista.filter(wkrotce),
     teraz: lista.filter(doZrobienia),
@@ -92,6 +112,59 @@ function policz(lista: Sprawa[]) {
 
 const kto = (s: Sprawa) => `${s.osoba.imie} ${s.osoba.nazwisko}`;
 const czynnoscZDniem = (s: Sprawa) => (s.cykl?.termin ? `${s.cykl.czynnosc}, ${data(s.cykl.termin.data)}` : s.cykl?.czynnosc ?? "");
+
+/** Pole CSV: tekst zaczynający się od =, +, -, @ dostaje apostrof (Excel nie wykona go jako formuły). */
+function poleCsv(v: string | number): string {
+  if (typeof v === "number") return String(v);
+  const t = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  return /[;"\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+
+/** Zestawienie osób w zakresie; dla przełożonego punkty kryteriów z mapy kompetencji. Separator „;”, BOM dla Excela. */
+function zestawienieCsv(lista: Sprawa[], mapa: Mapa | null): string {
+  const punkty = (s: Sprawa) => mapa?.osoby.find((o) => o.osoba_id === s.osoba.osoba_id)?.punkty ?? {};
+  const kryteria = (mapa?.kryteria ?? []).filter((k) => lista.some((s) => punkty(s)[k.kompetencja_id] !== undefined));
+  const naglowek = ["osoba", "stanowisko", "departament", "wydział", "ścieżka", "czynność", "termin", "dni do terminu", "ostatnia ocena"];
+  const wiersze = lista.map((s) => {
+    const { departament, wydzial } = podzial(s.osoba.komorka);
+    const sciezka = s.cykl?.sciezka ?? s.proponowana;
+    const ocena = s.osoba.ostatnia_ocena_okresowa;
+    return [
+      kto(s),
+      s.osoba.stanowisko,
+      departament,
+      wydzial,
+      sciezka ? NAZWA_SCIEZKI[sciezka] : "",
+      s.cykl?.czynnosc ?? nastepnyKrok(s),
+      s.cykl?.termin ? data(s.cykl.termin.data) : "",
+      s.cykl?.dni_do_terminu ?? "",
+      ocena ? `${ocena.wynik}, ${data(ocena.data)}` : "brak",
+      ...kryteria.map((k) => punkty(s)[k.kompetencja_id] ?? ""),
+    ];
+  });
+  const tabela = [[...naglowek, ...kryteria.map((k) => nazwaKryterium(k.nazwa))], ...wiersze];
+  return "\uFEFF" + tabela.map((w) => w.map(poleCsv).join(";")).join("\r\n") + "\r\n";
+}
+
+function pobierzPlik(nazwa: string, tresc: string) {
+  const url = URL.createObjectURL(new Blob([tresc], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nazwa;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000); // Firefox i Safari czytają adres po kliknięciu
+}
+
+/** Mały pasek etapów w wierszu komórki: same proporcje, liczby są w opisie wiersza i w legendzie wyżej. */
+function MiniPasekEtapow({ etapy }: { etapy: Record<EtapOsoby["etap"], number> }) {
+  return (
+    <span className="mini-pasek" role="img" aria-label={`Etapy: ${ETAPY.map((e) => `${NAZWA_ETAPU[e]} ${etapy[e]}`).join(", ")}`}>
+      {ETAPY.filter((e) => etapy[e] > 0).map((e) => (
+        <span key={e} className={`odcinek ${e}`} style={{ flexGrow: etapy[e] }} />
+      ))}
+    </span>
+  );
+}
 
 /**
  * Zespół: analiza komórki, bez listy osób (osoby są w „Pracownicy”). Odpowiada w 10 sekund: kto jest po terminie,
@@ -151,6 +224,30 @@ export function Zespol({
             a.nazwa.localeCompare(b.nazwa, "pl"),
         );
 
+  const etapy: Udzial[] = ETAPY.map((e) => ({
+    nazwa: NAZWA_ETAPU[e],
+    liczba: l.etapy[e],
+    ton: e,
+    onClick: doListy({ etap: e }),
+  }));
+  const zEtapem = l.osob - bezEtapu;
+
+  const zTerminem = zakres.filter((s) => s.cykl?.termin && s.cykl.dni_do_terminu !== null);
+  const punkty: PunktOsi[] = zTerminem.map((s) => {
+    const c = s.cykl!;
+    const dni = c.dni_do_terminu!;
+    return {
+      klucz: s.osoba.osoba_id,
+      znak: `${s.osoba.imie.charAt(0)}${s.osoba.nazwisko.charAt(0)}`,
+      tytul: kto(s),
+      opis: `${c.czynnosc}, ${data(c.termin!.data)} (${kiedy(dni)}) · ${NAZWA_ETAPU[c.etap]}`,
+      dni,
+      ton: c.etap,
+      onClick: onWybierz ? () => onWybierz(s.osoba) : undefined,
+    };
+  });
+  const pozniej = punkty.filter((p) => p.dni > HORYZONT).length;
+
   const oceny: Udzial[] = [
     { nazwa: "pozytywna", liczba: l.pozytywne, ton: "dobrze", onClick: doListy({ ocena: "pozytywna" }) },
     { nazwa: "negatywna", liczba: l.negatywne, ton: "zle", onClick: doListy({ ocena: "negatywna" }) },
@@ -160,7 +257,16 @@ export function Zespol({
   return (
     <div className="widok">
       <div className="naglowek-widoku">
-        <h1>Zespół</h1>
+        <div className="wiersz-tytulu">
+          <h1>Zespół</h1>
+          <button
+            type="button"
+            className="jasny"
+            onClick={() => pobierzPlik(`zestawienie-zespolu-${new Date().toISOString().slice(0, 10)}.csv`, zestawienieCsv(zakres, mapa))}
+          >
+            Pobierz zestawienie (CSV)
+          </button>
+        </div>
         <nav className="okruszki" aria-label="Wybrana komórka">
           <button type="button" className="link" aria-current={!wybor.departament ? "page" : undefined} onClick={() => setWybor({})}>
             {korzen}
@@ -224,6 +330,25 @@ export function Zespol({
         />
       </div>
 
+      <section className="etapy-terminy">
+        <h2>Etapy i terminy</h2>
+        <PasekUdzialow
+          tytul="Etap cyklu oceny"
+          podstawa={`${osoby(zEtapem)} z etapem z reguł ocen${bezEtapu ? `, bez etapu: ${bezEtapu}` : ""}; kliknij odcinek albo nazwę, aby zobaczyć osoby`}
+          udzialy={etapy}
+        />
+        <figure className="udzialy">
+          <figcaption>
+            <span className="kafel-etykieta">Terminy w najbliższych {HORYZONT} dniach</span>
+            <span className="meta">
+              na osi: {osoby(punkty.length - pozniej)} · później niż za {HORYZONT} dni: {pozniej} · bez terminu: {l.osob - zTerminem.length}; kolor
+              punktu to etap z paska wyżej, kliknięcie otwiera kartę
+            </span>
+          </figcaption>
+          <OsTerminow punkty={punkty} horyzont={HORYZONT} />
+        </figure>
+      </section>
+
       {mapa && <MapaKompetencji mapa={mapa} ludzie={zakres.map((s) => s.osoba)} onWybierz={onWybierz} />}
 
       <PasekUdzialow tytul="Ostatnia ocena okresowa" podstawa="kartoteka QNT; kliknij liczbę, aby zobaczyć osoby" udzialy={oceny} />
@@ -243,6 +368,7 @@ export function Zespol({
                 opis={
                   <>
                     {osoby(k.liczby.osob)} · termin w 14 dni: {k.liczby.wkrotce.length} · do zrobienia teraz: {k.liczby.teraz.length}
+                    <MiniPasekEtapow etapy={k.liczby.etapy} />
                     <br />
                     ostatnie oceny: pozytywne {k.liczby.pozytywne} · negatywne {k.liczby.negatywne} · bez oceny {k.liczby.bezOceny}
                   </>
