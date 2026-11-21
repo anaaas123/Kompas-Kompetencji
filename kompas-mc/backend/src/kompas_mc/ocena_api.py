@@ -94,8 +94,12 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         samooceny, a po jej przekazaniu odpowiedź pracownika i flagę rozbieżności przy wskaźniku (#8);
         sugestia liczy się wyłącznie z ocen przełożonego."""
         proces = proces_dostepny(request, proces_id, uz, "ocena.tresc")
-        wynik = stan(request, proces)
         p = qnt.pracownik(proces.osoba_id)
+        # Pracownik zobaczy ocenę przełożonego dopiero po przekazaniu samooceny, żeby jej nie przepisywał.
+        if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.zapisz"):
+            if wczytaj_samoocene(request.app.state.baza, proces.id)[0] != "przekazana":
+                raise HTTPException(403, "Ocena przełożonego będzie widoczna po przekazaniu samooceny.")
+        wynik = stan(request, proces)
         if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.czytaj"):
             status, _, pozycje = wczytaj_samoocene(request.app.state.baza, proces.id)
             wynik.samoocena_status = status
