@@ -94,7 +94,7 @@ def test_zmiana_kryteriow_zmienia_wydruk_czesci_i(api_arkusza):
     nazwy = _zapisz_krok2(klient, h, proces, dodatkowe=1)
     po = klient.get(url, headers=h).content
     assert po != przed
-    assert nazwy[0] in _tekst(po)
+    assert nazwy[0].capitalize() in _tekst(po)  # arkusz pisze nazwy jak wzór (#72)
 
 
 def test_pelny_arkusz_po_ocenie_ma_te_sama_czesc_i(api_arkusza):

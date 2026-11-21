@@ -196,6 +196,8 @@ export interface ProcesOceny {
   rozpoczeto: string;
   zgodna_z_propozycja: boolean;
   uzasadnienie: string | null;
+  /** Kryteria zatwierdzone w kroku 2 (część I arkusza); null przed zapisem. Front sprawdza tylko obecność. */
+  krok2?: object | null;
 }
 
 /** Błąd API z kodem i polem `detail` (np. braki przy 422). */

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from hashlib import sha256
 from typing import Literal
 
@@ -19,7 +19,7 @@ from .arkusze import (
 )
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .procesy import ProcesOceny, wczytaj_proces
-from .qnt import MockQnt, Pracownik
+from .qnt import MockQnt, OstatniaOcenaOkresowa, Pracownik
 from .terminy_okresowej import TerminyOkresowej
 from .wynik_okresowy_api import SerwisWynikuOkresowego, WynikOkresowy
 
@@ -58,6 +58,39 @@ class ArkuszOkresowy(BaseModel):
     zatwierdzony: bool
     komunikat_podpis: str = KOMUNIKAT_PODPIS
     rejestracja_ezd: RejestracjaEzd | None = None
+
+
+class DaneZakonczenia(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    data_zapoznania_z_ocena: date | None = Field(
+        default=None, description="Dzień zapoznania ocenianego z oceną (§ 12 ust. 1). Domyślnie z wyniku (krok 7).",
+    )
+
+
+class ZakonczenieOceny(BaseModel):
+    """Zakończona ocena okresowa (#72): po zapoznaniu ocenianego z oceną sporządzoną na piśmie (§ 12 rozp. 2016)."""
+
+    proces_id: int
+    data_sporzadzenia_oceny: date
+    data_zapoznania_z_ocena: date
+    wynik: Literal["pozytywna", "negatywna"]
+    srednia: str
+    oceny_czastkowe: dict[str, int]
+    zakonczyl: str
+    zakonczono: datetime
+
+
+def zastosuj_zakonczone(baza, qnt: MockQnt) -> None:
+    """Przy starcie: zakończone oceny z aplikacji wracają do mocka QNT jako ostatnia ocena (kolejno od najstarszej)."""
+    for osoba_id, zapis in baza.execute(
+        "SELECT osoba_id, zakonczenie FROM procesy WHERE status = 'ZAKONCZONY' AND sciezka = 'okresowa'"
+        " AND zakonczenie IS NOT NULL ORDER BY id"
+    ):
+        z = ZakonczenieOceny.model_validate_json(zapis)
+        qnt.zapisz_ocene_okresowa(osoba_id, OstatniaOcenaOkresowa(
+            data=z.data_sporzadzenia_oceny, wynik=z.wynik, oceny_czastkowe=z.oceny_czastkowe,
+            data_zapoznania=z.data_zapoznania_z_ocena,
+        ))
 
 
 class _ZapisArkusza(BaseModel):
@@ -319,5 +352,53 @@ def router(
                 {"mock_ezd": rejestracja.model_dump(mode="json")}, wersja,
             )
         return rejestracja
+
+    @r.post("/zakoncz")
+    def zakoncz(
+        proces_id: int, body: DaneZakonczenia, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> ZakonczenieOceny:
+        """Zakończ ocenę po zapoznaniu ocenianego z oceną sporządzoną na piśmie (§ 12 ust. 1 rozp. 2016).
+
+        Wymaga zatwierdzonego, kompletnego arkusza (409/422). Proces dostaje status ZAKONCZONY i krok 8,
+        a ocena trafia do kartoteki (mock QNT) jako ostatnia ocena okresowa, więc cykl liczy następny okres
+        i można rozpocząć kolejną ocenę. Rejestracja w EZD jest możliwa tylko przed zakończeniem.
+        """
+        stan = wczytaj(request, proces_id, uz, "ocena.prowadz")
+        doc = dokument(stan, stan.zapis)
+        _wymagaj_kompletu(doc)
+        if not doc.widok.zatwierdzony or stan.wynik is None:
+            raise HTTPException(409, "Najpierw zatwierdź arkusz oceny (krok 7).")
+        dane = stan.wynik.dane
+        sporzadzono = dane.data_sporzadzenia_oceny
+        zapoznano = body.data_zapoznania_z_ocena or dane.data_zapoznania_z_ocena
+        if sporzadzono is None:
+            raise HTTPException(422, "Brak daty sporządzenia oceny na piśmie (krok 7).")
+        if zapoznano is None:
+            raise HTTPException(422, "Podaj dzień zapoznania ocenianego z oceną (§ 12 ust. 1).")
+        if zapoznano < sporzadzono:
+            raise HTTPException(422, "Zapoznanie z oceną nie może być wcześniejsze niż jej sporządzenie.")
+        obl = stan.wynik.obliczenie
+        zak = ZakonczenieOceny(
+            proces_id=proces_id, data_sporzadzenia_oceny=sporzadzono, data_zapoznania_z_ocena=zapoznano,
+            wynik=obl.wynik, srednia=f"{obl.srednia:.2f}".replace(".", ","),
+            oceny_czastkowe={o.kompetencja_id: o.punkty for o in stan.wynik.oceny_czastkowe},
+            zakonczyl=uz.login, zakonczono=datetime.now(UTC),
+        )
+        baza = request.app.state.baza
+        with baza:
+            zmieniono = baza.execute(
+                "UPDATE procesy SET status = 'ZAKONCZONY', krok = MAX(krok, 8), zakonczenie = ?"
+                f" WHERE {_NIEZMIENIONY_PROCES}",
+                (zak.model_dump_json(), proces_id, *stan.wiersz),
+            ).rowcount
+        if not zmieniono:
+            raise HTTPException(409, "Dane procesu zmieniły się. Odśwież arkusz i ponów zakończenie.")
+        dziennik: Dziennik = request.app.state.dziennik
+        dziennik.zapisz(uz.login, "proces", str(proces_id), {"status": "W_TOKU"},
+                        {"status": "ZAKONCZONY", "zakonczenie": zak.model_dump(mode="json")}, wersja)
+        qnt.zapisz_ocene_okresowa(stan.pracownik.osoba_id, OstatniaOcenaOkresowa(
+            data=sporzadzono, wynik=zak.wynik, oceny_czastkowe=zak.oceny_czastkowe, data_zapoznania=zapoznano,
+        ))
+        return zak
 
     return r

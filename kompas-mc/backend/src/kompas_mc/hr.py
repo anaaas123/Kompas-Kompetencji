@@ -17,7 +17,7 @@ from kompas_core.zrodla import SourceRef
 from pydantic import BaseModel, Field
 
 from .pierwsza_ocena import ZapisDanychPierwszej, uzupelnij_z_kadr
-from .procesy import ProcesOceny
+from .procesy import ProcesOceny, dzien_urzedowy
 from .qnt import Pracownik
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
@@ -73,7 +73,7 @@ def terminy_z_regul(
         wynik = []
         # Termin kryteriów sprzed rozpoczęcia procesu w aplikacji dotyczy czynności
         # wykonanych poza nią – nie oznaczamy go jako zaległego.
-        if t.termin_kryteriow and proces.krok2 is None and t.termin_kryteriow.data >= min(proces.rozpoczeto.date(), dzis):
+        if t.termin_kryteriow and proces.krok2 is None and t.termin_kryteriow.data >= min(dzien_urzedowy(proces.rozpoczeto), dzis):
             wynik.append(Termin(nazwa="ustalenie kryteriów i rozmowa (§ 7)", data=t.termin_kryteriow.data))
         sporzadzenie = t.termin_sporzadzenia_oceny or t.termin_bazowy
         if sporzadzenie:

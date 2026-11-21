@@ -22,7 +22,7 @@ import {
 import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
-import { OcenyCzastkowe } from "./Kompetencje";
+import { OcenyCzastkowe, nazwaKryterium } from "./Kompetencje";
 import { OpisOsoby } from "./OpisOsoby";
 import { data, kiedy, lat, lataStazu, podzial } from "./zespol-dane";
 import "./widoki.css";
@@ -219,7 +219,7 @@ export function KartaPracownika({
               <NastepnyKrok
                 dane={dane}
                 prowadzi={prowadzi}
-                onOcen={() => onOcen(wToku)}
+                onOcen={() => onOcen(wToku, dane.cykl?.etap === "kryteria" ? "krok2" : undefined)}
                 przelozony={dane.przelozony}
               />
             )}
@@ -591,8 +591,8 @@ function WynikiKryteriow({ ocena }: { ocena: StanOceny | null }) {
       <ul className="slupki">
         {z.map((k) => (
           <li key={k.kompetencja_id}>
-            <span className="nazwa-slupka">{k.nazwa}</span>
-            <span className="tor" title={`${k.nazwa}: ${k.decyzja!.punkty} z ${max} pkt`}>
+            <span className="nazwa-slupka">{nazwaKryterium(k.nazwa)}</span>
+            <span className="tor" title={`${nazwaKryterium(k.nazwa)}: ${k.decyzja!.punkty} z ${max} pkt`}>
               <span className="wypelnienie" style={{ width: `${(k.decyzja!.punkty / max) * 100}%` }} />
             </span>
             <strong className="wartosc-slupka">{k.decyzja!.punkty}</strong>

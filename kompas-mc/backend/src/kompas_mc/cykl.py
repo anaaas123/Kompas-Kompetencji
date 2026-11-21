@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from .hr import Termin
 from .krok1 import Sciezka
 from .pierwsza_ocena import ZapisDanychPierwszej, uzupelnij_z_kadr
-from .procesy import _KOLUMNY, ProcesOceny, _z_wiersza
+from .procesy import _KOLUMNY, ProcesOceny, _z_wiersza, dzien_urzedowy
 from .qnt import MockQnt, Pracownik
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
@@ -58,7 +58,7 @@ def _wynik(
         osoba_id=p.osoba_id, sciezka=sciezka, etap=etap, czynnosc=czynnosc, termin=termin,
         dni_do_terminu=dni, po_terminie=dni is not None and dni < 0,
         proces_id=proces.id if proces else None,
-        kryteria_ustalone=proces.krok2.zapisano.date() if proces and proces.krok2 else None,
+        kryteria_ustalone=dzien_urzedowy(proces.krok2.zapisano) if proces and proces.krok2 else None,
         braki=list(braki),
     )
 
@@ -68,7 +68,7 @@ def etap_okresowej(
 ) -> EtapOsoby:
     """``od_kiedy``: od tego dnia aplikacja prowadzi oceny (stan danych kadrowych). Wcześniejszy termin
     kryteriów dotrzymano poza aplikacją (ta sama zasada co w ``hr.terminy_z_regul``); późniejszy pilnujemy."""
-    ustalone = proces.krok2.zapisano.date() if proces and proces.krok2 else None
+    ustalone = dzien_urzedowy(proces.krok2.zapisano) if proces and proces.krok2 else None
     t = oblicz_terminy(p, DaneTerminow(data_ustalenia_kryteriow=ustalone), konf)
     ocena = t.termin_sporzadzenia_oceny or t.termin_bazowy
     termin_oceny = _termin("sporządzenie oceny na piśmie", ocena) if ocena else None
@@ -79,7 +79,7 @@ def etap_okresowej(
         return _wynik(p, "okresowa", "ocena", "Rozmowa oceniająca", termin_oceny, dzis, proces, t.braki)
 
     kryteria = t.termin_kryteriow
-    poczatek = min(od_kiedy, proces.rozpoczeto.date()) if proces else od_kiedy
+    poczatek = min(od_kiedy, dzien_urzedowy(proces.rozpoczeto)) if proces else od_kiedy
     if ustalone is None and kryteria is not None and kryteria.data >= poczatek:
         termin = _termin("rozmowa i kryteria na początku okresu (§ 7)", kryteria)
         return _wynik(p, "okresowa", "kryteria", "Ustal kryteria", termin, dzis, proces, t.braki)

@@ -154,7 +154,8 @@ def wypelnij(
         "potwierdzenie_kryteriow.oceniany.data": _data(dane.data_zapoznania_z_kryteriami) if dane else None,
         "okres_oceny.od": _data(dane.data_zapoznania_z_kryteriami) if dane else None,
         "okres_oceny.do": None if koniec_przed_zmiana else _data(data_oceny),
-        "srednia": str(wynik.obliczenie.srednia).replace(".", ",") if wynik else None,
+        # Średnia do 2 miejsc na arkuszu (#72); poziom i wynik liczy się z dokładnej wartości.
+        "srednia": f"{wynik.obliczenie.srednia:.2f}".replace(".", ",") if wynik else None,
         "poziom": wynik.obliczenie.poziom if wynik else None,
         "wynik": wynik.obliczenie.wynik.upper() if wynik else None,
         "uzasadnienie": dane.uzasadnienie if dane else None,
@@ -200,8 +201,9 @@ def wypelnij(
     for numer, kryterium in enumerate(dodatkowe, start=1):
         klucz = f"kryterium_dodatkowe.{numer}"
         warunki[f"{klucz}_wybrane"] = True
-        wartosci[klucz] = kryterium.nazwa
-        wartosci[f"ocena_dodatkowa.{numer}.kryterium"] = kryterium.nazwa
+        # Model kompetencji ma nazwy wielkimi literami; arkusz pisze je jak wzór (#72).
+        wartosci[klucz] = kryterium.nazwa.capitalize()
+        wartosci[f"ocena_dodatkowa.{numer}.kryterium"] = kryterium.nazwa.capitalize()
         wartosci[f"ocena_dodatkowa.{numer}.punkty"] = punkty.get(kryterium.kompetencja_id)
 
     wartosci.update({k: v for k, v in uzupelnienia.items() if k in edytowalne})

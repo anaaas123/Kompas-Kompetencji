@@ -86,3 +86,14 @@ class MockQnt:
 
     def pracownik(self, osoba_id: str) -> Pracownik | None:
         return self._po_id.get(osoba_id)
+
+    def zapisz_ocene_okresowa(self, osoba_id: str, ocena: OstatniaOcenaOkresowa) -> None:
+        """Mock zapisu do akt (#72): zakończona ocena z aplikacji staje się ostatnią oceną w kartotece,
+        więc cykl liczy następny okres (§ 7 rozp. 2016), a karta i panel HR pokazują nową ocenę.
+        Prawdziwe QNT dostałoby ją przez integrację; mock trzyma ją w pamięci i odtwarza z bazy przy starcie."""
+        p = self._po_id.get(osoba_id)
+        if p is None:
+            return
+        nowy = p.model_copy(update={"ostatnia_ocena_okresowa": ocena})
+        self._po_id[osoba_id] = nowy
+        self.pracownicy[self.pracownicy.index(p)] = nowy
