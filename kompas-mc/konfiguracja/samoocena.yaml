@@ -1,0 +1,18 @@
+# Samoocena pracownika (spec #2, ticket #8): skala, próg rozbieżności i zasada „poza sugestią”.
+# Kod (kompas_mc/samoocena.py) czyta stąd wartości; reguła ma adnotację sprawdzaną walidatorem.
+
+poziomy: [1, 3, 5, 7, 9]
+prog_rozbieznosci: 4   # |samoocena − ocena przełożonego| ≥ 4 punkty modelu = rozbieżność do omówienia
+
+regula:
+  id: samoocena.poza-sugestia
+  opis: >-
+    Samoocena pracownika jest materiałem do rozmowy oceniającej. Nie wchodzi do sugestii poziomu
+    ani do oceny cząstkowej. Przełożony widzi ją obok swojej oceny dopiero po przekazaniu, HR nie
+    widzi jej treści.
+  adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Materiały MC (rozporządzenia o ocenie okresowej i pierwszej ocenie, model kompetencji) nie
+        przewidują samooceny. Funkcja wspiera rozmowę, więc nie może zmieniać wyniku oceny.
+      zatwierdził: Hubert Nowak

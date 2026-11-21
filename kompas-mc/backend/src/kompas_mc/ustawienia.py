@@ -30,6 +30,7 @@ class Ustawienia:
     wzory_arkuszy: Path = KATALOG_MC / "konfiguracja" / "wzory-arkuszy.json"
     wynik_pierwszej: Path = KATALOG_MC / "konfiguracja" / "wynik-pierwszej.yaml"
     terminy_pierwszej: Path = KATALOG_MC / "konfiguracja" / "terminy-pierwszej.yaml"
+    samoocena: Path = KATALOG_MC / "konfiguracja" / "samoocena.yaml"
 
     @classmethod
     def ze_srodowiska(cls) -> Ustawienia:
@@ -56,4 +57,5 @@ class Ustawienia:
             wzory_arkuszy=Path(os.environ.get("KOMPAS_MC_WZORY_ARKUSZY", konf / "wzory-arkuszy.json")),
             wynik_pierwszej=Path(os.environ.get("KOMPAS_MC_WYNIK_PIERWSZEJ", konf / "wynik-pierwszej.yaml")),
             terminy_pierwszej=Path(os.environ.get("KOMPAS_MC_TERMINY_PIERWSZEJ", konf / "terminy-pierwszej.yaml")),
+            samoocena=Path(os.environ.get("KOMPAS_MC_SAMOOCENA", konf / "samoocena.yaml")),
         )
