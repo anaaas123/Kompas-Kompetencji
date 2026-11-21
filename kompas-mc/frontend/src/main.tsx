@@ -4,6 +4,9 @@ import App from "./App";
 import "./tokeny.css";
 import "./tokeny-coi.css";
 import "./style.css";
+import { ustawMotyw } from "./motyw";
+
+ustawMotyw();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
