@@ -71,12 +71,7 @@ export interface Pracownik {
   korpus: "urzednik_sc" | "pracownik_sc";
   data_zatrudnienia: string;
   rodzaj_umowy: "nieokreslony" | "okreslony";
-  /** `kryteria`: oceny cząstkowe z arkusza w aktach osobowych (§ 12 ust. 2 rozp. 2016); w mocku QNT dane demo. */
-  ostatnia_ocena_okresowa: {
-    data: string;
-    wynik: "pozytywna" | "negatywna";
-    kryteria?: { kompetencja_id: string; nazwa: string; punkty: number }[];
-  } | null;
+  ostatnia_ocena_okresowa: { data: string; wynik: "pozytywna" | "negatywna" } | null;
   data_konca_zatrudnienia?: string | null;
   zmiana_oceniajacego?: { data: string; poprzedni_przelozony: string } | null;
   pierwsza_ocena?: {
@@ -468,6 +463,24 @@ async function odpowiedzApi<T>(r: Response): Promise<T> {
   if (!r.ok) throw new BladApi(r.status, tresc?.detail);
   return tresc as T;
 }
+
+/** Poprzednia ocena okresowa z punktami z arkusza w aktach osobowych (§ 12 ust. 2); tylko z ocena.tresc. */
+export interface PoprzedniaOcenaOkresowa {
+  data: string;
+  wynik: "pozytywna" | "negatywna";
+  punkty: Record<string, number>;
+}
+
+export const pobierzPoprzedniaOcene = (token: string, osobaId: string) =>
+  fetch(`/api/pracownicy/${osobaId}/poprzednia-ocena`, { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<PoprzedniaOcenaOkresowa | null>(r),
+  );
+
+/** Nazwy kompetencji z Model_kompetencji.xlsx (pozostałe pola modelu nie są tu potrzebne). */
+export const pobierzModelKompetencji = (token: string) =>
+  fetch("/api/model-kompetencji", { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<{ kompetencje: { id: string; nazwa: string }[] }>(r),
+  );
 
 /** Błąd niesie kod i komunikat z API (np. 403 dla pracownika przed przekazaniem samooceny). */
 export const pobierzOcene = (token: string, procesId: number) =>

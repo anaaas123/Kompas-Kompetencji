@@ -17,6 +17,7 @@ import {
 import { NAZWA_SCIEZKI, Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 import { LegendaPorownania, SamoocenaPrzyWskazniku, StatusSamoocenyPrzelozonego } from "./Samoocena";
 import { data } from "./zespol-dane";
+import { usePoprzedniaOcena } from "./PoprzedniaOcena";
 import "./krok2.css";
 import "./ocena.css";
 
@@ -532,6 +533,7 @@ export function Ocena({
   const [blad, setBlad] = useState<string | null>(null);
   const [bledy, setBledy] = useState<Record<string, string>>({});
   const [czekam, setCzekam] = useState<string | null>(null);
+  const poprzednie = usePoprzedniaOcena(token, osoba.osoba_id);
 
   useEffect(() => {
     pobierzOcene(token, proces.id)
@@ -560,7 +562,6 @@ export function Ocena({
   const tylkoOdczyt = !moznaProwadzic;
   const lista = kroki(dane);
   const k = lista[Math.min(krok, lista.length - 1)];
-  const poprzednie = osoba.ostatnia_ocena_okresowa;
   const kp = dane.kompletnosc;
 
   async function zapiszWskaznik(id: string, ocena: OcenaWskaznika) {
@@ -606,13 +607,13 @@ export function Ocena({
     );
   } else if (k.typ === "kryterium") {
     const kr = dane.kryteria[k.kr];
-    const p = poprzednie?.kryteria?.find((x) => x.kompetencja_id === kr.kompetencja_id);
+    const p = poprzednie?.punkty[kr.kompetencja_id];
     ekran = (
       <EkranKryterium
         key={kr.kompetencja_id}
         kr={kr}
         skala={dane.skala}
-        poprzednio={p && poprzednie ? { punkty: p.punkty, data: poprzednie.data } : null}
+        poprzednio={p !== undefined && poprzednie ? { punkty: p, data: poprzednie.data } : null}
         tylkoOdczyt={tylkoOdczyt}
         czekam={czekam === kr.kompetencja_id}
         blad={bledy[kr.kompetencja_id]}

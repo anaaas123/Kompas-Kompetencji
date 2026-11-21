@@ -46,3 +46,14 @@ def test_kontrakt_mocka_qnt_w_openapi(klient):
         spec["paths"]
     )
     assert "Pracownik" in spec["components"]["schemas"]
+
+
+def test_poprzednia_ocena_z_punktami_tylko_dla_dostepu_do_tresci(klient, naglowek):
+    """Przełożony i oceniany widzą punkty poprzedniej oceny; HR i cudzy przełożony dostają 403."""
+    url = "/api/pracownicy/P-101/poprzednia-ocena"
+    r = klient.get(url, headers=naglowek("przelozony1")).json()
+    assert r["wynik"] == "pozytywna" and r["data"] == "2024-12-02" and r["punkty"]["rzetelnosc"] in {1, 3, 5, 7, 9}
+    assert klient.get(url, headers=naglowek("oceniany")).status_code == 200
+    assert klient.get(url, headers=naglowek("hr")).status_code == 403
+    assert klient.get(url, headers=naglowek("przelozony2")).status_code == 403
+    assert "punkty" not in str(klient.get("/api/pracownicy/P-101", headers=naglowek("przelozony1")).json())

@@ -413,7 +413,7 @@ export function Krok1({
         <div className="dwie">
           <div className="sekcja k1-glowna">
             <p className="k1-streszczenie">{zdanieOOsobie(osoba)}</p>
-            <PoprzedniaOcena osoba={osoba} />
+            <PoprzedniaOcena token={token} osoba={osoba} />
             <Decyzja analiza={analiza} />
             <CoOceniamy analiza={analiza} krok2={krok2} />
             <OpisStanowiska analiza={analiza} />

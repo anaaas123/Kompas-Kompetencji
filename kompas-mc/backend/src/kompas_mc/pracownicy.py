@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Uzytkownik
@@ -13,6 +14,15 @@ from .qnt import MockQnt, Pracownik
 
 class NowaNotatka(BaseModel):
     tresc: str = Field(min_length=1, max_length=4000)
+
+
+class PoprzedniaOcena(BaseModel):
+    """Ostatnia ocena okresowa z kartoteki: wynik i oceny cząstkowe z arkusza w aktach osobowych
+    (§ 12 ust. 2 rozp. 2016). W mocku QNT punkty to dane demo (#33)."""
+
+    data: date
+    wynik: Literal["pozytywna", "negatywna"]
+    punkty: dict[str, int]
 
 
 class Notatka(BaseModel):
@@ -53,6 +63,12 @@ def router(auth: Autoryzacja, qnt: MockQnt) -> APIRouter:
     def jeden(osoba_id: str, uz: Uzytkownik = auth.wymagaj("pracownicy.czytaj")) -> Pracownik:
         """404, gdy osoby nie ma w QNT; 403, gdy osoba jest poza zakresem użytkownika."""
         return dostepny(osoba_id, uz, "pracownicy.czytaj")
+
+    @r.get("/pracownicy/{osoba_id}/poprzednia-ocena")
+    def poprzednia_ocena(osoba_id: str, uz: Uzytkownik = auth.wymagaj("ocena.tresc")) -> PoprzedniaOcena | None:
+        """Treść poprzedniej oceny (punkty): tylko ``ocena.tresc`` z regułą dostępu, więc HR dostaje 403."""
+        o = dostepny(osoba_id, uz, "ocena.tresc").ostatnia_ocena_okresowa
+        return None if o is None else PoprzedniaOcena(data=o.data, wynik=o.wynik, punkty=dict(o.oceny_czastkowe))
 
     @r.get("/pracownicy/{osoba_id}/notatki")
     def notatki(
