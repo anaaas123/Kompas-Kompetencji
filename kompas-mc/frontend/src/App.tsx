@@ -169,6 +169,7 @@ export default function App() {
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
           onZespol={() => przejdz("zespol")}
+          onPracownicy={() => przejdz("pracownicy")}
         />
       )}
       {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onWybierz={setKarta} />}
