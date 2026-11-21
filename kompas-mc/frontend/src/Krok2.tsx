@@ -351,7 +351,7 @@ export function Krok2({
   const ustalonoDnia = ustalone ?? podgladUstalonych;
 
   return (
-    <div className="k2">
+    <div className="k2 k2-kryteria">
       <div className="k2-naglowek">
         <button type="button" className="link" onClick={onWstecz}>
           Wróć do kroku 1
