@@ -207,7 +207,7 @@ export default function App() {
           onPracownicy={() => przejdz("pracownicy")}
         />
       )}
-      {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onPracownicy={doPracownikow} />}
+      {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onPracownicy={doPracownikow} onWybierz={setKarta} />}
       {!karta && !oceniany && widok === "pracownicy" && (
         <ListaPracownikow sesja={sesja} filtr={filtr} onFiltr={setFiltr} onWyloguj={wyloguj} onWybierz={setKarta} />
       )}

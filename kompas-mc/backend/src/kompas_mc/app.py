@@ -23,6 +23,7 @@ from .hr_api import router as router_hr
 from .hr_api import router_terminow
 from .samoocena import KonfiguracjaSamooceny
 from .samoocena_api import router as router_samooceny
+from .zespol_api import router as router_zespolu
 from .krok1 import KonfiguracjaKroku1, proponuj_sciezke
 from .krok2 import KonfiguracjaKroku2
 from .krok2_api import StanKroku2
@@ -126,6 +127,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         lambda p: proponuj_sciezke(p, konf_krok1).proponowana,
     ))
     app.include_router(router_samooceny(auth, qnt, krok2))
+    app.include_router(router_zespolu(auth, qnt, krok2, KonfiguracjaOceny.z_pliku(ust.ocena)))
 
     @app.get("/api/zdrowie")
     def zdrowie(request: Request) -> dict:

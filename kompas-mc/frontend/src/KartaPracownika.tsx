@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   pobierzCykl,
   pobierzKrok1,
+  pobierzMapeKompetencji,
   pobierzNotatki,
   pobierzOcene,
   pobierzPracownikow,
@@ -10,6 +11,7 @@ import {
   pobierzTerminy,
   type AnalizaKroku1,
   type EtapOsoby,
+  type MapaKompetencji,
   type Notatka,
   type Pracownik,
   type ProcesOceny,
@@ -20,6 +22,7 @@ import {
 import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
+import { OcenyCzastkowe } from "./Kompetencje";
 import { data, kiedy, lat, lataStazu, stazTekst, NAZWA_SCIEZKI, podzial } from "./zespol-dane";
 import "./widoki.css";
 
@@ -59,6 +62,8 @@ interface Dane {
   przelozony: Pracownik | null;
   /** Etap cyklu i następna czynność z /api/cykl (#23). */
   cykl: EtapOsoby | null;
+  /** Mapa kompetencji (#33): tylko przełożony; oceny cząstkowe ostatniej oceny z akt. */
+  mapa: MapaKompetencji | null;
 }
 
 export function KartaPracownika({
@@ -100,6 +105,7 @@ export function KartaPracownika({
           pobierzNotatki(token, osoba.osoba_id).catch(() => []),
           pobierzCykl(token).catch(() => []),
         ]);
+        const mapa = prowadzi ? await pobierzMapeKompetencji(token).catch(() => null) : null;
         const wlasne = procesy.filter((p) => p.osoba_id === osoba.osoba_id);
         const proces = wlasne.find((p) => p.status === "W_TOKU") ?? wlasne[wlasne.length - 1] ?? null;
         // Ocena kryteriów istnieje dopiero po zapisaniu kroku 2.
@@ -117,6 +123,7 @@ export function KartaPracownika({
           przelozony: ludzie.find((p) => p.osoba_id === osoba.przelozony_id) ?? null,
           samoocena,
           cykl: cykl.find((c) => c.osoba_id === osoba.osoba_id) ?? null,
+          mapa,
         });
       } catch (err) {
         if (String(err).includes("401")) onWyloguj();
@@ -176,6 +183,7 @@ export function KartaPracownika({
             <Cykl dane={dane} sciezka={dane.cykl?.sciezka ?? dane.proces?.sciezka ?? dane.analiza?.sciezka.proponowana ?? null} />
             {cele}
             <WynikiKryteriow ocena={dane.ocena} />
+            <OcenyCzastkowe mapa={dane.mapa} osoba={osoba} />
 
             <div className="sekcja">
               <h2>Poprzednie oceny</h2>
