@@ -1,0 +1,201 @@
+/* Wersja MC na tokenach Dopiny (kanon v3, rejestr narzędziowy): kolory --k-*, pismo --t-*, odstępy --o-*,
+   promienie --r-*, cienie --s-*, wysokości kontrolek --c-*. Wartości tylko z tokenów (tokeny.css). */
+
+/* Fonty Inter (OFL) i reset z @dopina/ui (styl/baza.css), bez warstwy szkła. */
+@font-face{font-family:Inter;font-weight:400;font-display:block;src:url('./fonty/inter-latin-400-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Inter;font-weight:400;font-display:block;src:url('./fonty/inter-latin-ext-400-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Inter;font-weight:500;font-display:block;src:url('./fonty/inter-latin-500-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Inter;font-weight:500;font-display:block;src:url('./fonty/inter-latin-ext-500-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Inter;font-weight:600;font-display:block;src:url('./fonty/inter-latin-600-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Inter;font-weight:600;font-display:block;src:url('./fonty/inter-latin-ext-600-normal.woff2') format('woff2');unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+*,*::before,*::after{box-sizing:border-box}
+html{font-family:var(--f-rodzina);font-weight:var(--f-regular);-webkit-font-smoothing:antialiased;text-size-adjust:100%}
+body{margin:0;background:var(--k-canvas);color:var(--k-text)}
+button,input,select,textarea{font:inherit;color:inherit}
+
+main { max-width: 1040px; margin: 0 auto; padding: var(--o-32) var(--o-24) var(--o-64); }
+header { display: flex; align-items: center; gap: var(--o-12); margin-bottom: var(--o-24); }
+
+h1 { margin: 0; font-size: var(--t-title-r); line-height: var(--t-title-l); letter-spacing: var(--t-title-s); font-weight: var(--f-semibold); }
+h2 { margin: 0; font-size: var(--t-section-r); line-height: var(--t-section-l); font-weight: var(--f-semibold); }
+p { margin: var(--o-8) 0 0; }
+code { font-size: var(--t-small-r); }
+
+section {
+  background: var(--k-surface);
+  border: 1px solid var(--k-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--s-card);
+  padding: var(--o-24);
+  margin-bottom: var(--o-16);
+  font-size: var(--t-body-r);
+  line-height: var(--t-body-l);
+}
+
+.wiersz { display: flex; justify-content: space-between; align-items: center; gap: var(--o-12); margin-top: var(--o-16); }
+section > .wiersz:first-child { margin-top: 0; }
+section form { margin-top: var(--o-16); }
+.opis, .meta { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.blad { color: var(--k-danger-text); }
+.brak { margin-top: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-sm); background: var(--k-attention-bg); color: var(--k-attention-text); }
+
+/* Znacznik wersji i kategorie źródeł: etykieta z tokenów tag; przepis w tonie sukcesu. */
+.znacznik, .kategoria {
+  display: inline-flex; align-items: center; min-height: 22px; padding: var(--o-2) var(--o-8);
+  border: 1px solid var(--k-tag-border); border-radius: var(--r-xs); background: var(--k-tag-bg); color: var(--k-tag-text);
+  font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-medium); white-space: nowrap;
+}
+.kategoria.przepis { border-color: transparent; background: var(--k-success-bg); color: var(--k-success-text); }
+
+/* Status wyniku oceny: kolor niesie znaczenie. */
+.status {
+  display: inline-flex; align-items: center; min-height: 22px; padding: var(--o-2) var(--o-8); border-radius: var(--r-xs);
+  font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-medium);
+}
+.status.pozytywna { background: var(--k-success-bg); color: var(--k-success-text); }
+.status.negatywna { background: var(--k-danger-bg); color: var(--k-danger-text); }
+.status.neutralna { background: var(--k-neutral-bg); color: var(--k-neutral-text); }
+.status.uwaga { background: var(--k-attention-bg); color: var(--k-attention-text); }
+
+/* Pola */
+input, textarea {
+  width: 100%; min-height: var(--c-field); padding: var(--o-8) var(--o-12);
+  border: 1px solid var(--k-field-border); border-radius: var(--r-sm); background: var(--k-surface);
+  font-size: var(--t-field-r); line-height: var(--t-field-l);
+}
+input { flex: 1; }
+textarea { resize: vertical; }
+
+/* Przyciski: jeden główny (czarny) na ekran, reszta jasna albo jako link. */
+button {
+  min-height: var(--c-action); padding: 0 var(--o-16); border: 1px solid var(--k-action-border); border-radius: var(--r-sm);
+  background: var(--k-action); color: var(--k-action-text); font-size: var(--t-ui-r); line-height: var(--t-ui-l);
+  font-weight: var(--f-medium); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--ruch-szybki) var(--ruch-krzywa), color var(--ruch-szybki) var(--ruch-krzywa);
+}
+button:active { background: var(--k-action-pressed); }
+button.jasny { background: var(--k-surface); border-color: var(--k-line-control); color: var(--k-text-secondary); }
+button.jasny:active { background: var(--k-surface-pressed); }
+button.link { min-height: 0; padding: 0; border: 0; background: none; color: var(--k-text); text-decoration: underline; text-underline-offset: 2px; font-weight: var(--f-regular); }
+button.link:active { color: var(--k-text-muted); }
+button:disabled { border-color: var(--k-disabled-border); background: var(--k-disabled-bg); color: var(--k-disabled-text); cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover { background: var(--k-action-hover); }
+  button.jasny:not(:disabled):hover { background: var(--k-surface-hover); }
+  button.link:not(:disabled):hover { background: none; color: var(--k-text-muted); }
+}
+:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+
+/* Wybór jednej z kilku opcji (zamiast natywnego select). */
+.wybor { display: inline-flex; gap: var(--o-4); flex-wrap: wrap; }
+.wybor button { background: var(--k-surface); border-color: var(--k-line-control); color: var(--k-text-secondary); font-weight: var(--f-regular); }
+.wybor button:active { background: var(--k-surface-pressed); }
+.wybor button[aria-pressed="true"] { background: var(--k-tab-active); border-color: var(--k-tab-active); color: var(--k-text); font-weight: var(--f-medium); }
+@media (hover: hover) and (pointer: fine) {
+  .wybor button:not([aria-pressed="true"]):hover { background: var(--k-surface-hover); }
+  .wybor button[aria-pressed="true"]:hover { background: var(--k-tab-active); }
+}
+
+/* Asystent: cytaty */
+.cytat { border-top: 1px solid var(--k-line-subtle); padding: var(--o-16) 0; }
+.zrodlo { display: flex; gap: var(--o-8); flex-wrap: wrap; align-items: center; color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+blockquote { margin: var(--o-8) 0 0; padding-left: var(--o-12); border-left: 2px solid var(--k-line-control); white-space: pre-line; }
+.cytat button.link { margin-top: var(--o-8); }
+
+/* Tabele */
+table { width: 100%; margin-top: var(--o-16); border-collapse: collapse; font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-variant-numeric: tabular-nums; }
+th {
+  padding: var(--o-8) var(--o-12); background: var(--k-table-head); color: var(--k-text-muted); text-align: left;
+  font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-medium); white-space: nowrap;
+}
+th:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+th:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+td { padding: var(--o-12); border-bottom: 1px solid var(--k-line-subtle); text-align: left; vertical-align: top; }
+.pracownicy .osoba { white-space: nowrap; font-weight: var(--f-medium); }
+.pracownicy .meta { margin-top: var(--o-2); font-weight: var(--f-regular); }
+.pracownicy td:nth-child(3) { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}
+
+/* Czat asystenta formalnego (#37): warstwa AI w kolorze info, cytat główny w tonie przepisu. */
+.czat .rozmowa { list-style: none; padding: 0; margin: var(--o-16) 0 0; display: flex; flex-direction: column; gap: var(--o-16); }
+.czat .pytanie { margin: 0; display: flex; gap: var(--o-8); align-items: baseline; flex-wrap: wrap; font-weight: var(--f-semibold); }
+.czat .odpowiedz { margin-top: var(--o-8); }
+.czat .tresc { margin: 0 0 var(--o-4); padding: var(--o-12); border-radius: var(--r-sm); background: var(--k-info-bg); color: var(--k-info-text); }
+.czat .cytat.glowny blockquote { border-left-color: var(--k-success-pelny); }
+.czat .uwagi { margin: var(--o-8) 0 0; padding-left: var(--o-16); color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.czat .przyklady { display: flex; flex-wrap: wrap; gap: var(--o-8); margin-top: var(--o-12); }
+.kategoria.ustawa { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
+mark { padding: 0 var(--o-2); border-radius: var(--r-mark); background: var(--k-note-bg); color: var(--k-note-text); }
+
+/* Zakładki widoku (HR/administrator): aktywna jako przycisk główny, reszta jasna. */
+.zakladki { display: flex; gap: var(--o-8); margin-bottom: var(--o-16); }
+
+/* Panel źródeł i braków (#39). */
+.brak-wpis { border-top: 1px solid var(--k-line); padding: var(--o-16) 0; }
+.brak-wpis:first-of-type { margin-top: var(--o-16); }
+.adnotacja { margin: var(--o-8) 0 0 var(--o-12); }
+.ok { color: var(--k-success-text); font-size: var(--t-micro-r); line-height: var(--t-micro-l); }
+.kategoria.typ-brak { border-color: transparent; background: var(--k-danger-bg); color: var(--k-danger-text); }
+.kategoria.typ-rozbieznosc { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
+
+/* Krok 1: analiza OSP, ścieżka i arkusz (#29). */
+.etykieta { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
+.wartosc { margin-top: var(--o-8); font-size: var(--t-value-r); line-height: var(--t-value-l); letter-spacing: var(--t-value-s); font-weight: var(--f-semibold); }
+.zrodla { display: flex; flex-direction: column; gap: var(--o-4); margin-top: var(--o-8); }
+.zrodlo blockquote { flex-basis: 100%; }
+.przeslanki, .zadania { margin: var(--o-16) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-16); }
+.przeslanki { list-style: none; }
+.zadania { padding-left: var(--o-24); gap: var(--o-12); }
+.wiersz-przeslanki { display: flex; gap: var(--o-8); align-items: baseline; flex-wrap: wrap; }
+.pole-osp { padding: var(--o-16) 0; border-top: 1px solid var(--k-line-subtle); }
+.pole-osp:first-of-type { margin-top: var(--o-16); }
+.etykiety { display: flex; flex-wrap: wrap; gap: var(--o-6); margin-top: var(--o-8); }
+.brak ul { margin: var(--o-8) 0 0; padding-left: var(--o-16); }
+.sukces { margin-top: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-sm); background: var(--k-success-bg); color: var(--k-success-text); }
+.etykieta + textarea { margin-top: var(--o-8); }
+
+/* Krok 2: kryteria i wskaźniki (#30). */
+.kryterium { padding: var(--o-16) 0; border-top: 1px solid var(--k-line-subtle); }
+.kryterium:first-of-type { margin-top: var(--o-16); }
+.kryterium .kryterium { margin-top: var(--o-12); padding-bottom: 0; }
+.wskazniki { list-style: none; margin: var(--o-12) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-12); }
+.zaznacz { display: flex; gap: var(--o-8); align-items: flex-start; min-height: var(--c-min); padding-top: var(--o-8); cursor: pointer; }
+input[type="checkbox"] { width: auto; min-height: 0; flex: none; margin: var(--o-2) 0 0; padding: 0; accent-color: var(--k-action); }
+.pod-wskaznikiem { padding-left: var(--o-24); }
+details.zadania-osp > summary { min-height: var(--c-min); padding-top: var(--o-8); cursor: pointer; color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+details.zadania-osp .meta { margin-top: var(--o-4); }
+details.pozostale { margin-top: var(--o-16); }
+details.pozostale > summary { min-height: var(--c-min); cursor: pointer; color: var(--k-text-secondary); font-weight: var(--f-medium); }
+
+/* Kroki 3–5: ocena wskaźników, przykłady (#31). */
+.wskazniki > .kryterium > .wiersz { justify-content: flex-start; margin-top: var(--o-8); flex-wrap: wrap; }
+.lista-przykladow { list-style: none; margin: var(--o-8) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-8); }
+.lista-przykladow > li { padding: var(--o-8) var(--o-12); border-radius: var(--r-sm); background: var(--k-table-head); }
+.lista-przykladow .etykiety { margin-top: var(--o-4); }
+.kryterium > button.link { margin-top: var(--o-8); }
+.nowy-przyklad { display: flex; flex-direction: column; gap: var(--o-8); margin-top: var(--o-12); padding: var(--o-16); border: 1px solid var(--k-line); border-radius: var(--r-sm); }
+.nowy-przyklad label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+.decyzja { margin-top: var(--o-16); padding-top: var(--o-16); border-top: 1px solid var(--k-line); }
+.decyzja .sukces .etykiety { margin-top: var(--o-8); }
+
+/* Krok 6: wynik i terminy (#32). */
+.wartosc .status { margin-right: var(--o-8); }
+.slad { margin: 0; padding-left: var(--o-16); display: flex; flex-direction: column; gap: var(--o-4); }
+td .slad { font-size: var(--t-small-r); line-height: var(--t-small-l); color: var(--k-text-muted); }
+fieldset.formularz { margin: var(--o-16) 0 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--o-12); }
+.formularz label.etykieta, .siatka-dat label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+.siatka-dat { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--o-12); }
+input[aria-invalid="true"] { border-color: var(--k-danger-text); }
+input:disabled, textarea:disabled { background: var(--k-disabled-bg); color: var(--k-text-secondary); }
+.etykieta.powiazanie { margin-bottom: var(--o-8); }
+
+/* Krok 7: arkusz B/C (#33). */
+.pola-arkusza { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--o-16) var(--o-24); margin-top: var(--o-16); }
+.pole-arkusza { min-width: 0; }
+.pole-arkusza label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+.tekst-pola { white-space: pre-line; overflow-wrap: anywhere; }
+.lista-brakow { margin: var(--o-8) 0 var(--o-12); padding-left: var(--o-16); display: flex; flex-direction: column; gap: var(--o-4); }
+.pole-arkusza sup { line-height: 0; }

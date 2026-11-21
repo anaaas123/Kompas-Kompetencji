@@ -1,0 +1,188 @@
+# Wnioski rozwojowe (#36): reguły propozycji i katalog form rozwoju.
+# Asystent PROPONUJE obszary i formy powiązane ze wskaźnikiem i przykładem.
+# Treść wniosków do arkusza pisze przełożony – asystent nigdy jej nie wpisuje.
+# Każda reguła i forma ma adnotację; cytaty sprawdza `kompas-waliduj`.
+
+wersja: rozwoj-mc-1
+
+# Poziomy wskaźników na skali modelu (1/3/5/7/9; pierwsza ocena: 3/5/7).
+poziom_oczekiwan: 5
+
+reguly:
+  - id: rozwoj.obszar-ponizej-oczekiwan
+    opis: Wskaźnik oceniony poniżej poziomu oczekiwań (poziom < 5) to obszar rozwojowy.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: 6.2.5.4
+        strona: 29
+        cytat_dosłowny: >-
+          Każde kryterium, w odniesieniu, do którego została wystawiona ocena poniżej „poziomu
+          oczekiwań”, stanowi obszar rozwojowy pracownika
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: 6.5.4
+        strona: 33
+        cytat_dosłowny: >-
+          ocena cząstkowa przyznana poniżej poziomu oczekiwań stanowi obszar rozwojowy pracownika
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Poradnik mówi o kryterium; aplikacja schodzi na poziom wskaźnika modelu, bo poradnik
+          wskazuje, że trzeba ustalić, „na którym zachowaniu” się skupić.
+        zatwierdził: osoba A (integrator)
+
+  - id: rozwoj.mocna-strona
+    opis: >-
+      Wskaźnik oceniony powyżej poziomu oczekiwań (poziom > 5) to mocna strona – podstawa do
+      dalszych kierunków rozwoju i przyszłych zadań.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: 6.2.5.4
+        strona: 29
+        cytat_dosłowny: >-
+          wnioski powinny być sporządzone przy uwzględnieniu obecnych i przyszłych zadań oraz
+          oczekiwań ocenianego
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: 6.5.4
+        strona: 33
+        cytat_dosłowny: >-
+          można również zawrzeć informacje na temat sugerowanych dalszych kierunków jego rozwoju
+
+  - id: rozwoj.zakres-wnioskow
+    opis: >-
+      Wnioski obejmują obszary wiedzy i umiejętności oraz formy i metody ich realizacji
+      (struktura podpowiadana przełożonemu, bez treści).
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: 6.2.5.4
+        strona: 29
+        cytat_dosłowny: >-
+          Sporządzane wnioski powinny zawierać obszary wiedzy i umiejętności wymagające
+          doskonalenia oraz optymalne formy i metody ich realizacji.
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 5
+        strona: 3
+        cytat_dosłowny: >-
+          wpisaniu do arkusza wniosków dotyczących indywidualnego programu rozwoju zawodowego
+          ocenianego
+
+  - id: rozwoj.pierwsza-tylko-pozytywna
+    opis: W pierwszej ocenie wnioski rozwojowe sporządza się tylko przy ocenie pozytywnej.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: 6.5.4
+        strona: 32
+        cytat_dosłowny: >-
+          Wnioski dotyczące rozwoju zawodowego ocenianego sporządza się fakultatywnie – tylko
+          w przypadku przyznania pozytywnej pierwszej oceny.
+
+  - id: rozwoj.tresc-pisze-przelozony
+    opis: Asystent nie wpisuje treści wniosków; przełożony pisze je sam.
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Wymóg zadania MC: AI nie ustala oceny ani treści dokumentu; wynik asystenta jest
+          sugestią do edycji.
+        zatwierdził: osoba A (integrator)
+
+# Katalog form rozwoju. `dla`: obszar (poniżej oczekiwań) | mocna (powyżej oczekiwań).
+# `kompetencje` (opcjonalnie): forma proponowana tylko przy tych kompetencjach modelu.
+formy:
+  - id: szkolenie
+    nazwa: Szkolenie
+    dla: [obszar]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: przykład arkusza, cz. VI
+        strona: 38
+        cytat_dosłowny: Rekomenduję skierowanie pracownika na szkolenie poświęcone temu tematowi
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: 6.2.5.4
+        strona: 29
+        cytat_dosłowny: >-
+          Program ten z kolei stanowi m.in. podstawę do kierowania pracowników i urzędników
+          służby cywilnej na szkolenia.
+
+  - id: warsztaty
+    nazwa: Warsztaty
+    dla: [obszar]
+    kompetencje: [ZARZĄDZANIE LUDŹMI, KOMUNIKACJA, WSPÓŁPRACA, WYSTĄPIENIA PUBLICZNE, NEGOCJOWANIE]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: przykład arkusza, wnioski do IPRZ
+        strona: 41
+        cytat_dosłowny: zarządzanie zespołem – szkolenia, warsztaty, coaching z bezpośrednim przełożonym
+
+  - id: coaching
+    nazwa: Coaching z bezpośrednim przełożonym
+    dla: [obszar, mocna]
+    kompetencje: [ZARZĄDZANIE LUDŹMI, WSPÓŁPRACA, KOMUNIKACJA, PODEJMOWANIE DECYZJI I ODPOWIEDZIALNOŚĆ, ZARZĄDZANIE STRATEGICZNE]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: przykład arkusza, wnioski do IPRZ
+        strona: 41
+        cytat_dosłowny: praca zespołowa – coaching z bezpośrednim przełożonym, doskonalenie w działaniu
+
+  - id: wspolpraca-z-doswiadczonym
+    nazwa: Współpraca z bardziej doświadczonym pracownikiem
+    dla: [obszar]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: przykład arkusza, cz. VI
+        strona: 38
+        cytat_dosłowny: współpracę z bardziej doświadczonym w tym zakresie pracownikiem
+
+  - id: mentoring
+    nazwa: Mentoring
+    dla: [obszar, mocna]
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Grafika „Kompas Kompetencji_ Ścieżki Oceny.png” (bez warstwy tekstowej) wymienia przy
+          asystencie rozmowy „plan rozwoju zawodowego (mentoring / coaching)”. Przy mocnej stronie
+          oceniany może też być mentorem dla innych.
+        zatwierdził: osoba A (integrator)
+
+  - id: doskonalenie-w-dzialaniu
+    nazwa: Doskonalenie w działaniu (w ramach wykonywanych zadań)
+    dla: [obszar, mocna]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: przykład arkusza, wnioski do IPRZ
+        strona: 44
+        cytat_dosłowny: >-
+          Komunikacja pisemna – dalsze doskonalenie we własnym zakresie w ramach wykonywanych
+          zadań.
+
+  - id: samoksztalcenie
+    nazwa: Samokształcenie i literatura branżowa
+    dla: [obszar, mocna]
+    kompetencje: [WYKORZYSTYWANIE WIEDZY I DOSKONALENIE ZAWODOWE, RZETELNOŚĆ, MYŚLENIE ANALITYCZNE]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: przykład arkusza, wnioski do IPRZ
+        strona: 44
+        cytat_dosłowny: Język angielski – szkolenie językowe, czytanie literatury branżowej.
+
+  - id: konferencje
+    nazwa: Konferencje i prasa branżowa
+    dla: [obszar, mocna]
+    kompetencje: [WYKORZYSTYWANIE WIEDZY I DOSKONALENIE ZAWODOWE, ORGANIZACJA PRACY i ORIENTACJA NA OSIĄGANIE CELÓW]
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: przykład arkusza, wnioski do IPRZ
+        strona: 38
+        cytat_dosłowny: (szkolenia, konferencje, czytanie prasy branżowej, śledzenie orzecznictwa)

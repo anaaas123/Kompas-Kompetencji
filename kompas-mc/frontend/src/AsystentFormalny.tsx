@@ -1,0 +1,200 @@
+import { FormEvent, useState } from "react";
+import { pytajAsystenta, type CytatAsystenta, type OdpowiedzAsystenta, type Sciezka } from "./api";
+
+/**
+ * Czat asystenta formalnego (#37). Komponent do osadzenia na ekranie każdej ścieżki:
+ * `<AsystentFormalny sciezka="pierwsza" />` filtruje źródła do tej ścieżki; bez `sciezka`
+ * użytkownik wybiera ją sam. Asystent tylko wskazuje źródła – nie ocenia.
+ */
+interface Props {
+  sciezka?: Sciezka;
+  przyklady?: string[];
+}
+
+interface Wymiana {
+  id: number;
+  pytanie: string;
+  sciezka: Sciezka | null;
+  odpowiedz?: OdpowiedzAsystenta;
+  blad?: string;
+}
+
+const NAZWA_SCIEZKI: Record<Sciezka, string> = { pierwsza: "pierwsza ocena", okresowa: "ocena okresowa" };
+const WYBOR_SCIEZKI: { wartosc: Sciezka | ""; nazwa: string }[] = [
+  { wartosc: "", nazwa: "obie" },
+  { wartosc: "pierwsza", nazwa: NAZWA_SCIEZKI.pierwsza },
+  { wartosc: "okresowa", nazwa: NAZWA_SCIEZKI.okresowa },
+];
+
+export default function AsystentFormalny({ sciezka, przyklady = [] }: Props) {
+  const [pytanie, setPytanie] = useState("");
+  const [wybrana, setWybrana] = useState<Sciezka | "">(sciezka ?? "");
+  const [rozmowa, setRozmowa] = useState<Wymiana[]>([]);
+  const [czekam, setCzekam] = useState(false);
+  const aktywna: Sciezka | null = sciezka ?? (wybrana || null);
+
+  async function zapytaj(tekst: string) {
+    const t = tekst.trim();
+    if (!t || czekam) return;
+    const id = Date.now();
+    setRozmowa((r) => [...r, { id, pytanie: t, sciezka: aktywna }]);
+    setPytanie("");
+    setCzekam(true);
+    try {
+      const odp = await pytajAsystenta(t, aktywna);
+      setRozmowa((r) => r.map((w) => (w.id === id ? { ...w, odpowiedz: odp } : w)));
+    } catch (err) {
+      setRozmowa((r) => r.map((w) => (w.id === id ? { ...w, blad: String(err) } : w)));
+    } finally {
+      setCzekam(false);
+    }
+  }
+
+  function wyslij(e: FormEvent) {
+    e.preventDefault();
+    void zapytaj(pytanie);
+  }
+
+  return (
+    <div className="czat">
+      <p className="opis">
+        Odpowiada wyłącznie na podstawie materiałów MC i zawsze pokazuje źródło. Nie ocenia pracownika
+        – decyzja należy do przełożonego.
+      </p>
+
+      {rozmowa.length === 0 && przyklady.length > 0 && (
+        <div className="przyklady">
+          {przyklady.map((p) => (
+            <button type="button" key={p} className="jasny" onClick={() => void zapytaj(p)}>
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <ol className="rozmowa" aria-live="polite">
+        {rozmowa.map((w) => (
+          <li key={w.id}>
+            <p className="pytanie">
+              {w.pytanie}
+              {w.sciezka && <span className="znacznik">{NAZWA_SCIEZKI[w.sciezka]}</span>}
+            </p>
+            {!w.odpowiedz && !w.blad && <p className="meta">Szukam w źródłach…</p>}
+            {w.blad && <p className="blad">{w.blad}</p>}
+            {w.odpowiedz && <Odpowiedz o={w.odpowiedz} />}
+          </li>
+        ))}
+      </ol>
+
+      <form onSubmit={wyslij}>
+        <textarea
+          value={pytanie}
+          onChange={(e) => setPytanie(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void zapytaj(pytanie);
+            }
+          }}
+          rows={2}
+          placeholder="Zadaj pytanie o zasady oceny, np. „Ile dni ma pracownik na sprzeciw?”"
+          aria-label="Pytanie do asystenta formalnego"
+        />
+        <div className="wiersz">
+          {sciezka ? (
+            <span className="meta">Ścieżka: {NAZWA_SCIEZKI[sciezka]}</span>
+          ) : (
+            <div className="wybor" role="group" aria-label="Ścieżka">
+              {WYBOR_SCIEZKI.map((s) => (
+                <button
+                  key={s.wartosc}
+                  type="button"
+                  aria-pressed={wybrana === s.wartosc}
+                  onClick={() => setWybrana(s.wartosc)}
+                >
+                  {s.nazwa}
+                </button>
+              ))}
+            </div>
+          )}
+          <button className="jasny" disabled={czekam || !pytanie.trim()}>
+            {czekam ? "Szukam…" : "Zapytaj"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Odpowiedz({ o }: { o: OdpowiedzAsystenta }) {
+  if (!o.znaleziono) {
+    return (
+      <div className="brak">
+        <strong>Brak wystarczających informacji w bazie wiedzy.</strong>
+        {o.nieznane_pojecia.length > 0 && (
+          <> Tych pojęć nie ma w materiałach: {o.nieznane_pojecia.join(", ")}.</>
+        )}{" "}
+        Asystent nie odpowiada bez źródła.
+      </div>
+    );
+  }
+  return (
+    <div className="odpowiedz">
+      {o.faq_id && o.tresc && <p className="tresc">{o.tresc}</p>}
+      {o.cytaty.map((c, i) => (
+        <Cytat key={c.fragment_id} c={c} glowny={i === 0} />
+      ))}
+      <ul className="uwagi">
+        {o.uwagi.map((u) => (
+          <li key={u}>{u}</li>
+        ))}
+      </ul>
+      <p className="meta">
+        Tryb: {o.tryb} · dostawca: {o.dostawca}
+        {o.faq_id && <> · {o.faq_id}</>}
+        {o.odrzuceni.length > 0 && <> · odrzuceni: {o.odrzuceni.join(", ")}</>}
+      </p>
+    </div>
+  );
+}
+
+function Cytat({ c, glowny }: { c: CytatAsystenta; glowny: boolean }) {
+  const [caly, setCaly] = useState(false);
+  const w = c.wyrozniony && c.cytat.includes(c.wyrozniony) ? c.wyrozniony : null;
+  const pokaz = caly || !w ? c.cytat : w;
+  return (
+    <article className={`cytat ${glowny ? "glowny" : ""}`}>
+      <div className="zrodlo">
+        <span className={`kategoria ${c.kategoria === "PRZEPIS" ? "przepis" : ""}`}>{c.kategoria}</span>
+        {c.powoluje_ustawe && (
+          <span className="kategoria ustawa" title="Tekstu ustawy nie ma w bazie wiedzy">
+            powołuje ustawę
+          </span>
+        )}
+        <strong>{c.dokument}</strong>
+        {c.lokalizator && <> · {c.lokalizator}</>}
+        {c.strona && c.lokalizator !== `s. ${c.strona}` && <> · s. {c.strona}</>}
+      </div>
+      <blockquote>
+        {caly && w ? <Wyroznij tekst={c.cytat} fraza={w} /> : pokaz}
+      </blockquote>
+      {w && w !== c.cytat && (
+        <button type="button" className="link" onClick={() => setCaly((v) => !v)}>
+          {caly ? "Pokaż wyróżnione zdanie" : "Pokaż cały fragment"}
+        </button>
+      )}
+    </article>
+  );
+}
+
+function Wyroznij({ tekst, fraza }: { tekst: string; fraza: string }) {
+  const i = tekst.indexOf(fraza);
+  if (i < 0) return <>{tekst}</>;
+  return (
+    <>
+      {tekst.slice(0, i)}
+      <mark>{fraza}</mark>
+      {tekst.slice(i + fraza.length)}
+    </>
+  );
+}

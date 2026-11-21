@@ -1,0 +1,228 @@
+# Asystent rozmowy wersji MC (#35, M-9) – DANE (treść i reguły), bez kodu.
+# Przygotowane przed zamknięciem blokera #31; kod i endpointy dopiero po #31.
+#
+# Zasady z #35:
+# - każde pytanie ma uzasadnienie i powiązanie (wskaźnik / przykład / zadanie z OSP / przepis),
+# - wszystkie treści są SUGESTIĄ do edycji przez przełożonego,
+# - domyślnie szablony deterministyczne; dane osobowe nie trafiają do zewnętrznego modelu,
+# - notatki z rozmowy nie zmieniają ocen.
+#
+# Wskaźniki i opisy poziomów NIE są tu kopiowane – asystent czyta je z Model_kompetencji.xlsx
+# (arkusz kompetencji, kolumna A = wskaźnik, B–F = poziomy), tak jak model z #30.
+# Cytaty sprawdza kompas-waliduj (CI: ../konfiguracja/*.yaml).
+
+wersja: "rozmowa-mc-1"
+
+oznaczenie_sugestii: Sugestia asystenta – do edycji. Decyzję o ocenie podejmuje przełożony.
+
+# ---------------------------------------------------------------------------------------
+# Zakres rozmowy oceniającej wymagany przepisem – punkty, które asystent zawsze pokazuje
+# jako listę kontrolną rozmowy.
+# ---------------------------------------------------------------------------------------
+zakres_rozmowy:
+  okresowa:
+    - id: zakres.okresowa.obowiazki
+      punkt: Główne obowiązki w okresie oceny i sposób ich realizacji wobec ustalonych kryteriów.
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 1", strona: 3,
+           cytat_dosłowny: "główne obowiązki wykonywane przez ocenianego w okresie, w którym podlegał ocenie, oraz sposób ich realizacji"}
+    - id: zakres.okresowa.cele
+      punkt: Sposób realizowania celów na okres oceny – tylko jeśli cele zostały wyznaczone.
+      warunek: cele_wyznaczone
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 2", strona: 3,
+           cytat_dosłowny: "sposób realizowania przez ocenianego celów do osiągnięcia w okresie, w którym oceniany podlegał ocenie, jeżeli cele"}
+    - id: zakres.okresowa.rozwoj
+      punkt: Kierunki dalszego rozwoju zawodowego i potrzeby w zakresie kwalifikacji i umiejętności.
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 3", strona: 3,
+           cytat_dosłowny: "kierunki dalszego rozwoju zawodowego i potrzeby ocenianego w zakresie podnoszenia kwalifikacji i doskonalenia"}
+
+  pierwsza:
+    - id: zakres.pierwsza.elementy
+      punkt: Postawa, zaangażowanie i postępy w pracy, relacje ze współpracownikami, terminowość – oceniane elementami oceny.
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 7 pkt 1 w zw. z § 2 pkt 1", strona: 1,
+           cytat_dosłowny: "postawę ocenianego, jego zaangażowanie i postępy w pracy, relacje ze współpracownikami oraz terminowość"}
+    - id: zakres.pierwsza.egzamin
+      punkt: Wynik egzaminu ze służby przygotowawczej – jeśli oceniany był obowiązany do niego przystąpić.
+      warunek: egzamin_obowiazkowy
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 2 pkt 2", strona: 1,
+           cytat_dosłowny: "wynik egzaminu ze służby przygotowawczej, jeżeli oceniany był obowiązany do przystąpienia do tego egzaminu"}
+    - id: zakres.pierwsza.sprawozdanie
+      punkt: Sprawozdanie sporządzone przez ocenianego.
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 2 pkt 3", strona: 1,
+           cytat_dosłowny: "sprawozdanie sporządzone przez ocenianego"}
+    - id: zakres.pierwsza.rozwoj
+      punkt: Można omówić kierunki dalszego rozwoju zawodowego i potrzeby (fakultatywnie).
+      adnotacje:
+        - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 7 pkt 1", strona: 2,
+           cytat_dosłowny: "może omówić także kierunki dalszego rozwoju zawodowego i potrzeby ocenianego"}
+  # Przypis 2 arkusza pierwszej oceny powtarza ten zakres, ale ekstraktor core nie czyta
+  # przypisów DOCX (word/footnotes.xml) – nie da się go zacytować. Zgłoszone do A (#39).
+
+# ---------------------------------------------------------------------------------------
+# Szablony pytań. Pola {…} wypełnia asystent z danych procesu. Każdy szablon ma
+# `powiazanie` (skąd pytanie) i `uzasadnienie` (dlaczego je zadać).
+# ---------------------------------------------------------------------------------------
+szablony_pytan:
+  - id: pyt.wskaznik.przyklad
+    powiazanie: wskaznik
+    tresc: "Opowiedz o konkretnej sytuacji z ocenianego okresu związanej z: „{wskaznik}”. Co było zadaniem, co zrobiłeś/zrobiłaś i jaki był rezultat?"
+    uzasadnienie: Model kompetencji każe opierać ocenę na przykładach – sytuacja, działanie, rezultat.
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
+         cytat_dosłowny: "Zapisz sytuację, działanie i jego rezultat."}
+
+  - id: pyt.wskaznik.standard
+    powiazanie: wskaznik
+    tresc: "Dla wskaźnika „{wskaznik}” standard to: „{opis_na_poziomie_oczekiwan}”. Jak to wyglądało w Twojej pracy – co działało, a co było trudne?"
+    uzasadnienie: Poziom „na poziomie oczekiwań” opisuje standard wykonania; rozmowa porównuje zachowanie z tym standardem.
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A4",
+         cytat_dosłowny: "Poziom „na poziomie oczekiwań” opisuje standard wykonania w tym zakresie."}
+
+  - id: pyt.wskaznik.powtarzalnosc
+    powiazanie: przyklad
+    tresc: "Przykład: „{przyklad}”. Czy to było typowe dla całego okresu, czy jednorazowe? Jak złożona była sytuacja i jakie miałeś/miałaś uprawnienia?"
+    uzasadnienie: Przy ocenie przykładu model każe uwzględnić powtarzalność, złożoność sytuacji i uprawnienia.
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
+         cytat_dosłowny: "Uwzględnij powtarzalność zachowania, złożoność sytuacji i dostępne uprawnienia."}
+
+  - id: pyt.osp.zadanie
+    powiazanie: zadanie_osp
+    sciezka: okresowa
+    tresc: "Zadanie z opisu stanowiska: „{zadanie_osp}”. Jak je realizowałeś/realizowałaś w tym okresie i co było efektem?"
+    uzasadnienie: Rozmowa oceniająca obejmuje główne obowiązki i sposób ich realizacji.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 1", strona: 3,
+         cytat_dosłowny: "główne obowiązki wykonywane przez ocenianego w okresie, w którym podlegał ocenie, oraz sposób ich realizacji"}
+
+  - id: pyt.cele
+    powiazanie: przepis
+    sciezka: okresowa
+    warunek: cele_wyznaczone
+    tresc: "Na początku okresu ustaliliśmy cel: „{cel}”. W jakim stopniu udało się go osiągnąć i co na to wpłynęło?"
+    uzasadnienie: Jeśli wyznaczono cele, rozmowa obejmuje sposób ich realizowania.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 2", strona: 3,
+         cytat_dosłowny: "sposób realizowania przez ocenianego celów do osiągnięcia w okresie, w którym oceniany podlegał ocenie, jeżeli cele"}
+
+  - id: pyt.rozwoj.okresowa
+    powiazanie: przepis
+    sciezka: okresowa
+    tresc: "Które umiejętności chcesz rozwinąć w kolejnym okresie i jakie wsparcie byłoby najbardziej przydatne?"
+    uzasadnienie: Rozmowa oceniająca obejmuje kierunki rozwoju i potrzeby w zakresie kwalifikacji.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 3", strona: 3,
+         cytat_dosłowny: "kierunki dalszego rozwoju zawodowego i potrzeby ocenianego w zakresie podnoszenia kwalifikacji i doskonalenia"}
+
+  - id: pyt.sprawozdanie
+    powiazanie: przepis
+    sciezka: pierwsza
+    tresc: "W sprawozdaniu opisałeś/opisałaś: „{fragment_sprawozdania}”. Które zadanie było najtrudniejsze i czego się z niego nauczyłeś/nauczyłaś?"
+    uzasadnienie: Pierwszą ocenę dokonuje się, biorąc pod uwagę sprawozdanie ocenianego.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 2 pkt 3", strona: 1,
+         cytat_dosłowny: "sprawozdanie sporządzone przez ocenianego"}
+
+  - id: pyt.rozwoj.pierwsza
+    powiazanie: przepis
+    sciezka: pierwsza
+    tresc: "Jak widzisz swój dalszy rozwój w urzędzie i czego potrzebujesz, żeby go osiągnąć?"
+    uzasadnienie: W pierwszej ocenie przełożony może omówić kierunki rozwoju i potrzeby (fakultatywnie).
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 7 pkt 1", strona: 2,
+         cytat_dosłowny: "może omówić także kierunki dalszego rozwoju zawodowego i potrzeby ocenianego"}
+
+# ---------------------------------------------------------------------------------------
+# Struktura argumentu uzasadniającego ocenę wskaźnika (porządkowanie argumentów).
+# ---------------------------------------------------------------------------------------
+struktura_argumentu:
+  id: argument.zachowanie-przyklad-rezultat
+  pola:
+    - {pole: zachowanie, opis: "Opis zachowania z modelu dla wybranego poziomu (cytat z Model_kompetencji.xlsx)."}
+    - {pole: przyklad, opis: "Sytuacja i działanie z ocenianego okresu."}
+    - {pole: rezultat, opis: "Co z tego wynikło."}
+  adnotacje:
+    - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
+       cytat_dosłowny: "Oprzyj ocenę na konkretnych przykładach z ocenianego okresu."}
+
+# ---------------------------------------------------------------------------------------
+# Szkic informacji zwrotnej: mocne strony i obszary rozwoju z wybranych poziomów.
+# ---------------------------------------------------------------------------------------
+informacja_zwrotna:
+  id: feedback.szkic
+  mocne_strony_od_poziomu: powyzej        # wskaźniki ocenione „powyżej” i „znacznie powyżej”
+  obszary_rozwoju_do_poziomu: ponizej     # wskaźniki ocenione „poniżej” i „znacznie poniżej”
+  szablon_mocnej_strony: "Mocna strona – {wskaznik}: {przyklad}."
+  szablon_obszaru_rozwoju: "Do rozwoju – {wskaznik}: oczekiwany standard to „{opis_na_poziomie_oczekiwan}”."
+  adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Treść zadania (pkt 1) wymaga rozmowy o mocnych stronach i obszarach rozwoju; podział
+        według wybranych poziomów modelu jest deterministyczny, a tekst pisze przełożony.
+      zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR
+
+# ---------------------------------------------------------------------------------------
+# Kwestie, które asystent wskazuje do omówienia (z danych procesu, bez zmiany ocen).
+# ---------------------------------------------------------------------------------------
+kwestie_do_omowienia:
+  - id: kwestia.brak-podstaw
+    warunek: wskaznik_brak_podstaw
+    tresc: "Wskaźnik „{wskaznik}” oznaczono jako brak podstaw do oceny – ustal, czy w kolejnym okresie będzie okazja go zaobserwować."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A6",
+         cytat_dosłowny: "odnotuj brak podstaw do oceny danego wskaźnika"}
+
+  - id: kwestia.odchylenie-od-sugestii
+    warunek: odchylenie_od_sugestii
+    prog_poziomow: 2
+    tresc: "Wybrany poziom „{wybrany}” różni się od sugerowanego „{sugerowany}” o {roznica} poziomy – przygotuj przykład, który to uzasadnia."
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          #35 wymaga wskazania dużego odchylenia od sugestii. Próg 2 poziomów skali
+          (np. sugestia „na poziomie”, wybór „znacznie powyżej”) – decyzja należy do przełożonego,
+          asystent tylko prosi o uzasadnienie.
+        zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR
+
+  - id: kwestia.znacznie-ponizej
+    sciezka: okresowa
+    warunek: ocena_czastkowa_znacznie_ponizej
+    tresc: "Kryterium „{kryterium}” ma ocenę „znacznie poniżej oczekiwań” – to przesądza o ocenie negatywnej; omów konkretne przykłady i oczekiwania."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 1 pkt 4", strona: 3,
+         cytat_dosłowny: "a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie znacznie poniżej oczekiwań"}
+
+  - id: kwestia.sprawozdanie-niezlozone
+    sciezka: pierwsza
+    warunek: sprawozdanie_niezlozone
+    tresc: "Sprawozdanie nie zostało złożone w wyznaczonym terminie – to warunek pozytywnej pierwszej oceny; omów przyczyny."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 1 pkt 2", strona: 3,
+         cytat_dosłowny: "złożenie sprawozdania w wyznaczonym terminie"}
+
+  - id: kwestia.dwie-oceny-3pkt
+    sciezka: pierwsza
+    warunek: wiecej_niz_jedna_ocena_3pkt
+    tresc: "Więcej niż jeden element oceniony na 3 punkty – pozytywna pierwsza ocena wymaga najwyżej jednego takiego elementu."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 1 pkt 3", strona: 3,
+         cytat_dosłowny: "uzyskanie nie więcej niż jednej oceny cząstkowej, o której mowa w § 7 pkt 2, w wysokości 3 punktów"}
+
+# ---------------------------------------------------------------------------------------
+# Ochrona danych: co wolno wysłać do opcjonalnego modelu redakcyjnego.
+# ---------------------------------------------------------------------------------------
+dane_dla_modelu:
+  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp]
+  zabronione: [imie, nazwisko, osoba_id, przyklad, notatka, fragment_sprawozdania, cel]
+  adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        #35: dane osobowe nie trafiają do zewnętrznego modelu. Przykłady, notatki i
+        sprawozdanie mogą zawierać dane osobowe, więc zostają w trybie deterministycznym.
+      zatwierdził: osoba D (#35) – do zatwierdzenia przez A w PR

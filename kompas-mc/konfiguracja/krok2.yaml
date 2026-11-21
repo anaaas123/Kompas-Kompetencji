@@ -1,0 +1,161 @@
+# Krok 2 wersji MC (#30): kryteria obowiązkowe i dodatkowe, dobór wskaźników do zadań z OSP.
+# Treść merytoryczna z cytatami; kod (kompas_mc/krok2.py) łączy ją z modelem kompetencji i OSP.
+# Kompetencje i wskaźniki wskazujemy przez `id` z /api/model-kompetencji (slug nazwy z modelu).
+
+wersja: krok2-mc-1
+
+obowiazkowe:
+  PIERWSZA:
+    kompetencje:
+      - rzetelnosc
+      - wykorzystywanie-wiedzy-i-doskonalenie-zawodowe
+      - organizacja-pracy-i-orientacja-na-osiaganie-celow
+      - komunikacja
+      - wspolpraca
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 2 pkt 1
+        strona: 1
+        cytat_dosłowny: >-
+          oceniane za pomocą następujących elementów oceny: a) rzetelność, b) wykorzystywanie
+          wiedzy i doskonalenie zawodowe, c) organizacja pracy i orientacja na osiąganie celów,
+          d) komunikacja, e) współpraca;
+  B:
+    kompetencje:
+      - zarzadzanie-ludzmi
+      - podejmowanie-decyzji-i-odpowiedzialnosc
+      - organizacja-pracy-i-orientacja-na-osiaganie-celow
+      - wspolpraca
+      - komunikacja
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 4 ust. 2
+        strona: 2
+        cytat_dosłowny: >-
+          2. Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 3, ocenia się,
+          stosując następujące kryteria obowiązkowe: 1) zarządzanie ludźmi; 2) podejmowanie decyzji
+          i odpowiedzialność; 3) organizacja pracy i orientacja na osiąganie celów; 4) współpraca;
+          5) komunikacja.
+  C:
+    kompetencje:
+      - wykorzystywanie-wiedzy-i-doskonalenie-zawodowe
+      - rzetelnosc
+      - organizacja-pracy-i-orientacja-na-osiaganie-celow
+      - wspolpraca
+      - komunikacja
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 4 ust. 3
+        strona: 2
+        cytat_dosłowny: >-
+          3. Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 4, ocenia się,
+          stosując następujące kryteria obowiązkowe: 1) wykorzystywanie wiedzy i doskonalenie
+          zawodowe; 2) rzetelność; 3) organizacja pracy i orientacja na osiąganie celów;
+          4) współpraca; 5) komunikacja.
+
+dodatkowe:
+  okresowa:
+    limit: 3
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 5 ust. 2
+        strona: 2
+        cytat_dosłowny: >-
+          Oceniający może wybrać z wykazu kryteriów oceny nie więcej niż 3 kryteria dodatkowe,
+          najistotniejsze ze względu na charakter obowiązków wynikających z opisu stanowiska pracy
+          zajmowanego przez ocenianego.
+  pierwsza:
+    limit: 0
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 2
+        strona: 1
+        cytat_dosłowny: >-
+          Pierwszej oceny pracownika służby cywilnej, zwanego dalej „ocenianym”, dokonuje się,
+          biorąc pod uwagę:
+        uzasadnienie: >-
+          § 2 rozp. 2015 wymienia zamkniętą listę pięciu elementów oceny; rozporządzenie nie
+          przewiduje kryteriów dodatkowych.
+
+# Gdzie szukać nazwy wskaźnika w przepisach (test zgodności i pole `podstawa` przy wskaźniku).
+podstawa_wskaznikow:
+  okresowa: rozp-2016-okresowe
+  pierwsza: rozp-2015-pierwsza
+
+metodyka:
+  id: krok2-mc-1
+  status: DECYZJA_PROJEKTOWA – wymaga zatwierdzenia
+  opis: >-
+    Zadanie z OSP uzasadnia wskaźnik, gdy zawiera któreś ze słów kluczowych wskaźnika (porównanie
+    bez wielkości liter, fragment słowa). Wskaźnik z co najmniej jednym zadaniem jest proponowany.
+    Kryterium dodatkowe dostaje 3 pkt, gdy jest kompetencją miękką z OSP, oraz 2 pkt za każde
+    zadanie dominujące i 1 pkt za każde pozostałe zadanie pasujące do jego wskaźników. System
+    proponuje najwyżej tyle kryteriów, ile wynosi limit, z punktami > 0. Decyzja należy do
+    przełożonego.
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: model-kompetencji
+      lokalizator: Model kompetencji!A4
+      cytat_dosłowny: Dobierz wskaźniki do zadań i zakresu odpowiedzialności na stanowisku.
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Model kompetencji każe dobrać wskaźniki do zadań, ale nie podaje sposobu. Słowa kluczowe
+        dobrała drużyna; są jawne i do zatwierdzenia przez mentora MC.
+      zatwierdził: osoba E (ścieżka oceny MC) – do zatwierdzenia przez mentora MC
+
+# Słowa kluczowe wskaźników (fragmenty słów, małe litery). DECYZJA_PROJEKTOWA (zob. metodyka).
+slowa_kluczowe:
+  rzetelnosc.1: [przepis, procedur, zgodn, standard, kontrol]
+  rzetelnosc.2: [termin, harmonogram]
+  komunikacja.1: [uzgodn, konsultac, kontakt, spotka]
+  komunikacja.2: [spotka, wyjaśnie, konsultac, wizyt]
+  komunikacja.3: [pism, odpowiedzi, opini, informacji zawierając, materiał, dokumentac, wkład]
+  komunikacja.4: [stanowisk, rekomendac, propozycj]
+  wykorzystywanie-wiedzy-i-doskonalenie-zawodowe.1: [analiz, ocen, interpretac, stosowania]
+  wykorzystywanie-wiedzy-i-doskonalenie-zawodowe.2: [monitor, aktualiz, orzecznictw, wytycznych]
+  wykorzystywanie-wiedzy-i-doskonalenie-zawodowe.3: [orzecznictw, wytycznych, praktyki, dokumentac]
+  organizacja-pracy-i-orientacja-na-osiaganie-celow.1: [planow, organiz, opracow]
+  organizacja-pracy-i-orientacja-na-osiaganie-celow.2: [priorytet, termin]
+  organizacja-pracy-i-orientacja-na-osiaganie-celow.3: [budżet, zasob, finans, wydatk, zamówie]
+  organizacja-pracy-i-orientacja-na-osiaganie-celow.4: [zmian, dostosow, aktualiz]
+  organizacja-pracy-i-orientacja-na-osiaganie-celow.5: [koordyn, nadzor]
+  kreatywnosc.1: [propozycj, usprawni, innowac, nowych rozwiązań]
+  kreatywnosc.2: [barier, innowac, bezprecedens]
+  wspolpraca.1: [współprac, zespoł, bierze udział, uczestniczy]
+  wspolpraca.2: [wymian, przekaz, przepływ]
+  wspolpraca.3: [zespoł]
+  wspolpraca.4: [wkład, zespoł]
+  wspolpraca.5: [uzgodn, konsultac, godzeni]
+  wspolpraca.6: [wsparci, doradz, szkoleni, wyjaśnie]
+  myslenie-analityczne.1: [analiz, ocen]
+  myslenie-analityczne.2: [analiz, identyfik, rozbieżnoś, zależnoś]
+  myslenie-analityczne.3: [wniosk, rekomendac, propozycj]
+  negocjowanie.1: [negocjac, uzgodn, postępowa]
+  negocjowanie.2: [negocjac, godzeni]
+  negocjowanie.3: [negocjac, uzgodn, umow]
+  wystapienia-publiczne.1: [konferencj, prezentac, seminar, kongres, wystąpie]
+  wystapienia-publiczne.2: [konferencj, prezentac, seminar, warsztat]
+  wystapienia-publiczne.3: [konferencj, prezentac, wystąpie]
+  wystapienia-publiczne.4: [konferencj, medialn, wystąpie]
+  orientacja-na-klienta-interesanta.1: [interesant, obywatel, przedsiębior, obsług]
+  orientacja-na-klienta-interesanta.2: [wnioskując, zapytania, odpowiedzi na pisma, interesant]
+  radzenie-sobie-w-sytuacjach-kryzysowych.1: [kryzys, incydent, zagroż]
+  radzenie-sobie-w-sytuacjach-kryzysowych.2: [kryzys, incydent, reagowa]
+  radzenie-sobie-w-sytuacjach-kryzysowych.3: [kryzys, odporn]
+  zarzadzanie-strategiczne.1: [strateg, polityk, kierunk]
+  zarzadzanie-strategiczne.2: [celów, operacyjn, polityk]
+  zarzadzanie-strategiczne.3: [ryzyk, strateg]
+  zarzadzanie-ludzmi.1: [deleg, koordynuje pracę zespołu]
+  zarzadzanie-ludzmi.2: [monitor, nadzor, postęp]
+  zarzadzanie-ludzmi.3: [zespoł]
+  zarzadzanie-ludzmi.4: [zespoł]
+  zarzadzanie-ludzmi.5: [konflikt, godzeni]
+  zarzadzanie-ludzmi.6: [wspiera pracowników, rozwój pracowników]
+  podejmowanie-decyzji-i-odpowiedzialnosc.1: [analiz, ryzyk, rekomendac]
+  podejmowanie-decyzji-i-odpowiedzialnosc.2: [decyzj]
+  podejmowanie-decyzji-i-odpowiedzialnosc.3: [odpowiedzialn, decyzj]

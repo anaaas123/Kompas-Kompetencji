@@ -1,0 +1,32 @@
+[project]
+name = "kompas-core"
+version = "0.1.0"
+description = "Wspólny core Kompasu Kompetencji: mechanizmy bez treści merytorycznej."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6",
+    "pypdf>=4.0",
+    "openpyxl>=3.1",
+    "pyyaml>=6.0",
+    "reportlab>=4.0",
+    "fastapi>=0.110",
+]
+
+[project.scripts]
+kompas-waliduj = "kompas_core.zrodla.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "httpx2>=2.16",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kompas_core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

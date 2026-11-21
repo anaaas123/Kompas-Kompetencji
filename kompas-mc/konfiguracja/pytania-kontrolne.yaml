@@ -1,0 +1,306 @@
+# Pytania kontrolne asystenta formalnego (wersja MC, #37).
+# Źródło: wyłącznie folder „materialy mc”. Każde pytanie z bazy ma oczekiwany dokument,
+# jednostkę redakcyjną (lokalizator), stronę PDF i dosłowny cytat. Cytaty sprawdza
+#   kompas-waliduj --manifest korpus.yaml pytania-kontrolne.yaml
+#   oraz testy: cd backend && uv run pytest tests/test_asystent_formalny.py -s
+# doc_id jak w konfiguracja/korpus.yaml.
+# Strony = numer strony pliku PDF (jak w Fragment.strona), nie numer drukowany.
+
+wersja: 1
+autor: D
+
+z_bazy:
+  # ---------------- Pierwsza ocena: rozporządzenie PRM z 23 lipca 2015 r. ----------------
+  - id: PK-01
+    sciezka: pierwsza
+    pytanie: W jakim terminie bezpośredni przełożony musi przeprowadzić rozmowę wstępną z nowym pracownikiem podlegającym pierwszej ocenie?
+    oczekiwana_odpowiedz: W terminie 21 dni od dnia nawiązania stosunku pracy (przy zastępstwie – 21 dni od ustalenia, że oceniany podlega pierwszej ocenie).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 3"
+        strona: 1
+        cytat_dosłowny: "W terminie 21 dni od dnia nawiązania z ocenianym stosunku pracy"
+
+  - id: PK-02
+    sciezka: pierwsza
+    pytanie: Co przełożony omawia z pracownikiem podczas rozmowy wstępnej przed pierwszą oceną?
+    oczekiwana_odpowiedz: Zapoznaje ze sposobem dokonywania pierwszej oceny, omawia główne obowiązki z opisu stanowiska i oczekiwania, oczekiwania co do postawy, zaangażowania, relacji i terminowości oraz wyznacza termin złożenia sprawozdania.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 3 pkt 1–4"
+        strona: 1
+        cytat_dosłowny: "zapoznaje ocenianego ze sposobem dokonywania pierwszej oceny"
+
+  - id: PK-03
+    sciezka: pierwsza
+    pytanie: Jak wyznaczyć termin złożenia sprawozdania w pierwszej ocenie?
+    oczekiwana_odpowiedz: Tak, aby przypadał po upływie 8 miesięcy od nawiązania stosunku pracy i aby pierwsza ocena mogła nastąpić w terminie z art. 38 ust. 1 ustawy.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 4 ust. 1"
+        strona: 2
+        cytat_dosłowny: "przypadał on po upływie 8 miesięcy od dnia nawiązania z ocenianym stosunku pracy"
+
+  - id: PK-04
+    sciezka: pierwsza
+    pytanie: Pracownik był na zwolnieniu lekarskim. Czy można przesunąć termin złożenia sprawozdania?
+    oczekiwana_odpowiedz: Tak. Przy usprawiedliwionej nieobecności przełożony wyznacza nowy termin, przedłużając dotychczasowy o okres nieobecności, i niezwłocznie zawiadamia pisemnie ocenianego (§ 5 ust. 4).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 5 ust. 1"
+        strona: 2
+        cytat_dosłowny: "przedłużając dotychczasowy termin o okres tej nieobecności"
+
+  - id: PK-05
+    sciezka: pierwsza
+    pytanie: Jaki okres pracy musi obejmować sprawozdanie pracownika do pierwszej oceny?
+    oczekiwana_odpowiedz: Przepracowany okres nie krótszy niż 7 miesięcy.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 6 ust. 1"
+        strona: 2
+        cytat_dosłowny: "Sprawozdanie obejmuje przepracowany przez ocenianego okres nie krótszy niż 7 miesięcy."
+
+  - id: PK-06
+    sciezka: pierwsza
+    pytanie: Jakie elementy oceny bierze się pod uwagę w pierwszej ocenie?
+    oczekiwana_odpowiedz: Rzetelność; wykorzystywanie wiedzy i doskonalenie zawodowe; organizacja pracy i orientacja na osiąganie celów; komunikacja; współpraca – oraz wynik egzaminu ze służby przygotowawczej (jeśli obowiązywał) i sprawozdanie.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 2 pkt 1"
+        strona: 1
+        cytat_dosłowny: "wykorzystywanie wiedzy i doskonalenie zawodowe"
+
+  - id: PK-07
+    sciezka: pierwsza
+    pytanie: Jaka jest skala punktowa ocen cząstkowych w pierwszej ocenie?
+    oczekiwana_odpowiedz: 3 pkt – poniżej oczekiwań, 5 pkt – na poziomie oczekiwań, 7 pkt – powyżej oczekiwań.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 9 ust. 1"
+        strona: 3
+        cytat_dosłowny: "3 punkty – poniżej oczekiwań"
+
+  - id: PK-08
+    sciezka: pierwsza
+    pytanie: Jakie warunki trzeba spełnić, aby otrzymać pozytywną pierwszą ocenę?
+    oczekiwana_odpowiedz: Zaliczony egzamin ze służby przygotowawczej, sprawozdanie złożone w terminie, nie więcej niż jedna ocena cząstkowa za 3 pkt i ocena łączna nie niższa niż 5 pkt.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 10 ust. 1"
+        strona: 3
+        cytat_dosłowny: "uzyskanie nie więcej niż jednej oceny cząstkowej, o której mowa w § 7 pkt 2, w wysokości 3 punktów"
+
+  - id: PK-09
+    sciezka: pierwsza
+    pytanie: Czy absolwent KSAP musi mieć zaliczony egzamin ze służby przygotowawczej, żeby dostać pozytywną pierwszą ocenę?
+    oczekiwana_odpowiedz: Nie, jeśli nie złożył wniosku o mianowanie – warunku egzaminu nie stosuje się.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 10 ust. 3 pkt 1"
+        strona: 3
+        cytat_dosłowny: "absolwentem Krajowej Szkoły Administracji Publicznej, który nie złożył wniosku o mianowanie w służbie cywilnej"
+
+  - id: PK-10
+    sciezka: pierwsza
+    pytanie: Czy przy pierwszej ocenie trzeba pisać uzasadnienie?
+    oczekiwana_odpowiedz: Obowiązkowo przy ocenie negatywnej; przy pozytywnej przełożony może je sporządzić (§ 10 ust. 5).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: "§ 10 ust. 4"
+        strona: 3
+        cytat_dosłowny: "W przypadku przyznania negatywnej pierwszej oceny bezpośredni przełożony sporządza uzasadnienie przyznanej oceny."
+
+  # ---------------- Ocena okresowa: rozporządzenie PRM z 4 kwietnia 2016 r. ----------------
+  - id: PK-11
+    sciezka: okresowa
+    pytanie: Na którym arkuszu oceniam naczelnika wydziału, który kieruje zespołem?
+    oczekiwana_odpowiedz: Arkusz B – stanowisko polegające na bezpośrednim kierowaniu pracownikami (inne niż kierownik urzędu).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 3 ust. 3"
+        strona: 1
+        cytat_dosłowny: "na którym praca polega na bezpośrednim kierowaniu pracownikami"
+
+  - id: PK-12
+    sciezka: okresowa
+    pytanie: Jakie są kryteria obowiązkowe dla pracownika bez podwładnych (arkusz C)?
+    oczekiwana_odpowiedz: Wykorzystywanie wiedzy i doskonalenie zawodowe, rzetelność, organizacja pracy i orientacja na osiąganie celów, współpraca, komunikacja.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 4 ust. 3"
+        strona: 2
+        cytat_dosłowny: "Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 4, ocenia się, stosując następujące kryteria obowiązkowe"
+
+  - id: PK-13
+    sciezka: okresowa
+    pytanie: Ile kryteriów dodatkowych mogę wybrać w ocenie okresowej?
+    oczekiwana_odpowiedz: Nie więcej niż 3, najistotniejsze ze względu na charakter obowiązków z opisu stanowiska.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 5 ust. 2"
+        strona: 2
+        cytat_dosłowny: "nie więcej niż 3 kryteria dodatkowe"
+
+  - id: PK-14
+    sciezka: okresowa
+    pytanie: Do kiedy muszę przeprowadzić rozmowę rozpoczynającą okres oceny i ustalić kryteria?
+    oczekiwana_odpowiedz: 30 dni od sporządzenia poprzedniej oceny lub od zatrudnienia na czas nieokreślony; 7 dni od sporządzenia oceny negatywnej.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 7"
+        strona: 2
+        cytat_dosłowny: "7 dni od dnia sporządzenia na piśmie negatywnej oceny"
+
+  - id: PK-15
+    sciezka: okresowa
+    pytanie: Jaka jest skala ocen cząstkowych w ocenie okresowej?
+    oczekiwana_odpowiedz: 1 – znacznie poniżej, 3 – poniżej, 5 – na poziomie, 7 – powyżej, 9 – znacznie powyżej oczekiwań.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 11 ust. 1 pkt 1"
+        strona: 3
+        cytat_dosłowny: "znacznie powyżej oczekiwań – 9 punktów"
+
+  - id: PK-16
+    sciezka: okresowa
+    pytanie: Średnia ocen cząstkowych wyszła 4,2. Jaki to ogólny poziom spełniania kryteriów?
+    oczekiwana_odpowiedz: Na poziomie oczekiwań (powyżej 4 do 6 pkt) – o ile żadna ocena cząstkowa nie jest „znacznie poniżej oczekiwań”, ocena jest pozytywna.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 11 ust. 1 pkt 2 lit. c"
+        strona: 3
+        cytat_dosłowny: "na poziomie oczekiwań – powyżej 4 punktów do 6 punktów"
+
+  - id: PK-17
+    sciezka: okresowa
+    pytanie: Pracownik ma średnią 6,0, ale jedno kryterium oceniłam na 1 punkt. Czy ocena jest pozytywna?
+    oczekiwana_odpowiedz: Nie. Co najmniej jedna ocena cząstkowa „znacznie poniżej oczekiwań” oznacza ocenę negatywną niezależnie od średniej.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 11 ust. 1 pkt 4"
+        strona: 3
+        cytat_dosłowny: "a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie znacznie poniżej oczekiwań"
+
+  - id: PK-18
+    sciezka: okresowa
+    pytanie: W trakcie okresu oceny zmienił się przełożony. Czy nowy oceniający może zmienić kryteria?
+    oczekiwana_odpowiedz: Nie – ocenę sporządza się na podstawie wybranych wcześniej kryteriów.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 9 ust. 3"
+        strona: 3
+        cytat_dosłowny: "ocena jest sporządzana na podstawie wybranych wcześniej kryteriów"
+
+  - id: PK-19
+    sciezka: okresowa
+    pytanie: Kiedy w ocenie okresowej mogę złożyć wniosek o kolejny stopień służbowy dla pracownika?
+    oczekiwana_odpowiedz: Przy ocenie pozytywnej urzędnika służby cywilnej – umotywowany wniosek w części III arkusza.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: "§ 11 ust. 5"
+        strona: 3
+        cytat_dosłowny: "umotywowany wniosek o przyznanie ocenianemu kolejnego stopnia służbowego, wypełniając część III arkusza"
+
+  # ---------------- Poradnik KPRM – oceny okresowe ----------------
+  - id: PK-20
+    sciezka: okresowa
+    pytanie: Jak często sporządza się ocenę okresową?
+    oczekiwana_odpowiedz: Co 24 miesiące, licząc od zakończenia poprzedniej oceny lub od zatrudnienia na czas nieokreślony.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: "rozdz. 4. Termin sporządzenia oceny okresowej w służbie cywilnej"
+        strona: 8
+        cytat_dosłowny: "Ocenę okresową w służbie cywilnej sporządza się co 24 miesiące"
+
+  - id: PK-21
+    sciezka: okresowa
+    pytanie: Pracownik nie zgadza się z oceną okresową. W jakim terminie i do kogo może wnieść sprzeciw?
+    oczekiwana_odpowiedz: Do dyrektora generalnego urzędu w terminie 7 dni od zapoznania się z oceną; sprzeciw rozpatruje się w 14 dni (poradnik cytuje art. 83 ustawy).
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: "rozdz. 7. Sprzeciw od otrzymanej oceny"
+        strona: 32
+        cytat_dosłowny: "Od oceny okresowej służy sprzeciw do dyrektora generalnego urzędu w terminie 7 dni od dnia zapoznania"
+
+  # ---------------- Model kompetencji ----------------
+  - id: PK-22
+    sciezka: wspolne
+    pytanie: Nie miałam okazji zaobserwować u pracownika jednego ze wskaźników. Co zrobić?
+    oczekiwana_odpowiedz: Odnotować brak podstaw do oceny danego wskaźnika.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: model-kompetencji
+        lokalizator: "Model kompetencji!A6"
+        cytat_dosłowny: "odnotuj brak podstaw do oceny danego wskaźnika"
+
+# Pytania spoza bazy: asystent ma jasno powiedzieć, że baza wiedzy tego nie obejmuje,
+# i nie generować odpowiedzi. Brak tematu sprawdzony grepem po tekście wszystkich plików
+# „materialy mc” (wzorce w polu sprawdzono_wzorcem).
+spoza_bazy:
+  - id: PS-01
+    pytanie: Czy mój pracownik może pracować zdalnie trzy dni w tygodniu?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Praca zdalna nie występuje w materialy mc (wzorzec: zdaln|telepra)."
+
+  - id: PS-02
+    pytanie: Ile wynosi dodatek stażowy (za wieloletnią pracę) członka korpusu służby cywilnej?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Dodatki do wynagrodzenia nie występują w materialy mc (wzorzec: dodatek stażowy/za wieloletnią/służby cywilnej)."
+
+  - id: PS-03
+    pytanie: Pracownik zgłasza mobbing ze strony kolegi. Jaką procedurę mam uruchomić?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Mobbing nie występuje w materialy mc (wzorzec: mobbing)."
+
+  - id: PS-04
+    pytanie: Jak rozliczyć nadgodziny pracownika służby cywilnej?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Nadgodziny nie występują w materialy mc (wzorzec: nadgodzin|godzin nadliczbow)."
+
+  - id: PS-05
+    pytanie: Kiedy wypłacane jest dodatkowe wynagrodzenie roczne („trzynastka”)?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Dodatkowe wynagrodzenie roczne nie występuje w materialy mc (wzorzec: trzynast)."
+
+  - id: PS-06
+    pytanie: Jaka będzie jutro pogoda w Warszawie?
+    oczekiwane_zachowanie: BRAK_W_BAZIE
+    adnotacje:
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: "Pytanie spoza dziedziny – kontrola odmowy."
+
+# Uwaga dla #37: tematy, które WYGLĄDAJĄ na spoza bazy, ale są w poradnikach, więc
+# NIE używać ich jako pytań spoza bazy: nagrody, urlop (wpływ na terminy), wypowiedzenie,
+# mianowanie, sprzeciw/odwołanie (poradnik ocen okresowych, rozdz. 7).

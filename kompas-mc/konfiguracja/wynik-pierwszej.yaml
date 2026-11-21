@@ -1,0 +1,77 @@
+# Rozporządzenie w sprawie pierwszej oceny, zał. 2 i § 7, § 9, § 10.
+wersja: pierwsza-wynik@1
+minimum_sredniej: 5
+najmniejsza_ocena: 3
+maksimum_najnizszych: 1
+srednia:
+  id: pierwsza-srednia
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 2, lokalizator: "§ 7 pkt 3",
+       cytat_dosłowny: "ustaleniu oceny łącznej, będącej średnią arytmetyczną z ocen cząstkowych, o których mowa w pkt 2"}
+pozytywna:
+  id: pierwsza-pozytywna
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 1",
+       cytat_dosłowny: "Warunkiem przyznania pozytywnej pierwszej oceny jest:"}
+negatywna:
+  id: pierwsza-negatywna
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 2",
+       cytat_dosłowny: "Negatywną pierwszą ocenę przyznaje się w przypadku niespełnienia warunków określonych w ust. 1."}
+warunek_egzaminu:
+  id: pierwsza-egzamin
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 1 pkt 1",
+       cytat_dosłowny: "zaliczenie egzaminu ze służby przygotowawczej"}
+warunek_sprawozdania:
+  id: pierwsza-sprawozdanie
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 1 pkt 2",
+       cytat_dosłowny: "złożenie sprawozdania w wyznaczonym terminie"}
+warunek_najnizszych:
+  id: pierwsza-limit-trojek
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 1 pkt 3",
+       cytat_dosłowny: "uzyskanie nie więcej niż jednej oceny cząstkowej, o której mowa w § 7 pkt 2, w wysokości 3 punktów"}
+warunek_sredniej:
+  id: pierwsza-minimum-sredniej
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 1 pkt 4",
+       cytat_dosłowny: "uzyskanie oceny, o której mowa w § 7 pkt 3, nie niższej niż 5 punktów"}
+przeslanki:
+  ksap_bez_wniosku:
+    id: pierwsza-egzamin-ksap
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 3 pkt 1",
+         cytat_dosłowny: "absolwentem Krajowej Szkoły Administracji Publicznej, który nie złożył wniosku o mianowanie w służbie cywilnej"}
+  zastepstwo:
+    id: pierwsza-egzamin-zastepstwo
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        strona: 3
+        lokalizator: § 10 ust. 3 pkt 2
+        cytat_dosłowny: >-
+          pracownikiem służby cywilnej zatrudnionym w celu zastępstwa nieobecnego członka korpusu służby
+          cywilnej, podlegającym pierwszej ocenie
+  wyzsze_stanowisko:
+    id: pierwsza-egzamin-wyzsze-stanowisko
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 3 pkt 3",
+         cytat_dosłowny: "pracownikiem służby cywilnej zatrudnionym na wyższym stanowisku w służbie cywilnej"}
+uzasadnienie:
+  id: pierwsza-uzasadnienie
+  adnotacje:
+    - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, strona: 3, lokalizator: "§ 10 ust. 4",
+       cytat_dosłowny: "W przypadku przyznania negatywnej pierwszej oceny bezpośredni przełożony sporządza uzasadnienie przyznanej oceny."}
+wnioski:
+  id: pierwsza-wnioski
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      strona: 3
+      lokalizator: § 10 ust. 6
+      cytat_dosłowny: >-
+        W przypadku przyznania pozytywnej pierwszej oceny bezpośredni przełożony w porozumieniu z kierującym
+        komórką organizacyjną, w której oceniany jest zatrudniony, może sporządzić w arkuszu wnioski
+        dotyczące rozwoju zawodowego ocenianego.

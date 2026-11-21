@@ -1,0 +1,159 @@
+# Reguły terminów pierwszej oceny w wersji MC. Dni świąteczne urzędu można uzupełnić w konfiguracji.
+wersja: mc-terminy-pierwszej@1
+dni_wolne: []
+
+rozmowa_wstepna:
+  id: pierwsza.termin.rozmowa-wstepna
+  liczba: 21
+  jednostka: dni
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 3
+      strona: 1
+      cytat_dosłowny: W terminie 21 dni od dnia nawiązania z ocenianym stosunku pracy
+rozmowa_wstepna_zastepstwo:
+  id: pierwsza.termin.rozmowa-wstepna-zastepstwo
+  liczba: 21
+  jednostka: dni
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 3
+      strona: 1
+      cytat_dosłowny: >-
+        w terminie 21 dni od dnia ustalenia przez strony stosunku pracy,
+        że oceniany będzie podlegać pierwszej ocenie
+dzien_wolny:
+  id: pierwsza.termin.dzien-wolny
+  liczba: 1
+  jednostka: dni
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-pierwsza
+      doc_version: "2016"
+      lokalizator: rozdz. 4.2, s. 12
+      strona: 12
+      cytat_dosłowny: >-
+        jeżeli termin do wykonania czynności przypada na dzień uznany ustawowo za wolny od pracy
+        (niedziela lub święto), zgodnie z art. 115 Kodeksu cywilnego termin upływa dnia następnego
+uplyw_osmiu_miesiecy:
+  id: pierwsza.termin.uplyw-8-miesiecy
+  liczba: 8
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 4 ust. 1
+      strona: 2
+      cytat_dosłowny: przypadał on po upływie 8 miesięcy od dnia nawiązania z ocenianym stosunku pracy
+po_uplywie_osmiu_miesiecy:
+  id: pierwsza.termin.pierwszy-dzien-po-uplywie
+  liczba: 1
+  jednostka: dni
+  adnotacje:
+    - &okno_oceny_przyklad
+      kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-pierwsza
+      doc_version: "2016"
+      lokalizator: rozdz. 4.1, przykład na s. 9
+      strona: 9
+      cytat_dosłowny: >-
+        Okres, w którym powinna zostać dokonana pierwsza ocena został
+        ustalony – zgodnie z art. 38 ust. 1 ustawy – między 2 maja a 30 lipca
+        2016 r.
+ostatni_miesiac_umowy:
+  id: pierwsza.termin.ostatni-miesiac-umowy
+  liczba: -1
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-pierwsza
+      doc_version: "2016"
+      lokalizator: rozdz. 4, s. 8
+      strona: 8
+      cytat_dosłowny: >-
+        Pierwszej oceny dokonuje się nie wcześniej niż po upływie 8 miesięcy od dnia nawiązania
+        stosunku pracy i nie później niż miesiąc przed upływem okresu, na który została zawarta
+        umowa o pracę ocenianego.
+przed_ostatnim_miesiacem_umowy:
+  id: pierwsza.termin.przed-ostatnim-miesiacem-umowy
+  liczba: -1
+  jednostka: dni
+  adnotacje:
+    - *okno_oceny_przyklad
+wyznaczenie_okna_sprawozdania:
+  id: pierwsza.termin.wyznaczenie-okna-sprawozdania
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 4 ust. 1
+      strona: 2
+      cytat_dosłowny: Termin na złożenie sprawozdania, wskazujący datę początkową i końcową wyznaczonego okresu
+przedluzenie_okres:
+  id: pierwsza.termin.przedluzenie-o-okres
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 5 ust. 1
+      strona: 2
+      cytat_dosłowny: >-
+        przedłużając dotychczasowy termin o okres tej nieobecności albo wykonywania obowiązków
+        służbowych poza miejscem pracy.
+przedluzenie_umowy:
+  id: pierwsza.termin.przedluzenie-umowy
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 5 ust. 2
+      strona: 2
+      cytat_dosłowny: >-
+        Bezpośredni przełożony wyznacza nowy termin na złożenie sprawozdania w przypadku przedłużenia okresu
+        trwania umowy o pracę w okolicznościach wskazanych w art. 35 ust. 4 ustawy.
+granica_przedluzenia:
+  id: pierwsza.termin.granica-przedluzenia
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 5 ust. 3
+      strona: 2
+      cytat_dosłowny: >-
+        aby dokonanie pierwszej oceny mogło nastąpić nie później niż miesiąc przed zakończeniem stosunku pracy.
+zawiadomienie:
+  id: pierwsza.termin.zawiadomienie
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 5 ust. 4
+      strona: 2
+      cytat_dosłowny: >-
+        O wyznaczeniu nowego terminu na złożenie sprawozdania bezpośredni przełożony niezwłocznie zawiadamia
+        pisemnie ocenianego, a kopię pisma dołącza do arkusza.
+okres_sprawozdania:
+  id: pierwsza.termin.sprawozdanie-7-miesiecy
+  liczba: 7
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 6 ust. 1
+      strona: 2
+      cytat_dosłowny: Sprawozdanie obejmuje przepracowany przez ocenianego okres nie krótszy niż 7 miesięcy.
+zlozenie_sprawozdania:
+  id: pierwsza.termin.zlozenie-w-oknie
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      doc_version: "2015"
+      lokalizator: § 10 ust. 1 pkt 2
+      strona: 3
+      cytat_dosłowny: złożenie sprawozdania w wyznaczonym terminie

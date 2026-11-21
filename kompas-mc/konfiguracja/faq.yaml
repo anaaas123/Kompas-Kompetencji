@@ -1,0 +1,419 @@
+# Przygotowany zestaw pytań i odpowiedzi (#37) – część bazy wiedzy asystenta formalnego.
+# Treść zadania MC BDG, pkt 5: baza wiedzy obejmuje „przygotowany zestaw pytań i odpowiedzi”.
+#
+# Każda pozycja: warianty pytania, krótka odpowiedź napisana przez człowieka i źródło
+# (SourceRef z dosłownym cytatem, sprawdzanym przez kompas-waliduj). Asystent pokazuje
+# odpowiedź RAZEM z cytatem; bez cytatu pozycja nie przechodzi walidacji.
+#
+# ZASADA TESTU: warianty pytań NIE kopiują sformułowań z pytania-kontrolne.yaml ani
+# pytania-parafrazy.yaml – oba pliki są zestawami testowymi.
+#
+# Status: DECYZJA_PROJEKTOWA do zatwierdzenia przez A (#37). Autor: D.
+
+wersja: 1
+
+pozycje:
+  # ======================= PIERWSZA OCENA (rozp. 2015) =======================
+  - id: FAQ-P01
+    sciezka: pierwsza
+    pytania:
+      - termin rozmowy wstępnej w pierwszej ocenie
+      - do ilu dni od zatrudnienia przeprowadza się rozmowę wstępną
+      - kiedy najpóźniej spotkać się z nowo przyjętą osobą na rozmowę wstępną
+    odpowiedz: W ciągu 21 dni od nawiązania stosunku pracy (przy zastępstwie – od ustalenia, że osoba podlega pierwszej ocenie).
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 3", strona: 1,
+         cytat_dosłowny: "W terminie 21 dni od dnia nawiązania z ocenianym stosunku pracy"}
+
+  - id: FAQ-P02
+    sciezka: pierwsza
+    pytania:
+      - zakres rozmowy wstępnej
+      - co przełożony robi na rozmowie wstępnej
+      - jakie tematy porusza się na początku pierwszej oceny
+    odpowiedz: Przełożony zapoznaje ze sposobem dokonywania oceny, omawia obowiązki z opisu stanowiska i oczekiwania (postawa, zaangażowanie, relacje, terminowość) oraz wyznacza termin złożenia sprawozdania.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 3 pkt 1–4", strona: 1,
+         cytat_dosłowny: "zapoznaje ocenianego ze sposobem dokonywania pierwszej oceny"}
+
+  - id: FAQ-P03
+    sciezka: pierwsza
+    pytania:
+      - jak ustalić datę złożenia sprawozdania
+      - termin na sprawozdanie a 8 miesięcy od zatrudnienia
+      - na kiedy wyznaczyć sprawozdanie
+    odpowiedz: Termin ustala się tak, aby przypadał po upływie 8 miesięcy od nawiązania stosunku pracy i aby ocenę można było dokonać w terminie z art. 38 ust. 1 ustawy.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 4 ust. 1", strona: 2,
+         cytat_dosłowny: "przypadał on po upływie 8 miesięcy od dnia nawiązania z ocenianym stosunku pracy"}
+
+  - id: FAQ-P04
+    sciezka: pierwsza
+    pytania:
+      - co wpisuje się do arkusza po rozmowie wstępnej
+      - jakie daty trzeba zanotować w arkuszu pierwszej oceny na starcie
+    odpowiedz: Termin rozmowy wstępnej, termin złożenia sprawozdania i okres, w którym ma być dokonana pierwsza ocena.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 4 ust. 2", strona: 2,
+         cytat_dosłowny: "terminie wyznaczonym na złożenie sprawozdania"}
+
+  - id: FAQ-P05
+    sciezka: pierwsza
+    pytania:
+      - nieobecność usprawiedliwiona a termin sprawozdania
+      - czy L4 lub delegacja przedłuża termin złożenia sprawozdania
+      - nowy termin sprawozdania po absencji
+    odpowiedz: Tak. Przełożony wyznacza nowy termin, przedłużając dotychczasowy o okres usprawiedliwionej nieobecności lub pracy poza miejscem pracy, i niezwłocznie zawiadamia pisemnie (§ 5 ust. 4).
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 5 ust. 1", strona: 2,
+         cytat_dosłowny: "przedłużając dotychczasowy termin o okres tej nieobecności"}
+
+  - id: FAQ-P06
+    sciezka: pierwsza
+    pytania:
+      - minimalny okres objęty sprawozdaniem
+      - jak długi okres obejmuje sprawozdanie do pierwszej oceny
+    odpowiedz: Co najmniej 7 miesięcy przepracowanego okresu.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 6 ust. 1", strona: 2,
+         cytat_dosłowny: "Sprawozdanie obejmuje przepracowany przez ocenianego okres nie krótszy niż 7 miesięcy."}
+
+  - id: FAQ-P07
+    sciezka: pierwsza
+    pytania:
+      - co zawiera sprawozdanie ocenianego
+      - co pracownik opisuje w sprawozdaniu
+    odpowiedz: Zadania z opisu stanowiska i inne istotne zadania, napotkane problemy i sposób ich rozwiązania, zdobyte umiejętności i wiedzę oraz wnioski usprawniające.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 6 ust. 2", strona: 2,
+         cytat_dosłowny: "problemy, z którymi spotkał się przy wykonywaniu zadań, i sposób ich rozwiązania"}
+
+  - id: FAQ-P08
+    sciezka: pierwsza
+    pytania:
+      - lista elementów oceny w pierwszej ocenie
+      - co podlega ocenie przy pierwszej ocenie w służbie cywilnej
+      - kompetencje brane pod uwagę w pierwszej ocenie
+    odpowiedz: Rzetelność; wykorzystywanie wiedzy i doskonalenie zawodowe; organizacja pracy i orientacja na osiąganie celów; komunikacja; współpraca – a także wynik egzaminu ze służby przygotowawczej (jeśli obowiązywał) i sprawozdanie.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 2 pkt 1", strona: 1,
+         cytat_dosłowny: "wykorzystywanie wiedzy i doskonalenie zawodowe"}
+
+  - id: FAQ-P09
+    sciezka: pierwsza
+    pytania:
+      - na czym polega dokonanie pierwszej oceny
+      - etapy dokonania pierwszej oceny
+    odpowiedz: Rozmowa oceniająca, oceny cząstkowe za elementy oceny, ocena łączna jako średnia arytmetyczna i przyznanie oceny pozytywnej lub negatywnej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 7", strona: 2,
+         cytat_dosłowny: "ustaleniu oceny łącznej, będącej średnią arytmetyczną z ocen cząstkowych"}
+
+  - id: FAQ-P10
+    sciezka: pierwsza
+    pytania:
+      - punktacja ocen cząstkowych w pierwszej ocenie
+      - 3 5 7 punktów co oznaczają
+    odpowiedz: 3 pkt – poniżej oczekiwań, 5 pkt – na poziomie oczekiwań, 7 pkt – powyżej oczekiwań.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 9 ust. 1", strona: 3,
+         cytat_dosłowny: "3 punkty – poniżej oczekiwań"}
+
+  - id: FAQ-P11
+    sciezka: pierwsza
+    pytania:
+      - kiedy odbywa się rozmowa oceniająca w pierwszej ocenie
+      - po złożeniu sprawozdania co dalej
+    odpowiedz: Niezwłocznie po złożeniu sprawozdania albo po upływie terminu na jego złożenie; może w niej uczestniczyć kierujący komórką organizacyjną.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 8 ust. 1", strona: 3,
+         cytat_dosłowny: "przeprowadza z ocenianym rozmowę oceniającą niezwłocznie po złożeniu sprawozdania"}
+
+  - id: FAQ-P12
+    sciezka: pierwsza
+    pytania:
+      - warunki oceny pozytywnej w pierwszej ocenie
+      - ile ocen za 3 punkty dopuszcza pozytywna pierwsza ocena
+      - minimalna ocena łączna do zaliczenia pierwszej oceny
+    odpowiedz: Zaliczony egzamin ze służby przygotowawczej, sprawozdanie złożone w terminie, najwyżej jedna ocena cząstkowa za 3 pkt i ocena łączna co najmniej 5 pkt. Niespełnienie któregoś warunku = ocena negatywna.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 1", strona: 3,
+         cytat_dosłowny: "uzyskanie nie więcej niż jednej oceny cząstkowej, o której mowa w § 7 pkt 2, w wysokości 3 punktów"}
+
+  - id: FAQ-P13
+    sciezka: pierwsza
+    pytania:
+      - kto jest zwolniony z wymogu egzaminu ze służby przygotowawczej przy pierwszej ocenie
+      - wyjątki od zaliczenia egzaminu KSAP zastępstwo wyższe stanowisko
+    odpowiedz: Absolwent KSAP bez wniosku o mianowanie, osoba zatrudniona na zastępstwo podlegająca pierwszej ocenie oraz osoba na wyższym stanowisku w służbie cywilnej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 3", strona: 3,
+         cytat_dosłowny: "absolwentem Krajowej Szkoły Administracji Publicznej, który nie złożył wniosku o mianowanie w służbie cywilnej"}
+
+  - id: FAQ-P14
+    sciezka: pierwsza
+    pytania:
+      - obowiązek uzasadnienia pierwszej oceny
+      - uzasadnienie oceny pozytywnej i negatywnej w pierwszej ocenie
+    odpowiedz: Przy ocenie negatywnej uzasadnienie jest obowiązkowe; przy pozytywnej przełożony może je sporządzić.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 4", strona: 3,
+         cytat_dosłowny: "W przypadku przyznania negatywnej pierwszej oceny bezpośredni przełożony sporządza uzasadnienie przyznanej oceny."}
+
+  - id: FAQ-P15
+    sciezka: pierwsza
+    pytania:
+      - wnioski rozwojowe w pierwszej ocenie
+      - czy w arkuszu pierwszej oceny wpisuje się plan rozwoju
+    odpowiedz: Tylko przy ocenie pozytywnej; przełożony w porozumieniu z kierującym komórką może sporządzić wnioski dotyczące rozwoju zawodowego.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 6", strona: 3,
+         cytat_dosłowny: "może sporządzić w arkuszu wnioski dotyczące rozwoju zawodowego"}
+
+  - id: FAQ-P16
+    sciezka: pierwsza
+    pytania:
+      - co się dzieje z arkuszem pierwszej oceny po jej zakończeniu
+      - akta osobowe a arkusz pierwszej oceny
+    odpowiedz: Przełożony niezwłocznie umożliwia zapoznanie się z oceną; oryginał arkusza ze sprawozdaniem i pismami o terminach trafia do akt osobowych, a kopia do ocenianego.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 11 ust. 2", strona: 3,
+         cytat_dosłowny: "oryginał arkusza wraz ze sprawozdaniem i pismami dotyczącymi"}
+
+  # ======================= OCENA OKRESOWA (rozp. 2016) =======================
+  - id: FAQ-O01
+    sciezka: okresowa
+    pytania:
+      - kryteria obowiązkowe a dodatkowe
+      - czym różnią się kryteria dodatkowe od obowiązkowych
+    odpowiedz: Kryteria dzielą się na obowiązkowe i dodatkowe; dodatkowe oceniający może wybrać, jeśli uzasadnia to charakter obowiązków z opisu stanowiska.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 2 ust. 2", strona: 1,
+         cytat_dosłowny: "Kryteria oceny dzielą się na kryteria obowiązkowe i kryteria dodatkowe"}
+
+  - id: FAQ-O02
+    sciezka: okresowa
+    pytania:
+      - do kogo stosuje się arkusz A
+      - arkusz oceny dla kierownika urzędu
+    odpowiedz: Arkusz A – dla zatrudnionego na stanowisku kierownika urzędu, które jest stanowiskiem w służbie cywilnej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 3 ust. 2", strona: 1,
+         cytat_dosłowny: "służy do sporządzenia oceny zatrudnio-\nnego na stanowisku kierownika urzędu"}
+
+  - id: FAQ-O03
+    sciezka: okresowa
+    pytania:
+      - kiedy stosuje się arkusz B
+      - arkusz oceny dla naczelnika lub kierownika komórki
+      - formularz dla kogoś kto bezpośrednio kieruje ludźmi
+    odpowiedz: Arkusz B – stanowisko, na którym praca polega na bezpośrednim kierowaniu pracownikami (inne niż kierownik urzędu).
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 3 ust. 3", strona: 1,
+         cytat_dosłowny: "na którym praca polega na bezpośrednim kierowaniu pracownikami"}
+
+  - id: FAQ-O04
+    sciezka: okresowa
+    pytania:
+      - kiedy stosuje się arkusz C
+      - arkusz oceny dla stanowiska bez funkcji kierowniczej
+    odpowiedz: Arkusz C – każde inne stanowisko niż kierownik urzędu i stanowiska kierownicze (bezpośrednie kierowanie pracownikami).
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 3 ust. 4", strona: 1,
+         cytat_dosłowny: "na innym stanowisku pracy niż stanowiska wymienione w ust. 2 i 3"}
+
+  - id: FAQ-O05
+    sciezka: okresowa
+    pytania:
+      - kryteria obowiązkowe arkusz B
+      - które kryteria są obowiązkowe dla kadry kierowniczej
+    odpowiedz: Zarządzanie ludźmi; podejmowanie decyzji i odpowiedzialność; organizacja pracy i orientacja na osiąganie celów; współpraca; komunikacja.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 4 ust. 2", strona: 2,
+         cytat_dosłowny: "Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 3, ocenia się, stosując następujące kryteria obo-\nwiązkowe"}
+
+  - id: FAQ-O06
+    sciezka: okresowa
+    pytania:
+      - kryteria obowiązkowe arkusz C
+      - obowiązkowe kryteria dla stanowiska wykonawczego
+      - które kryteria obowiązkowe ma specjalista lub radca
+    odpowiedz: Wykorzystywanie wiedzy i doskonalenie zawodowe; rzetelność; organizacja pracy i orientacja na osiąganie celów; współpraca; komunikacja.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 4 ust. 3", strona: 2,
+         cytat_dosłowny: "Ocenianego zatrudnionego na stanowisku, o którym mowa w § 3 ust. 4, ocenia się, stosując następujące kryteria obowiązkowe"}
+
+  - id: FAQ-O07
+    sciezka: okresowa
+    pytania:
+      - limit kryteriów dodatkowych
+      - kryteria dodatkowe do wybrania
+      - ile kryteriów dodatkowych wolno dobrać z wykazu
+    odpowiedz: Najwyżej 3, najistotniejsze ze względu na obowiązki z opisu stanowiska.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 5 ust. 2", strona: 2,
+         cytat_dosłowny: "nie więcej niż 3 kryteria dodatkowe"}
+
+  - id: FAQ-O08
+    sciezka: okresowa
+    pytania:
+      - co omawia się na rozmowie otwierającej okres oceny
+      - zakres rozmowy na początku oceny okresowej
+    odpowiedz: Główne obowiązki z opisu stanowiska, kryteria obowiązkowe i wybrane dodatkowe, oczekiwania oceniającego oraz – gdy uzasadnione – cele na okres oceny.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 5 ust. 1", strona: 2,
+         cytat_dosłowny: "Oceniający przeprowadza z ocenianym rozmowę, podczas której omawia się"}
+
+  - id: FAQ-O09
+    sciezka: okresowa
+    pytania:
+      - termin na ustalenie kryteriów oceny okresowej
+      - w jakim czasie od poprzedniej oceny ustala się kryteria
+      - 30 dni czy 7 dni na rozmowę i kryteria
+    odpowiedz: 30 dni od sporządzenia poprzedniej oceny lub od zatrudnienia na czas nieokreślony; 7 dni od sporządzenia oceny negatywnej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 7", strona: 2,
+         cytat_dosłowny: "7 dni od dnia sporządzenia na piśmie negatywnej oceny"}
+
+  - id: FAQ-O10
+    sciezka: okresowa
+    pytania:
+      - zmiana stanowiska pracownika w trakcie okresu oceny
+      - pracownik zmienił stanowisko po 4 miesiącach co z kryteriami
+    odpowiedz: Jeśli w ciągu 6 miesięcy od ustalenia kryteriów (lub od ostatniej oceny) zmiana stanowiska istotnie zmienia obowiązki, w 30 dni ponawia się rozmowę i ustalenie kryteriów; termin oceny się nie zmienia.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 9 ust. 1", strona: 2,
+         cytat_dosłowny: "termin sporządzenia oceny nie ulega zmianie"}
+
+  - id: FAQ-O11
+    sciezka: okresowa
+    pytania:
+      - nowy oceniający w trakcie okresu oceny
+      - zmiana bezpośredniego przełożonego a kryteria oceny
+    odpowiedz: Ocena jest sporządzana na podstawie kryteriów wybranych wcześniej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 9 ust. 3", strona: 3,
+         cytat_dosłowny: "ocena jest sporządzana na podstawie wybranych wcześniej kryteriów"}
+
+  - id: FAQ-O12
+    sciezka: okresowa
+    pytania:
+      - co omawia się na rozmowie oceniającej w ocenie okresowej
+      - rozmowa przed sporządzeniem oceny na piśmie
+    odpowiedz: Główne obowiązki i sposób ich realizacji wobec kryteriów, realizację wyznaczonych celów oraz kierunki rozwoju zawodowego i potrzeby szkoleniowe.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10", strona: 3,
+         cytat_dosłowny: "Przed sporządzeniem oceny na piśmie oceniający przeprowadza z ocenianym rozmowę oceniającą"}
+
+  - id: FAQ-O13
+    sciezka: okresowa
+    pytania:
+      - skala ocen cząstkowych 1 3 5 7 9
+      - punktacja kryteriów w ocenie okresowej
+    odpowiedz: 1 – znacznie poniżej, 3 – poniżej, 5 – na poziomie, 7 – powyżej, 9 – znacznie powyżej oczekiwań.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 1 pkt 1", strona: 3,
+         cytat_dosłowny: "znacznie powyżej oczekiwań – 9 punktów"}
+
+  - id: FAQ-O14
+    sciezka: okresowa
+    pytania:
+      - przeliczenie średniej na ogólny poziom spełniania kryteriów
+      - progi średniej arytmetycznej w ocenie okresowej
+    odpowiedz: Do 2 pkt – znacznie poniżej; >2–4 – poniżej; >4–6 – na poziomie; >6–8 – powyżej; >8–9 – znacznie powyżej oczekiwań.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 1 pkt 2", strona: 3,
+         cytat_dosłowny: "na poziomie oczekiwań – powyżej 4 punktów do 6 punktów"}
+
+  - id: FAQ-O15
+    sciezka: okresowa
+    pytania:
+      - kiedy ocena okresowa jest negatywna
+      - ocena cząstkowa znacznie poniżej oczekiwań a wynik oceny
+    odpowiedz: Gdy ogólny poziom to „poniżej” lub „znacznie poniżej oczekiwań” albo gdy choć jedna ocena cząstkowa jest „znacznie poniżej oczekiwań” – niezależnie od średniej.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 1 pkt 4", strona: 3,
+         cytat_dosłowny: "a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie znacznie poniżej oczekiwań"}
+
+  - id: FAQ-O16
+    sciezka: okresowa
+    pytania:
+      - indywidualny program rozwoju zawodowego w ocenie okresowej
+      - IPRZ wnioski w arkuszu
+    odpowiedz: Sporządzenie oceny obejmuje wpisanie do arkusza wniosków dotyczących indywidualnego programu rozwoju zawodowego.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 1 pkt 5", strona: 3,
+         cytat_dosłowny: "wpisaniu do arkusza wniosków dotyczących indywidualnego programu rozwoju zawodowego ocenianego"}
+
+  - id: FAQ-O17
+    sciezka: okresowa
+    pytania:
+      - uzasadnienie oceny okresowej
+      - czy uzasadniać pozytywną ocenę okresową
+    odpowiedz: Przy ocenie negatywnej uzasadnienie jest obowiązkowe; przy pozytywnej oceniający może je sporządzić.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 3", strona: 3,
+         cytat_dosłowny: "Oceniający sporządza uzasadnienie przyznanej oceny w przypadku przyznania oceny negatywnej."}
+
+  - id: FAQ-O18
+    sciezka: okresowa
+    pytania:
+      - kolejny stopień służbowy w ocenie okresowej
+      - część III arkusza wniosek awansowy
+    odpowiedz: Przy ocenie pozytywnej urzędnika służby cywilnej oceniający może złożyć umotywowany wniosek o kolejny stopień służbowy w części III arkusza.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 11 ust. 5", strona: 3,
+         cytat_dosłowny: "umotywowany wniosek o przyznanie ocenianemu kolejnego stopnia służbowego, wypełniając część III arkusza"}
+
+  - id: FAQ-O19
+    sciezka: okresowa
+    pytania:
+      - co po sporządzeniu oceny okresowej na piśmie
+      - doręczenie kopii arkusza oceny okresowej
+    odpowiedz: Oceniający niezwłocznie zapoznaje ocenianego z oceną; oryginał trafia do akt osobowych, a kopię doręcza się ocenianemu.
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 12 ust. 1", strona: 4,
+         cytat_dosłowny: "Oceniający niezwłocznie zapoznaje ocenianego z oceną sporządzoną na piśmie."}
+
+  - id: FAQ-O20
+    sciezka: okresowa
+    pytania:
+      - cykl oceny okresowej
+      - częstotliwość ocen okresowych w służbie cywilnej
+    odpowiedz: Co 24 miesiące, licząc od zakończenia poprzedniej oceny lub od zatrudnienia na czas nieokreślony (poradnik KPRM, powołuje art. 81 ustawy).
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa,
+         lokalizator: "rozdz. 4. Termin sporządzenia oceny okresowej w służbie cywilnej", strona: 8,
+         cytat_dosłowny: "Ocenę okresową w służbie cywilnej sporządza się co 24 miesiące"}
+
+  - id: FAQ-O21
+    sciezka: okresowa
+    pytania:
+      - sprzeciw od oceny okresowej termin i adresat
+      - procedura sprzeciwu dyrektor generalny
+    odpowiedz: Sprzeciw wnosi się do dyrektora generalnego urzędu w 7 dni od zapoznania się z oceną; rozpatruje się go w 14 dni (poradnik KPRM, powołuje art. 83 ustawy).
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa,
+         lokalizator: "rozdz. 7. Sprzeciw od otrzymanej oceny", strona: 32,
+         cytat_dosłowny: "Od oceny okresowej służy sprzeciw do dyrektora generalnego urzędu w terminie 7 dni od dnia zapoznania"}
+
+  # ======================= MODEL KOMPETENCJI (obie ścieżki) =======================
+  - id: FAQ-M01
+    sciezka: wspolne
+    pytania:
+      - brak okazji do obserwacji wskaźnika
+      - wskaźnik behawioralny bez obserwacji co zaznaczyć
+    odpowiedz: Odnotuj brak podstaw do oceny danego wskaźnika.
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A6",
+         cytat_dosłowny: "odnotuj brak podstaw do oceny danego wskaźnika"}
+
+  - id: FAQ-M02
+    sciezka: wspolne
+    pytania:
+      - na czym opierać ocenę kompetencji
+      - jak dokumentować przykłady zachowań pracownika
+    odpowiedz: Na konkretnych przykładach z ocenianego okresu – sytuacja, działanie, rezultat – z uwzględnieniem powtarzalności, złożoności i dostępnych uprawnień.
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
+         cytat_dosłowny: "Oprzyj ocenę na konkretnych przykładach z ocenianego okresu."}

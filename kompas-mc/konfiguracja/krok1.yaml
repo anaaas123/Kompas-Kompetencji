@@ -1,0 +1,189 @@
+# Krok 1 wersji MC (#29): przesłanki wyboru ścieżki, wybór arkusza i uwagi.
+# Treść merytoryczna z cytatami; kod (kompas_mc/krok1.py) tylko łączy ją z danymi z QNT i OSP.
+# Walidator (`kompas-waliduj`) sprawdza, że każdy cytat występuje dosłownie w korpusie MC.
+#
+# Przesłanki ustawowe (art. 35, 37, 81 ustawy o służbie cywilnej) znamy tylko z poradników,
+# bo tekstu ustawy nie ma w „materialy mc” (zob. braki.yaml: brak.ustawa). Dlatego mają
+# kategorię OBJAŚNIENIE_MATERIAŁU i uwagę „brak tekstu ustawy w bazie”.
+
+uwaga_ustawa: brak tekstu ustawy w bazie
+
+przeslanki:
+  - id: pierwsza.pierwsze-zatrudnienie
+    sciezka: pierwsza
+    rodzaj: WARUNEK
+    opis: >-
+      Osoba podejmująca po raz pierwszy pracę w służbie cywilnej, zatrudniona na czas określony
+      (art. 35 ust. 3 i art. 37 ust. 1 ustawy według poradnika), podlega pierwszej ocenie.
+    ustawowa: true
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: s. 6
+        strona: 6
+        cytat_dosłowny: >-
+          pierwszej ocenie obligatoryjnie podlega osoba, o której mowa w art. 35 ust. 3 ustawy, a
+          więc osoba podejmująca po raz pierwszy pracę w służbie cywilnej, z którą zawarto umowę o
+          pracę na czas określony 12 miesięcy
+        uzasadnienie: brak tekstu ustawy w bazie (art. 35 ust. 3, art. 37 ust. 1 cytowane przez poradnik)
+
+  - id: pierwsza.zastepstwo
+    sciezka: pierwsza
+    rodzaj: WARUNEK
+    opis: >-
+      Osoba zatrudniona w celu zastępstwa może podlegać pierwszej ocenie, jeśli strony się na to
+      porozumiały (art. 37 ust. 2 ustawy według poradnika).
+    ustawowa: true
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: s. 6
+        strona: 6
+        cytat_dosłowny: >-
+          Osoba zatrudniona w celu zastępstwa może podlegać pierwszej ocenie. Jest to jedynie
+          możliwość a nie obowiązek, zarówno dla pracownika, jak i dla pracodawcy.
+        uzasadnienie: brak tekstu ustawy w bazie (art. 37 ust. 2 cytowany przez poradnik)
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 3
+        strona: 1
+        cytat_dosłowny: >-
+          w przypadku ocenianego zatrudnionego w celu zastępstwa nieobecnego członka korpusu służby
+          cywilnej – w terminie 21 dni od dnia ustalenia przez strony stosunku pracy, że oceniany
+          będzie podlegać pierwszej ocenie
+
+  - id: pierwsza.wylaczenie-ksap
+    sciezka: pierwsza
+    rodzaj: WYLACZENIE
+    opis: >-
+      Absolwent KSAP, który złożył wniosek o mianowanie, nie podlega pierwszej ocenie
+      (art. 37 ust. 3 ustawy według poradnika).
+    ustawowa: true
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-pierwsza
+        lokalizator: s. 6
+        strona: 6
+        cytat_dosłowny: >-
+          nie podlega pierwszej ocenie absolwent Krajowej Szkoły Administracji Publicznej, który
+          złożył wniosek o mianowanie w służbie cywilnej
+        uzasadnienie: brak tekstu ustawy w bazie (art. 37 ust. 3 cytowany przez poradnik)
+
+  - id: okresowa.urzednik
+    sciezka: okresowa
+    rodzaj: WARUNEK
+    opis: Urzędnik służby cywilnej podlega ocenie okresowej (art. 81 ust. 1 ustawy według poradnika).
+    ustawowa: true
+    adnotacje:
+      - &okresowa-zakres
+        kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: s. 7
+        strona: 7
+        cytat_dosłowny: >-
+          Zgodnie z ustawą o służbie cywilnej ocenie okresowej podlega urzędnik służby cywilnej i
+          pracownik służby cywilnej zatrudniony na czas nieokreślony.
+        uzasadnienie: brak tekstu ustawy w bazie (art. 81 ust. 1 cytowany przez poradnik)
+
+  - id: okresowa.czas-nieokreslony
+    sciezka: okresowa
+    rodzaj: WARUNEK
+    opis: >-
+      Pracownik służby cywilnej zatrudniony na czas nieokreślony podlega ocenie okresowej
+      (art. 81 ust. 1 ustawy według poradnika).
+    ustawowa: true
+    adnotacje:
+      - *okresowa-zakres
+
+  - id: okresowa.wylaczenie-czas-okreslony
+    sciezka: okresowa
+    rodzaj: WYLACZENIE
+    opis: >-
+      Pracownik zatrudniony na czas określony (także na zastępstwo) nie podlega ocenie okresowej.
+    ustawowa: true
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: poradnik-okresowa
+        lokalizator: s. 7
+        strona: 7
+        cytat_dosłowny: >-
+          pracownicy zatrudnieni w oparciu o umowę o pracę na czas określony (innej niż na podstawie
+          art. 35 ust. 3 ustawy), a zatem również osoby zatrudnione w celu zastępstwa nieobecnego
+          pracownika lub urzędnika służby cywilnej. Pracownicy ci nie podlegają ocenie okresowej
+        uzasadnienie: brak tekstu ustawy w bazie (art. 35 ust. 3 cytowany przez poradnik)
+
+arkusze:
+  B:
+    id: arkusz.b
+    opis: Stanowisko polega na bezpośrednim kierowaniu pracownikami ⇒ arkusz B (§ 3 ust. 3 rozp. 2016).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 3 ust. 3
+        strona: 1
+        cytat_dosłowny: >-
+          Arkusz B, którego wzór jest określony w załączniku nr 3 do rozporządzenia, służy do
+          sporządzenia oceny zatrudnionego na stanowisku, na którym praca polega na bezpośrednim
+          kierowaniu pracownikami
+  C:
+    id: arkusz.c
+    opis: Stanowisko bez bezpośredniego kierowania pracownikami ⇒ arkusz C (§ 3 ust. 4 rozp. 2016).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 3 ust. 4
+        strona: 1
+        cytat_dosłowny: >-
+          Arkusz C, którego wzór jest określony w załączniku nr 4 do rozporządzenia, służy do
+          sporządzenia oceny zatrudnionego na innym stanowisku pracy niż stanowiska wymienione w
+          ust. 2 i 3.
+  A:
+    id: arkusz.a
+    komunikat: Arkusz A (kierownik urzędu, § 3 ust. 2 rozp. 2016) – poza zakresem prototypu
+    # Stanowiska rozpoznawane jako kierownik urzędu (porównanie bez wielkości liter).
+    stanowiska: [kierownik urzędu]
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 3 ust. 2
+        strona: 1
+        cytat_dosłowny: >-
+          Arkusz A, którego wzór jest określony w załączniku nr 2 do rozporządzenia, służy do
+          sporządzenia oceny zatrudnionego na stanowisku kierownika urzędu
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: Grafika ścieżek MC pokazuje dla oceny okresowej tylko formularze B i C.
+        zatwierdził: osoba A (integrator)
+  PIERWSZA:
+    id: arkusz.pierwsza
+    opis: Pierwsza ocena ⇒ arkusz pierwszej oceny (§ 4 ust. 5, zał. 2 rozp. 2015).
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 4 ust. 5
+        strona: 2
+        cytat_dosłowny: Wzór arkusza jest określony w załączniku nr 2 do rozporządzenia.
+
+# Opcje pola „LICZBA PODLEGŁYCH PRACOWNIKÓW” w OSP: początek tekstu opcji ⇒ czy stanowisko kieruje.
+podlegli:
+  - {opcja: brak podległych pracowników, kieruje: false}
+  - {opcja: bezpośrednio kieruje lub koordynuje pracę, kieruje: true}
+  - {opcja: bezpośrednio podlegają osoby kierujące pracą innych pracowników, kieruje: true}
+
+uwagi:
+  osp-pierwsza-ocena:
+    id: rozbieznosc.osp-pierwsza-ocena
+    komunikat: >-
+      Krok analizy OSP dodany z przepisu: § 3 pkt 2 rozp. 2015 każe omówić na rozmowie wstępnej
+      obowiązki z opisu stanowiska pracy. Grafika ścieżek nie pokazuje tego kroku w pierwszej ocenie.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 3 pkt 2
+        strona: 1
+        cytat_dosłowny: >-
+          omawia z ocenianym główne obowiązki wynikające z opisu stanowiska pracy zajmowanego
+          przez ocenianego
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: >-
+          Grafika „Kompas Kompetencji_ Ścieżki Oceny.png” (bez warstwy tekstowej): ścieżka
+          pierwszej oceny nie ma kroku „Analiza opisu stanowiska pracy”.

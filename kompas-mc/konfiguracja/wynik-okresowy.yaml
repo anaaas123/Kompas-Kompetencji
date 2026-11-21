@@ -1,0 +1,119 @@
+# Krok 6 wersji MC. Punktacja cząstkowa jest w ocena.yaml.
+wersja: wynik-okresowy@1
+ocena_czastkowa_negatywna: 1
+granica_negatywna: '4'
+
+srednia:
+  id: srednia-arytmetyczna
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 1 pkt 2
+      strona: 3
+      cytat_dosłowny: przez wyliczenie średniej arytmetycznej z ocen cząstkowych
+
+progi:
+  - id: poziom-a
+    poziom: znacznie poniżej oczekiwań
+    minimum: '1'
+    maksimum: '2'
+    minimum_domkniete: true
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 2 lit. a
+        strona: 3
+        cytat_dosłowny: znacznie poniżej oczekiwań – od 1 punktu do 2 punktów
+  - id: poziom-b
+    poziom: poniżej oczekiwań
+    minimum: '2'
+    maksimum: '4'
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 2 lit. b
+        strona: 3
+        cytat_dosłowny: poniżej oczekiwań – powyżej 2 punktów do 4 punktów
+  - id: poziom-c
+    poziom: na poziomie oczekiwań
+    minimum: '4'
+    maksimum: '6'
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 2 lit. c
+        strona: 3
+        cytat_dosłowny: na poziomie oczekiwań – powyżej 4 punktów do 6 punktów
+  - id: poziom-d
+    poziom: powyżej oczekiwań
+    minimum: '6'
+    maksimum: '8'
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 2 lit. d
+        strona: 3
+        cytat_dosłowny: powyżej oczekiwań – powyżej 6 punktów do 8 punktów
+  - id: poziom-e
+    poziom: znacznie powyżej oczekiwań
+    minimum: '8'
+    maksimum: '9'
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 2 lit. e
+        strona: 3
+        cytat_dosłowny: znacznie powyżej oczekiwań – powyżej 8 punktów do 9 punktów
+
+negatywna_ocena_czastkowa:
+  id: negatywna-za-ocene-czastkowa
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 1 pkt 4
+      strona: 3
+      cytat_dosłowny: >-
+        w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie znacznie poniżej oczekiwań
+
+niski_poziom:
+  id: negatywna-za-poziom
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 1 pkt 4
+      strona: 3
+      cytat_dosłowny: >-
+        przyznaniu oceny negatywnej – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie
+        poniżej oczekiwań albo znacznie poniżej oczekiwań
+
+pozytywna:
+  id: pozytywna
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 1 pkt 3
+      strona: 3
+      cytat_dosłowny: >-
+        przyznaniu oceny pozytywnej – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie
+        znacznie powyżej oczekiwań, powyżej oczekiwań albo na poziomie oczekiwań, pod warunkiem nieuzyskania przez
+        ocenianego żadnej z ocen cząstkowych na poziomie znacznie poniżej oczekiwań
+
+uzasadnienie:
+  id: uzasadnienie-oceny-negatywnej
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 3
+      strona: 3
+      cytat_dosłowny: Oceniający sporządza uzasadnienie przyznanej oceny w przypadku przyznania oceny negatywnej.
+
+czesc_iii:
+  id: wniosek-o-stopien
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 5
+      strona: 3
+      cytat_dosłowny: >-
+        W przypadku przyznania oceny pozytywnej ocenianemu będącemu urzędnikiem służby cywilnej oceniający może
+        sporządzić umotywowany wniosek o przyznanie ocenianemu kolejnego stopnia służbowego, wypełniając część III arkusza.

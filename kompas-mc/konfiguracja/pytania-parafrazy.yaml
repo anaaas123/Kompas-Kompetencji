@@ -1,0 +1,38 @@
+# Parafrazy pytań kontrolnych (#37) – ZESTAW TESTOWY, nie do budowy asystenta.
+# Napisane przed warstwą pytań i odpowiedzi, innymi słowami, tak jak mógłby pytać juror.
+# Słów z tego pliku nie wolno kopiować do słownika ani do pytań FAQ – inaczej test
+# przestaje mierzyć uogólnianie. Oczekiwane źródło = adnotacja pytania `wzor` z
+# pytania-kontrolne.yaml.
+
+wersja: 1
+
+z_bazy:
+  - {id: PP-01, wzor: PK-01, sciezka: pierwsza, pytanie: "Ile mam czasu na pierwszą rozmowę z osobą, która właśnie zaczęła u nas pracę?"}
+  - {id: PP-02, wzor: PK-02, sciezka: pierwsza, pytanie: "O czym powinnam porozmawiać z nowym pracownikiem na rozmowie wstępnej?"}
+  - {id: PP-03, wzor: PK-03, sciezka: pierwsza, pytanie: "Kiedy powinien przypadać termin oddania sprawozdania przez nowego pracownika?"}
+  - {id: PP-04, wzor: PK-04, sciezka: pierwsza, pytanie: "Osoba oceniana długo chorowała. Czy termin na sprawozdanie się wydłuża?"}
+  - {id: PP-05, wzor: PK-05, sciezka: pierwsza, pytanie: "Ile miesięcy pracy ma opisywać sprawozdanie?"}
+  - {id: PP-06, wzor: PK-06, sciezka: pierwsza, pytanie: "Według jakich elementów oceniam pracownika w pierwszej ocenie?"}
+  - {id: PP-07, wzor: PK-07, sciezka: pierwsza, pytanie: "Ile punktów mogę przyznać za element oceny w pierwszej ocenie?"}
+  - {id: PP-08, wzor: PK-08, sciezka: pierwsza, pytanie: "Kiedy pierwsza ocena wychodzi pozytywnie?"}
+  - {id: PP-09, wzor: PK-09, sciezka: pierwsza, pytanie: "Czy absolwentka Krajowej Szkoły Administracji Publicznej musi zdawać egzamin ze służby przygotowawczej?"}
+  - {id: PP-10, wzor: PK-10, sciezka: pierwsza, pytanie: "Czy negatywną pierwszą ocenę muszę uzasadnić na piśmie?"}
+  - {id: PP-11, wzor: PK-11, sciezka: okresowa, pytanie: "Jakiego arkusza użyć dla osoby na stanowisku kierowniczym, która ma pod sobą pracowników?"}
+  - {id: PP-12, wzor: PK-12, sciezka: okresowa, pytanie: "Które kryteria są obowiązkowe dla specjalisty, który nikim nie kieruje?"}
+  - {id: PP-13, wzor: PK-13, sciezka: okresowa, pytanie: "Jaka jest maksymalna liczba dodatkowych kryteriów oceny?"}
+  - {id: PP-14, wzor: PK-14, sciezka: okresowa, pytanie: "Ile dni mam na ustalenie kryteriów po tym, jak pracownik dostał negatywną ocenę?"}
+  - {id: PP-15, wzor: PK-15, sciezka: okresowa, pytanie: "Ile punktów oznacza poziom znacznie powyżej oczekiwań?"}
+  - {id: PP-16, wzor: PK-16, sciezka: okresowa, pytanie: "Jaki przedział średniej oznacza poziom na poziomie oczekiwań?"}
+  - {id: PP-17, wzor: PK-17, sciezka: okresowa, pytanie: "Czy jedna ocena cząstkowa za 1 punkt przesądza o ocenie negatywnej?"}
+  - {id: PP-18, wzor: PK-18, sciezka: okresowa, pytanie: "Przejęłam zespół w połowie okresu oceny. Według jakich kryteriów oceniam?"}
+  - {id: PP-19, wzor: PK-19, sciezka: okresowa, pytanie: "Jak wnioskować o wyższy stopień służbowy dla urzędnika przy ocenie okresowej?"}
+  - {id: PP-20, wzor: PK-20, sciezka: okresowa, pytanie: "Co ile miesięcy robi się ocenę okresową?"}
+  - {id: PP-21, wzor: PK-21, sciezka: okresowa, pytanie: "Ile dni ma pracownik na sprzeciw od oceny okresowej?"}
+  - {id: PP-22, wzor: PK-22, sciezka: wspolne, pytanie: "Co wpisać, gdy nie widziałem pracownika w sytuacji, której dotyczy wskaźnik?"}
+
+spoza_bazy:
+  - {id: PPS-01, pytanie: "Czy pracownikowi należy się bon na okulary do pracy przy komputerze?"}
+  - {id: PPS-02, pytanie: "Jak zgłosić wypadek przy pracy?"}
+  - {id: PPS-03, pytanie: "Ile wynosi ryczałt za używanie prywatnego samochodu?"}
+  - {id: PPS-04, pytanie: "Czy mogę zatrudnić stażystę na umowę zlecenie?"}
+  - {id: PPS-05, pytanie: "Jak skonfigurować VPN na laptopie służbowym?"}

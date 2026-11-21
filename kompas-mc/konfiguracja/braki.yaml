@@ -1,0 +1,187 @@
+# Braki i rozbieżności w materiałach MC (panel źródeł, #39).
+# Każdy wpis ma opis, odwołanie do pliku (przez adnotację z doc_id albo listę `pliki`)
+# i adnotacje. Walidator (`kompas-waliduj`) sprawdza, że każdy cytat jest w korpusie MC.
+# Duplikat „(4)” panel dokłada sam, na podstawie sprawdzenia w korpusie.
+#
+# typ: BRAK (materiału nie ma) | ROZBIEŻNOŚĆ (źródła mówią co innego)
+# `pliki` – pliki z „materialy mc”, których wpis dotyczy, a których nie da się zacytować
+#           (np. grafika bez warstwy tekstowej).
+
+braki:
+  - id: brak.ustawa
+    typ: BRAK
+    tytul: Brak ustawy o służbie cywilnej
+    opis: >-
+      Treść zadania wymaga, by baza wiedzy obejmowała ustawę o służbie cywilnej, a oba
+      rozporządzenia są wydane na jej podstawie. Ustawy nie ma w „materialy mc”, więc przesłanki
+      ustawowe (art. 37–38, art. 81–83) aplikacja bierze tylko z poradników.
+    wplyw: >-
+      Wybór ścieżki i terminy z ustawy mają kategorię OBJAŚNIENIE_MATERIAŁU (poradnik), nie PRZEPIS.
+      Asystent formalny nie odpowie cytatem z ustawy.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: zadanie-mc
+        cytat_dosłowny: Baza powinna w szczególności obejmować ustawę o służbie cywilnej
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: podstawa prawna
+        strona: 1
+        cytat_dosłowny: Na podstawie art. 82 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: podstawa prawna
+        strona: 1
+        cytat_dosłowny: Na podstawie art. 38 ust. 4 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej
+
+  - id: brak.pytania-i-odpowiedzi
+    typ: BRAK
+    tytul: Brak przygotowanego zestawu pytań i odpowiedzi
+    opis: >-
+      Treść zadania wymienia w bazie wiedzy „przygotowany zestaw pytań i odpowiedzi”. Zestawu
+      organizatora nie ma w „materialy mc”. Drużyna przygotowała własny zestaw
+      (konfiguracja/faq.yaml, #37), w którym każda odpowiedź ma cytat ze źródła.
+    wplyw: >-
+      Asystent korzysta z zestawu drużyny (DECYZJA_PROJEKTOWA, do zatwierdzenia). Zestaw
+      organizatora, jeśli się pojawi, trzeba porównać z naszym.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: zadanie-mc
+        cytat_dosłowny: przygotowany zestaw pytań i odpowiedzi
+
+  - id: brak.arkusz-a
+    typ: BRAK
+    tytul: Brak arkusza A jako osobnego wzoru do wypełnienia
+    opis: >-
+      Rozporządzenie z 2016 r. przewiduje arkusz A dla kierownika urzędu. W „materialy mc” są
+      tylko pliki arkuszy B i C. Wzór A istnieje wyłącznie jako załącznik nr 2 w PDF rozporządzenia.
+    wplyw: Arkusz A jest poza zakresem aplikacji; ścieżka okresowa obsługuje B i C.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 3 ust. 2
+        strona: 1
+        cytat_dosłowny: >-
+          Arkusz A, którego wzór jest określony w załączniku nr 2 do rozporządzenia, służy do
+          sporządzenia oceny zatrudnionego na stanowisku kierownika urzędu
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Grafika ścieżek MC pokazuje dla oceny okresowej tylko formularze B i C.
+        zatwierdził: osoba A (integrator)
+
+  - id: rozbieznosc.skala-5-3
+    typ: ROZBIEŻNOŚĆ
+    tytul: Model ma 5 poziomów, pierwsza ocena ma skalę 3-stopniową
+    opis: >-
+      Model kompetencji opisuje 5 poziomów (od „znacznie poniżej” do „znacznie powyżej oczekiwań”),
+      tak jak § 11 rozporządzenia z 2016 r. (1–9 pkt). Pierwsza ocena (§ 9 rozp. 2015) ma tylko
+      3, 5 i 7 punktów. Sugestia z modelu dla pierwszej oceny wymaga przeliczenia 5→3.
+    wplyw: >-
+      Mapowanie 5→3 (1 i 3 → 3 pkt; 5 → 5 pkt; 7 i 9 → 7 pkt) jest metodyką aplikacji.
+      HR zatwierdza jej wersję z osobą i datą (/api/metodyka); ocena zapisuje użytą wersję.
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: model-kompetencji
+        lokalizator: Model kompetencji!A3
+        cytat_dosłowny: 14 kompetencji • 49 wskaźników behawioralnych • 5 poziomów oceny
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 9 ust. 1
+        strona: 3
+        cytat_dosłowny: >-
+          przyznaje się według skali punktowej: 1) 3 punkty – poniżej oczekiwań; 2) 5 punktów – na
+          poziomie oczekiwań; 3) 7 punktów – powyżej oczekiwań.
+    rozbieżność:
+      opis: Skala modelu (5 poziomów) nie odpowiada skali pierwszej oceny (3 poziomy).
+      uzasadnienie: >-
+        Punktację pierwszej oceny wyznacza § 9 rozp. 2015; model służy tylko do sugestii, którą
+        przeliczamy według zatwierdzonej metodyki.
+      zastosowana: 1
+
+  - id: brak.agregacja-modelu
+    typ: BRAK
+    tytul: Model nie podaje, jak z ocen wskaźników wyznaczyć ocenę kryterium
+    opis: >-
+      Każda kompetencja ma od 2 do 6 wskaźników z opisami 5 poziomów. Rozporządzenie przyznaje
+      ocenę cząstkową za kryterium, a model nie mówi, jak połączyć oceny wskaźników.
+    wplyw: >-
+      Sugerowany poziom kryterium (mediana wskaźników) to DECYZJA_PROJEKTOWA w wersjonowanej
+      metodyce (/api/metodyka, zatwierdza HR); przełożony zawsze wybiera ocenę sam (#31).
+    adnotacje:
+      - kategoria: OBJAŚNIENIE_MATERIAŁU
+        doc_id: model-kompetencji
+        lokalizator: Model kompetencji!A4
+        cytat_dosłowny: Dobierz wskaźniki do zadań i zakresu odpowiedzialności na stanowisku.
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 1
+        strona: 3
+        cytat_dosłowny: >-
+          przyznaniu ocen cząstkowych odpowiednio do poziomu spełniania przez ocenianego każdego
+          z kryteriów
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: >-
+          Ani model, ani rozporządzenia, ani poradniki nie opisują agregacji ocen wskaźników.
+
+  - id: rozbieznosc.osp-pierwsza-ocena
+    typ: ROZBIEŻNOŚĆ
+    tytul: Grafika pierwszej oceny nie ma kroku analizy OSP
+    opis: >-
+      Na grafice ścieżek ocena okresowa zaczyna się od kroku „Analiza opisu stanowiska pracy”,
+      a pierwsza ocena ma tylko „Rozpocznij ocenę” i „Zakończ ocenę”. Tymczasem § 3 rozp. 2015
+      każe na rozmowie wstępnej omówić obowiązki wynikające z opisu stanowiska pracy.
+    wplyw: >-
+      Ścieżka pierwszej oceny w aplikacji pokazuje OSP przy rozmowie wstępnej, z oznaczeniem
+      „dodane z przepisu — brak w grafice”.
+    pliki:
+      - Kompas Kompetencji_ Ścieżki Oceny.png
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 3 pkt 2
+        strona: 1
+        cytat_dosłowny: >-
+          omawia z ocenianym główne obowiązki wynikające z opisu stanowiska pracy zajmowanego
+          przez ocenianego
+      - kategoria: BRAK_ŹRÓDŁA
+        uzasadnienie: >-
+          Grafika „Kompas Kompetencji_ Ścieżki Oceny.png” (bez warstwy tekstowej): ścieżka
+          pierwszej oceny nie ma kroku „Analiza opisu stanowiska pracy”.
+    rozbieżność:
+      opis: Przepis wymaga omówienia OSP, grafika go nie pokazuje.
+      uzasadnienie: Przepis ma pierwszeństwo przed grafiką procesu.
+      zastosowana: 0
+
+pytania_do_mentorow:
+  - id: pytanie.ustawa
+    dotyczy: brak.ustawa
+    pytanie: >-
+      Czy dołączycie tekst jednolity ustawy o służbie cywilnej? Jeśli nie, czy możemy opierać
+      przesłanki ustawowe na poradnikach i oznaczać je jako objaśnienie materiału?
+  - id: pytanie.zestaw-qa
+    dotyczy: brak.pytania-i-odpowiedzi
+    pytanie: >-
+      Treść zadania wspomina „przygotowany zestaw pytań i odpowiedzi”. Czy ten zestaw istnieje
+      i czy możemy go dostać do testów asystenta?
+  - id: pytanie.arkusz-a
+    dotyczy: brak.arkusz-a
+    pytanie: Czy arkusz A (kierownik urzędu) jest poza zakresem rozwiązania?
+  - id: pytanie.skala
+    dotyczy: rozbieznosc.skala-5-3
+    pytanie: >-
+      Jak przeliczać 5 poziomów modelu na skalę pierwszej oceny (3/5/7)? Czy mapowanie
+      1 i 3 → 3, 5 → 5, 7 i 9 → 7 jest akceptowalne?
+  - id: pytanie.agregacja
+    dotyczy: brak.agregacja-modelu
+    pytanie: >-
+      Czy jest zalecany sposób łączenia ocen wskaźników w ocenę kryterium (np. mediana)?
+      Czy model zakłada, że przełożony ocenia kryterium całościowo?
+  - id: pytanie.osp
+    dotyczy: rozbieznosc.osp-pierwsza-ocena
+    pytanie: >-
+      Czy w ścieżce pierwszej oceny ma być krok analizy opisu stanowiska pracy, tak jak w ocenie
+      okresowej?
+  - id: pytanie.duplikat
+    dotyczy: duplikat.rozp-2016-okresowe
+    pytanie: >-
+      Plik „Rozporządzenie o ocenach okresowych z 2016 r. (4).pdf” to wycięte załączniki
+      rozporządzenia z 2016 r. Czy możemy traktować go jako duplikat?

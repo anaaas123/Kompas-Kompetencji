@@ -1,0 +1,169 @@
+# Źródła MC dla terminów oceny okresowej.
+wersja: mc-terminy-okresowe@1
+# Korpus MC podaje regułę dla niedziel i świąt. Kalendarz świąt urzędu można uzupełnić tu.
+dni_wolne: []
+
+kryteria_zwykle:
+  id: okresowa.termin.kryteria-30
+  liczba: 30
+  jednostka: dni
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 7 pkt 1
+      strona: 2
+      cytat_dosłowny: >-
+        30 dni od dnia sporządzenia na piśmie poprzedniej oceny lub od dnia zatrudnienia
+        ocenianego na czas nieokreślony
+kryteria_po_negatywnej:
+  id: okresowa.termin.kryteria-7
+  liczba: 7
+  jednostka: dni
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 7 pkt 2
+      strona: 2
+      cytat_dosłowny: 7 dni od dnia sporządzenia na piśmie negatywnej oceny
+cykl_podstawowy:
+  id: okresowa.termin.cykl-24
+  liczba: 24
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 4, s. 8
+      strona: 8
+      cytat_dosłowny: >-
+        Ocenę okresową w służbie cywilnej sporządza się co 24 miesiące, licząc od dnia
+        zakończenia poprzedniej oceny okresowej lub od dnia zatrudnienia ocenianego
+        na czas nieokreślony
+cykl_po_negatywnej:
+  id: okresowa.termin.ponowna-6
+  liczba: 6
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 5.1, s. 13
+      strona: 13
+      cytat_dosłowny: >-
+        Oceniany, który uzyskał negatywną ocenę okresową podlega ponownej ocenie po upływie 6
+        miesięcy od dnia zapoznania się z negatywną oceną.
+dzien_po_uplywie_cyklu:
+  id: okresowa.termin.pierwszy-dzien-po-uplywie
+  liczba: 1
+  jednostka: dni
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 5.1, s. 13
+      strona: 13
+      cytat_dosłowny: >-
+        ponowna ocena okresowa powinna być sporządzona niezwłocznie po dniu, w którym minie 6
+        miesięcy od dnia zapoznania się ocenianego z oceną negatywną.
+granica_zmiany_stanowiska:
+  id: okresowa.termin.zmiana-stanowiska-6
+  liczba: 6
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 9 ust. 1
+      strona: 2
+      cytat_dosłowny: >-
+        w okresie 6 miesięcy od dnia ustalenia kryteriów oceny sporządzanej po raz pierwszy
+        albo od dnia sporządzenia ostatniej oceny
+ponowne_kryteria:
+  id: okresowa.termin.zmiana-stanowiska-kryteria
+  liczba: 30
+  jednostka: dni
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 9 ust. 1
+      strona: 2
+      cytat_dosłowny: >-
+        w terminie 30 dni od zmiany stanowiska pracy ponownie dokonuje się czynności,
+        o których mowa w § 5 i § 6; termin sporządzenia oceny nie ulega zmianie.
+okno_zmiany_od:
+  id: okresowa.termin.zmiana-stanowiska-od
+  liczba: -7
+  jednostka: dni
+  adnotacje:
+    - &okno_zmiany
+      kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 9 ust. 2
+      strona: 3
+      cytat_dosłowny: >-
+        nie wcześniej niż w terminie 7 dni przed zmianą stanowiska pracy wiążącą się
+        z istotną zmianą zakresu obowiązków albo nie później niż w terminie 30 dni od tej zmiany.
+okno_zmiany_do:
+  id: okresowa.termin.zmiana-stanowiska-do
+  liczba: 30
+  jednostka: dni
+  adnotacje:
+    - *okno_zmiany
+zmiana_oceniajacego:
+  id: okresowa.termin.zachowanie-kryteriow
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 9 ust. 3
+      strona: 3
+      cytat_dosłowny: >-
+        W przypadku zmiany na stanowisku oceniającego w trakcie okresu, w którym oceniany
+        podlega ocenie, ocena jest sporządzana na podstawie wybranych wcześniej kryteriów.
+granica_zmiany_terminu:
+  id: okresowa.termin.zmiana-fakultatywna-6
+  liczba: 6
+  jednostka: miesiace
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 5.2, s. 15
+      strona: 15
+      cytat_dosłowny: >-
+        jeżeli od dnia sporządzenia ostatniej oceny okresowej upłynęło więcej niż 6 miesięcy,
+        a w przypadku osób ocenianych po raz pierwszy, jeżeli okres podlegający ocenie jest
+        dłuższy niż 6 miesięcy.
+zmiana_terminu:
+  id: okresowa.termin.zawiadomienie
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      doc_version: "2016"
+      lokalizator: § 8
+      strona: 2
+      cytat_dosłowny: >-
+        oceniający niezwłocznie zawiadamia pisemnie ocenianego o nowym terminie sporządzenia
+        oceny na piśmie. Kopię pisma dołącza się do arkusza.
+sprzeciw:
+  id: okresowa.termin.sprzeciw-7
+  liczba: 7
+  jednostka: dni
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 7, s. 32
+      strona: 32
+      cytat_dosłowny: >-
+        Od oceny okresowej służy sprzeciw do dyrektora generalnego urzędu w terminie 7 dni
+        od dnia zapoznania się z oceną przez ocenianego
+dzien_wolny:
+  id: okresowa.termin.dzien-wolny
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: poradnik-okresowa
+      lokalizator: rozdz. 4, s. 9
+      strona: 9
+      cytat_dosłowny: >-
+        jeżeli termin do wykonania czynności przypada na dzień uznany ustawowo za wolny od pracy
+        (niedziela lub święto), zgodnie z art. 115 Kodeksu cywilnego termin upływa dnia następnego

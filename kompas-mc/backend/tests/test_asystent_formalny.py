@@ -1,0 +1,186 @@
+"""Asystent formalny w pełnym zakresie (#37, M-11) na zestawach z konfiguracja/.
+
+    cd kompas-mc/backend && uv run pytest tests/test_asystent_formalny.py -s
+
+pytania-kontrolne.yaml – kryteria #37 (≥15 z bazy, ≥5 spoza bazy); progi dobrane na nim.
+pytania-parafrazy.yaml – zestaw TESTOWY napisany przed FAQ; tylko pomiar, nie do strojenia.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pytest
+import yaml
+from kompas_core.llm import DziennikJsonl
+
+from kompas_mc.asystent import Asystent, KonfiguracjaAsystenta
+from kompas_mc.ustawienia import KATALOG_MC
+
+KONF = KATALOG_MC / "konfiguracja"
+KONTROLNE = yaml.safe_load((KONF / "pytania-kontrolne.yaml").read_text(encoding="utf-8"))
+PARAFRAZY = yaml.safe_load((KONF / "pytania-parafrazy.yaml").read_text(encoding="utf-8"))
+FAQ = yaml.safe_load((KONF / "faq.yaml").read_text(encoding="utf-8"))["pozycje"]
+Z_BAZY, SPOZA = KONTROLNE["z_bazy"], KONTROLNE["spoza_bazy"]
+WZORY = {q["id"]: q for q in Z_BAZY}
+
+MIN_TRAFIEN = 15  # kryterium #37
+# Wynik parafraz przy wprowadzeniu FAQ (15/22). Test pilnuje, żeby zmiany go nie obniżyły;
+# nie podnosić progu przez dopisywanie sformułowań z parafraz do FAQ lub słownika.
+MIN_PARAFRAZ = 15
+
+
+def _sciezka(s: str) -> str | None:
+    return None if s == "wspolne" else s
+
+
+def _n(s: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"-\s*\n\s*", "", s)).strip()
+
+
+@pytest.fixture(scope="module")
+def asystent(korpus_mc, ustawienia, tmp_path_factory) -> Asystent:
+    return Asystent(
+        korpus_mc,
+        KonfiguracjaAsystenta.z_pliku(ustawienia.konfiguracja_asystenta),
+        DziennikJsonl(tmp_path_factory.mktemp("log") / "llm.jsonl"),
+    )
+
+
+def _trafione(asystent: Asystent, pytanie: str, sciezka: str, ref: dict) -> bool:
+    odp = asystent.odpowiedz(pytanie, _sciezka(sciezka))
+    return odp.znaleziono and any(
+        c.doc_id == ref["doc_id"] and _n(ref["cytat_dosłowny"]) in _n(c.cytat) for c in odp.cytaty
+    )
+
+
+# --- kryteria #37 --------------------------------------------------------------------
+
+
+def test_zestaw_ma_wymagana_liczebnosc():
+    assert len(Z_BAZY) >= 15 and len(SPOZA) >= 5
+
+
+def test_co_najmniej_15_pytan_kontrolnych_przechodzi(asystent):
+    chybione = [
+        q["id"] for q in Z_BAZY
+        if not _trafione(asystent, q["pytanie"], q["sciezka"], q["adnotacje"][0])
+    ]
+    print(f"\nkontrolne: {len(Z_BAZY) - len(chybione)}/{len(Z_BAZY)}; chybione: {chybione}")
+    assert len(Z_BAZY) - len(chybione) >= MIN_TRAFIEN
+
+
+@pytest.mark.parametrize("q", SPOZA, ids=[q["id"] for q in SPOZA])
+def test_pytanie_spoza_bazy_daje_brak_informacji(asystent, q):
+    odp = asystent.odpowiedz(q["pytanie"])
+    assert odp.znaleziono is False and odp.cytaty == []
+    assert odp.komunikat == "brak wystarczających informacji w bazie wiedzy"
+
+
+@pytest.mark.parametrize("q", Z_BAZY, ids=[q["id"] for q in Z_BAZY])
+def test_pytanie_z_bazy_nie_jest_odrzucane(asystent, q):
+    assert asystent.odpowiedz(q["pytanie"], _sciezka(q["sciezka"])).znaleziono
+
+
+@pytest.mark.parametrize("sciezka,obcy", [("pierwsza", "okresow"), ("okresowa", "pierwsz")])
+def test_sciezki_nie_mieszaja_zrodel(asystent, korpus_mc, sciezka, obcy):
+    obce = {d for d in korpus_mc.dokumenty if d not in korpus_mc.doc_ids_dla(sciezka)}
+    assert any(obcy in d for d in obce)
+    for q in Z_BAZY:
+        if q["sciezka"] == sciezka:
+            odp = asystent.odpowiedz(q["pytanie"], sciezka)
+            assert not [c.doc_id for c in odp.cytaty if c.doc_id in obce], q["id"]
+
+
+def test_ta_sama_tresc_inna_sciezka_inne_rozporzadzenie(asystent):
+    pytanie = "Jaka jest skala punktowa ocen cząstkowych?"
+    p = asystent.odpowiedz(pytanie, "pierwsza")
+    o = asystent.odpowiedz(pytanie, "okresowa")
+    assert p.cytaty[0].doc_id == "rozp-2015-pierwsza" and "7 pkt" in p.tresc
+    assert o.cytaty[0].doc_id == "rozp-2016-okresowe" and "9" in o.tresc
+
+
+def test_odpowiedz_z_poradnika_cytujacego_ustawe_jest_oznaczona(asystent):
+    odp = asystent.odpowiedz("Pracownik nie zgadza się z oceną. Ile ma dni na sprzeciw?", "okresowa")
+    assert odp.znaleziono and odp.cytaty[0].powoluje_ustawe
+    assert odp.cytaty[0].kategoria.value == "OBJAŚNIENIE_MATERIAŁU"
+    assert any("ustaw" in u for u in odp.uwagi)
+
+
+def test_przepis_nie_jest_oznaczany(asystent):
+    odp = asystent.odpowiedz("Ile kryteriów dodatkowych mogę wybrać?", "okresowa")
+    assert all(not c.powoluje_ustawe for c in odp.cytaty if c.kategoria.value == "PRZEPIS")
+
+
+def test_brak_platnych_uslug_ai_w_konfiguracji_domyslnej(ustawienia):
+    llm = yaml.safe_load(Path(ustawienia.konfiguracja_asystenta).read_text(encoding="utf-8"))["llm"]
+    assert set(llm["dozwolone"]) <= {"ollama", "zapisane", "ekstrakcyjny"}
+    assert all(d["typ"] in {"ollama", "zapisane", "ekstrakcyjny"} for d in llm["dostawcy"])
+
+
+# --- jakość odpowiedzi -----------------------------------------------------------------
+
+
+def test_cytaty_sa_doslowne_z_korpusu(asystent, korpus_mc):
+    for q in Z_BAZY:
+        for c in asystent.odpowiedz(q["pytanie"], _sciezka(q["sciezka"])).cytaty:
+            assert c.cytat in korpus_mc.korpus.fragment(c.fragment_id).tekst
+            assert c.wyrozniony and c.wyrozniony in c.cytat
+
+
+@pytest.mark.parametrize(
+    "pytanie,sciezka,fraza",
+    [
+        ("Kiedy przeprowadza się rozmowę wstępną?", "pierwsza", "21 dni"),
+        ("Ile dni ma pracownik na sprzeciw?", "okresowa", "7 dni"),
+        ("Ile kryteriów dodatkowych mogę wybrać?", "okresowa", "3"),
+        ("Kiedy ocena okresowa jest negatywna?", "okresowa", "znacznie poniżej"),
+    ],
+)
+def test_tresc_odpowiada_na_pytanie(asystent, pytanie, sciezka, fraza):
+    assert fraza in asystent.odpowiedz(pytanie, sciezka).tresc
+
+
+def test_nieznane_pojecie_jest_nazwane(asystent):
+    odp = asystent.odpowiedz("Pracownik zgłasza mobbing. Co robić?")
+    assert odp.znaleziono is False and "mobbing" in odp.nieznane_pojecia
+    assert any("mobbing" in u for u in odp.uwagi)
+
+
+# --- przygotowany zestaw pytań i odpowiedzi ---------------------------------------------
+
+
+def test_faq_nie_kopiuje_pytan_testowych():
+    warianty = {_n(w).lower() for p in FAQ for w in p["pytania"]}
+    testowe = {
+        _n(q["pytanie"]).lower()
+        for q in Z_BAZY + SPOZA + PARAFRAZY["z_bazy"] + PARAFRAZY["spoza_bazy"]
+    }
+    assert not warianty & testowe
+
+
+def test_odpowiedz_z_faq_ma_cytat_zrodla(asystent):
+    odp = asystent.odpowiedz("Do kiedy rozmowa wstępna z nowo przyjętym?", "pierwsza")
+    assert odp.faq_id == "FAQ-P01" and odp.tryb.value == "EKSTRAKCYJNE"
+    c = odp.cytaty[0]
+    assert c.doc_id == "rozp-2015-pierwsza" and c.lokalizator == "§ 3"
+    assert c.wyrozniony == "W terminie 21 dni od dnia nawiązania z ocenianym stosunku pracy"
+    assert any("przygotowanego zestawu" in u for u in odp.uwagi)
+
+
+def test_faq_nie_przekracza_sciezki(asystent):
+    odp = asystent.odpowiedz("Kiedy stosuje się arkusz B?", "pierwsza")
+    assert odp.faq_id is None or odp.faq_id.startswith(("FAQ-P", "FAQ-M"))
+
+
+def test_parafrazy_pomiar(asystent):
+    chybione = []
+    for q in PARAFRAZY["z_bazy"]:
+        if not _trafione(asystent, q["pytanie"], q["sciezka"], WZORY[q["wzor"]]["adnotacje"][0]):
+            chybione.append(q["id"])
+    odrzucone = sum(not asystent.odpowiedz(q["pytanie"]).znaleziono for q in PARAFRAZY["spoza_bazy"])
+    n = len(PARAFRAZY["z_bazy"])
+    print(f"\nparafrazy: {n - len(chybione)}/{n}; chybione: {chybione}; "
+          f"spoza bazy odrzucone: {odrzucone}/{len(PARAFRAZY['spoza_bazy'])}")
+    assert n - len(chybione) >= MIN_PARAFRAZ

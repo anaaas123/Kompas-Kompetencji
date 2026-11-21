@@ -1,0 +1,19 @@
+# Konta demo, role i reguły dostępu wersji MC BDG (#28), format KonfiguracjaRol z kompas_core.auth.
+# Konta są fikcyjne i służą tylko do demo. Osoby (osoba_id) pochodzą z qnt.yaml.
+
+konta:
+  - {login: przelozony1, hasło: demo, rola: przelozony, osoba_id: P-001}
+  - {login: przelozony2, hasło: demo, rola: przelozony, osoba_id: P-002}
+  - {login: hr, hasło: demo, rola: hr}
+  - {login: oceniany, hasło: demo, rola: oceniany, osoba_id: P-101}
+
+# ocena.czytaj daje podgląd procesów i kryteriów, ocena.tresc daje dostęp do treści ocen i wydruków.
+uprawnienia:
+  przelozony: [pracownicy.czytaj, notatki.czytaj, notatki.zapisz, ocena.prowadz, ocena.czytaj, ocena.tresc, rozwoj.propozycje]
+  hr: [pracownicy.czytaj, zrodla.panel, ocena.czytaj, metodyka.zarzadzaj, hr.panel, hr.przypomnienia]   # zrodla.panel, metodyka.zarzadzaj: #39; hr.*: #38
+  oceniany: [pracownicy.czytaj, ocena.czytaj, ocena.tresc]
+
+# Przełożony widzi tylko swoich podwładnych, oceniany tylko siebie. HR nie ma reguły, więc widzi wszystkich.
+reguły_dostępu:
+  - {zasób: pracownik, rola: przelozony, pole: przelozony_id}
+  - {zasób: pracownik, rola: oceniany, pole: osoba_id}

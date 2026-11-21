@@ -1,0 +1,134 @@
+# Asystent formalny wersji MC BDG (RAG na korpusie MC, #27 → #37).
+# Domyślnie tryb ekstrakcyjny. Wersja MC dopuszcza wyłącznie darmowych lub lokalnych dostawców.
+#
+# Przebieg (szczegóły: backend/src/kompas_mc/asystent.py):
+#   1. przygotowany zestaw pytań i odpowiedzi (faq.yaml) w ramach ścieżki,
+#   2. pojęcia pytania nieobecne w korpusie i w FAQ ⇒ „brak informacji” z ich nazwą,
+#   3. ranking BM25 na rdzeniach skróconych do `dlugosc_rdzenia`, z wagą dokumentu,
+#   4. fragmenty idą przez łańcuch LlmProvider (walidacja cytatów w core).
+
+wersja: "asystent-mc-2"
+cytaty: 3               # ile fragmentów trafia do odpowiedzi
+komunikat_brak: brak wystarczających informacji w bazie wiedzy
+faq: faq.yaml           # względem tego pliku
+
+dlugosc_rdzenia: 5      # „warunki”/„warunkiem” → ten sam prefiks (stemmer core daje różne rdzenie)
+minimalny_wynik: 4.0    # wynik najlepszego fragmentu (po wagach), poniżej ⇒ „brak informacji”
+prog_faq: 0.35          # podobieństwo pytania do pozycji FAQ (kosinus ważony idf, 0–1)
+udzial_nieznanych: 0.0  # 0.0 = każde pojęcie spoza korpusu i FAQ blokuje odpowiedź
+
+# Waga dokumentu w rankingu: przepis przed objaśnieniem. Domyślna wg kategorii z korpus.yaml.
+wagi_kategorii:
+  PRZEPIS: 1.0
+  OBJAŚNIENIE_MATERIAŁU: 0.8
+wagi_dokumentow:
+  model-kompetencji: 0.9
+  arkusz-pierwszej: 0.6
+  arkusz-b: 0.6
+  arkusz-c: 0.6
+  osp-starszy-specjalista: 0.4
+  osp-radca: 0.4
+  osp-naczelnik: 0.4
+
+# Słowa pytające i ogólne czasowniki – nie niosą treści i nie są „nieznanym pojęciem”.
+slowa_pomijane: >-
+  jak jaki jaka jakie jakim jakiej kiedy czy co ile kto kogo komu gdzie dlaczego po co czym
+  mój moja moje mojego mojemu mam masz ma mamy mogę może można muszę musi trzeba należy
+  w we z ze do na o od po za i a się jest są był była było byli dla przy przez pod nad
+  który która które którego to ten ta te tego tej tym mi mnie jeśli jeżeli gdy oraz lub albo
+  nie tak by być ale już jeszcze więc też tylko jeden jedna jedno
+  dostać dostanie pisać napisać zrobić robić wnieść wyszła wyszło wyszedł oceniłam oceniłem
+  miałam miałem miała miał chcę chciałabym chciałbym proszę powiedz wyjaśnij
+
+# Słownik: wyrażenie potoczne → słowa z przepisów, dopisywane do zapytania. Dopasowanie
+# całych słów, dłuższe wyrażenie wygrywa. Wyrażenie ze słownika nie jest „nieznanym pojęciem”.
+slownik:
+  zwolnienie lekarskie: usprawiedliwiona nieobecność
+  zwolnieniu lekarskim: usprawiedliwioną nieobecnością
+  chorobowe: usprawiedliwiona nieobecność
+  przesunąć termin: nowy termin przedłużając
+  podwładnych: kierowaniu pracownikami
+  podwładnymi: kierowaniu pracownikami
+  kieruje zespołem: bezpośrednim kierowaniu pracownikami
+  kierownik zespołu: bezpośrednim kierowaniu pracownikami
+  szef: bezpośredni przełożony oceniający
+  szefowa: bezpośredni przełożony oceniający
+  nie zgadza się: sprzeciw
+  odwołać się: sprzeciw
+  odwołanie: sprzeciw
+  skala: punkty
+  awans: kolejnego stopnia służbowego
+  nowy pracownik: nawiązania stosunku pracy pierwszej oceny
+  # Pytania o czas: słowo pytające jest pomijane, więc intencję „termin” dopisuje słownik.
+  kiedy: termin
+  ile dni: termin dni
+  ile czasu: termin
+  w jakim czasie: termin
+  jak długo: okres
+
+# Fragment objaśnienia, który powołuje przepis ustawy (ustawy nie ma w „materialy mc”).
+wzorzec_ustawy: 'art\.\s*\d+[a-z]*(?:\s*ust\.\s*\d+)?\s*(?:ustawy|u\.s\.c)'
+
+komunikaty:
+  nieznane_pojecia: 'Tych pojęć nie ma w bazie wiedzy: {pojecia}.'
+  ustawa: Fragment poradnika lub arkusza powołuje ustawę o służbie cywilnej, której tekstu nie ma w bazie wiedzy – zweryfikuj w ustawie.
+  sugestia: Asystent wskazuje fragmenty źródeł; nie podejmuje decyzji o ocenie.
+  faq: Odpowiedź z przygotowanego zestawu pytań i odpowiedzi; podstawą jest cytowany fragment źródła.
+
+llm:
+  dozwolone: [ollama, zapisane, ekstrakcyjny]
+  dostawcy:
+    # Odkomentuj, żeby model lokalny układał odpowiedź z pobranych fragmentów:
+    # - {typ: ollama, model: llama3.1}
+    - {typ: ekstrakcyjny, k: 3}   # k ≥ cytaty
+
+reguly:
+  - id: asystent.brak-informacji
+    opis: >-
+      Gdy pytanie nie pasuje do przygotowanego zestawu pytań i zawiera pojęcie, którego nie ma
+      w korpusie ani w FAQ, albo najlepszy fragment ma wynik poniżej `minimalny_wynik`,
+      asystent odpowiada komunikatem `komunikat_brak` i nazywa brakujące pojęcia.
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Zadanie wymaga, by asystent odpowiadał tylko z bazy wiedzy. Pomiar (#37): ani wynik
+          BM25, ani pokrycie słów nie rozdzielają pytań z bazy i spoza bazy; pojęcie spoza
+          korpusu rozdziela je na zestawie kontrolnym (6/6) i parafrazach (4/5).
+        zatwierdził: osoba D (#37) – do zatwierdzenia przez A w PR #52
+
+  - id: asystent.przepis-przed-objasnieniem
+    opis: >-
+      Wynik fragmentu jest mnożony przez wagę dokumentu: rozporządzenia 1.0, model 0.9,
+      poradniki 0.8, arkusze 0.6, OSP 0.4.
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: Przepis jest podstawą, a poradnik go objaśnia.
+        zatwierdził: osoba A (integrator)
+
+  - id: asystent.przygotowany-zestaw-pytan
+    opis: >-
+      Pytanie podobne (≥ `prog_faq`) do pozycji faq.yaml dla tej ścieżki dostaje odpowiedź
+      napisaną przez człowieka i cytat źródła tej pozycji; dalsze cytaty z rankingu.
+    adnotacje:
+      - kategoria: DECYZJA_PROJEKTOWA
+        uzasadnienie: >-
+          Treść zadania (pkt 5) wymienia „przygotowany zestaw pytań i odpowiedzi” jako część
+          bazy wiedzy. Samo wyszukiwanie: 14/22 pytań kontrolnych; z FAQ: 22/22, parafrazy
+          15/22 (parafrazy napisane przed FAQ, nie służą do strojenia).
+        zatwierdził: osoba D (#37) – do zatwierdzenia przez A w PR #52
+
+  - id: kontrola.rozmowa-wstepna
+    opis: >-
+      Pytanie kontrolne: „Kiedy przeprowadza się rozmowę wstępną?” – oczekiwany cytat.
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 3
+        strona: 1
+        cytat_dosłowny: >-
+          W terminie 21 dni od dnia nawiązania z ocenianym stosunku pracy
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 3
+        strona: 1
+        cytat_dosłowny: bezpośredni przełożony przeprowadza z ocenianym rozmowę wstępną

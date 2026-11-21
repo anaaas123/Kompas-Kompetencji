@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wydra – ruchy</title>
+<link rel="stylesheet" href="wydra.css">
+<style>
+  :root { --tlo: #f6f4ef; --tekst: #1d1b18; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --tlo: #1a1917; --tekst: #f1eee8; } }
+  :root[data-theme="dark"] { --tlo: #1a1917; --tekst: #f1eee8; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+         background: var(--tlo); color: var(--tekst); font: 15px/1.4 system-ui, sans-serif; }
+  .sceny { display: flex; flex-wrap: wrap; justify-content: center; gap: 48px; padding-top: 80px; }
+  .scena { display: grid; justify-items: center; gap: 16px; }
+  .przyciski { display: flex; gap: 8px; }
+  .przyciski button { font: inherit; padding: 6px 14px; border-radius: 999px; border: 1px solid currentColor; background: none; color: inherit; cursor: pointer; }
+  .stopka { display: grid; justify-items: center; gap: 8px; margin-top: 24px; }
+  p { margin: 0; opacity: .7; text-align: center; }
+  input { width: 200px; }
+</style>
+</head>
+<body>
+<div>
+  <div class="sceny">
+    <div class="scena" data-domyslny="podskok">
+      <button type="button" class="wydra" data-poza="stoi" style="width:200px" aria-label="Wydra Kompas"></button>
+      <div class="przyciski">
+        <button type="button" data-r="machanie">Machanie</button>
+        <button type="button" data-r="podskok">Podskok</button>
+      </div>
+    </div>
+    <div class="scena" data-domyslny="proszenie">
+      <button type="button" class="wydra" data-poza="prosi" style="width:200px" aria-label="Wydra Kompas"></button>
+      <div class="przyciski">
+        <button type="button" data-r="proszenie">Proszenie</button>
+      </div>
+    </div>
+  </div>
+  <div class="stopka">
+    <p>Kliknięcie wydry uruchamia jej domyślny ruch. Suwak spowalnia ruchy, żeby obejrzeć klatki.</p>
+    <label>tempo <input id="t" type="range" min="1" max="5" step="1" value="1"> <span id="tv">1×</span></label>
+  </div>
+</div>
+<script>
+  const KLATKI = ['stoi', 'skok', 'macha', 'prosi', 'sklada'];
+  const KONIEC = { 'wydra-klatka': 'podskok', 'wydra-macha-klatka': 'machanie', 'wydra-proszenie-prosi': 'proszenie' };
+  const wydry = [];
+  document.querySelectorAll('.scena').forEach(scena => {
+    const w = scena.querySelector('.wydra');
+    w.innerHTML = '<span class="wydra__cien" aria-hidden="true"></span><span class="wydra__cialo" aria-hidden="true">' +
+      KLATKI.map(k => `<img class="wydra__klatka wydra__klatka--${k}" src="wydra-${k}.webp" alt="" width="578" height="649" draggable="false">`).join('') +
+      '</span>';
+    const rusz = r => { if (!w.dataset.ruch) w.dataset.ruch = r; };
+    w.addEventListener('click', () => rusz(scena.dataset.domyslny));
+    scena.querySelectorAll('[data-r]').forEach(b => b.addEventListener('click', () => rusz(b.dataset.r)));
+    w.addEventListener('animationend', e => { if (KONIEC[e.animationName] === w.dataset.ruch) delete w.dataset.ruch; });
+    wydry.push([w, rusz]);
+  });
+  const t = document.getElementById('t'), tv = document.getElementById('tv');
+  t.addEventListener('input', () => {
+    const s = document.documentElement.style;
+    s.setProperty('--wydra-podskok', 720 * t.value + 'ms');
+    s.setProperty('--wydra-machanie', 960 * t.value + 'ms');
+    s.setProperty('--wydra-proszenie', 1100 * t.value + 'ms');
+    tv.textContent = t.value + '×';
+  });
+  setTimeout(() => { wydry[0][1]('machanie'); wydry[1][1]('proszenie'); }, 400);
+</script>
+</body>
+</html>

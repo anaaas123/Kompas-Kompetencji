@@ -1,0 +1,1905 @@
+{
+  "opis": "Wykaz pól i stałych elementów wydruku na podstawie wzorów MC BDG. Brak pola wymagane_gdy pozostawia zasady walidacji otwarte.",
+  "wersja": 1,
+  "nazwa_urzedu": "Ministerstwo Cyfryzacji",
+  "wzory": [
+    {
+      "id": "okresowa_b",
+      "zrodlo": {
+        "sciezka": "materialy mc/Ocena okresowa w służbie cywilnej/Arkusz oceny B (2).docx",
+        "zalacznik": 3,
+        "sha256": "47c2b62b81c49c62f03218dc7a1b5bacc0e21ab7d0c9c1437f56f4e52e1245c3"
+      },
+      "zakres_punktow": [
+        1,
+        3,
+        5,
+        7,
+        9
+      ],
+      "kolejnosc_kryteriow": [
+        "Zarządzanie ludźmi",
+        "Podejmowanie decyzji i odpowiedzialność",
+        "Organizacja pracy i orientacja na osiąganie celów",
+        "Współpraca",
+        "Komunikacja"
+      ],
+      "sekcje": [
+        {
+          "tytul": "Część I",
+          "pola": [
+            {
+              "id": "nazwa_urzedu",
+              "etykieta": "Nazwa urzędu",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 1 w1 k2"
+            },
+            {
+              "id": "oceniany.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w1 k2"
+            },
+            {
+              "id": "oceniany.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w2 k2"
+            },
+            {
+              "id": "oceniany.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w3 k2"
+            },
+            {
+              "id": "oceniany.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w4 k2",
+              "przypisy": [
+                2
+              ]
+            },
+            {
+              "id": "oceniajacy.czesc_I.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w1 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w2 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w3 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w4 k2"
+            },
+            {
+              "id": "kryterium_obowiazkowe.1",
+              "etykieta": "Zarządzanie ludźmi",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w2 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.2",
+              "etykieta": "Podejmowanie decyzji i odpowiedzialność",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w3 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.3",
+              "etykieta": "Organizacja pracy i orientacja na osiąganie celów",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w4 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.4",
+              "etykieta": "Współpraca",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w5 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.5",
+              "etykieta": "Komunikacja",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w6 k1"
+            },
+            {
+              "id": "kryterium_dodatkowe.1",
+              "etykieta": "Kryterium dodatkowe 1",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w2 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "kryterium_dodatkowe.2",
+              "etykieta": "Kryterium dodatkowe 2",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w3 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "kryterium_dodatkowe.3",
+              "etykieta": "Kryterium dodatkowe 3",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w4 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "termin_sporzadzenia_oceny",
+              "etykieta": "Termin sporządzenia oceny",
+              "rodzaj": "data",
+              "lokalizator": "tabela 4 w5 k3"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oswiadczenie",
+              "etykieta": "Potwierdzamy: przeprowadzenie rozmowy, o której mowa w § 5 ust. 1 rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470), i omówienie w trakcie tej rozmowy wszystkich wymaganych zagadnień), zapoznanie ocenianego z kryteriami oceny oraz terminem sporządzenia oceny.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 5 w1 k1",
+              "przypisy": [
+                4
+              ]
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 5 w2 k1"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w2 k2"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 5 w2 k3"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 5 w5 k1"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w5 k2"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 5 w5 k3"
+            }
+          ]
+        },
+        {
+          "tytul": "Część II",
+          "pola": [
+            {
+              "id": "rozmowa_oceniajaca.data",
+              "etykieta": "Data przeprowadzenia rozmowy oceniającej",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w1 k2",
+              "przypisy": [
+                5
+              ]
+            },
+            {
+              "id": "okres_oceny.od",
+              "etykieta": "Okres oceny od",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w2 k3",
+              "przypisy": [
+                6
+              ]
+            },
+            {
+              "id": "okres_oceny.do",
+              "etykieta": "Okres oceny do",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w2 k5",
+              "przypisy": [
+                7
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.1",
+              "etykieta": "Zarządzanie ludźmi",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w4 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.2",
+              "etykieta": "Podejmowanie decyzji i odpowiedzialność",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w5 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.3",
+              "etykieta": "Organizacja pracy i orientacja na osiąganie celów",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w6 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.4",
+              "etykieta": "Współpraca",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w7 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.5",
+              "etykieta": "Komunikacja",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w8 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.1.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 1",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w10 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.1_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.1.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 1",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w10 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.1_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.2.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 2",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w11 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.2_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.2.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 2",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w11 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.2_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.3.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 3",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w12 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.3_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.3.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 3",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w12 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.3_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "srednia",
+              "etykieta": "Średnia arytmetyczna z ocen cząstkowych",
+              "rodzaj": "liczba_dziesietna",
+              "lokalizator": "tabela 7 w13 k2"
+            },
+            {
+              "id": "poziom",
+              "etykieta": "Ogólny poziom spełnienia kryteriów oceny",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 8 w2 k1",
+              "warianty": [
+                "znacznie poniżej oczekiwań",
+                "poniżej oczekiwań",
+                "na poziomie oczekiwań",
+                "powyżej oczekiwań",
+                "znacznie powyżej oczekiwań"
+              ]
+            },
+            {
+              "id": "wynik",
+              "etykieta": "Ocena okresowa w służbie cywilnej",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 8 w7 k3",
+              "warianty": [
+                "POZYTYWNA",
+                "NEGATYWNA"
+              ],
+              "przypisy": [
+                10,
+                11
+              ]
+            },
+            {
+              "id": "uzasadnienie",
+              "etykieta": "Uzasadnienie przyznanej oceny okresowej",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 9 w1 k1",
+              "wymagane_gdy": [
+                "ocena_negatywna"
+              ],
+              "przypisy": [
+                12
+              ]
+            },
+            {
+              "id": "wnioski_iprz",
+              "etykieta": "Wnioski dotyczące indywidualnego programu rozwoju zawodowego",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 10 w1 k1",
+              "przypisy": [
+                13
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.wynik",
+              "etykieta": "Ocena poprzednia",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 11 w1 k2",
+              "warianty": [
+                "pozytywna",
+                "negatywna"
+              ],
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ],
+              "przypisy": [
+                14
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.poziom",
+              "etykieta": "Poziom poprzedniej oceny",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 11 w1 k4",
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ],
+              "przypisy": [
+                15
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.data",
+              "etykieta": "Data sporządzenia poprzedniej oceny",
+              "rodzaj": "data",
+              "lokalizator": "tabela 11 w1 k6",
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ]
+            },
+            {
+              "id": "wniosek_o_stopien.status",
+              "etykieta": "Czy dołączono wniosek o przyznanie kolejnego stopnia służbowego",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 12 w1 k2",
+              "warianty": [
+                "TAK",
+                "NIE",
+                "NIE DOTYCZY"
+              ],
+              "przypisy": [
+                16
+              ]
+            },
+            {
+              "id": "oceniajacy.czesc_II.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w1 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w2 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w3 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w4 k2"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w5 k1"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 13 w5 k2"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 13 w5 k3"
+            },
+            {
+              "id": "zapoznanie.oswiadczenie",
+              "etykieta": "Przeprowadzono ze mną rozmowę oceniającą oraz zapoznałem(-łam) się z oceną okresową i wnioskami dotyczącymi indywidualnego programu rozwoju zawodowego.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 14 w1 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 14 w2 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 14 w2 k2"
+            },
+            {
+              "id": "zapoznanie.oceniany.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka ocenianego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 14 w2 k3"
+            },
+            {
+              "id": "zapoznanie.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 14 w2 k4"
+            },
+            {
+              "id": "pouczenie",
+              "etykieta": "Zgodnie z art. 83 ust. 1 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej od oceny okresowej służy, w terminie 7 dni od dnia zapoznania się z oceną, sprzeciw do dyrektora generalnego urzędu).",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 15 w2 k1",
+              "przypisy": [
+                17
+              ]
+            }
+          ]
+        },
+        {
+          "tytul": "Część III",
+          "drukuj_gdy": [
+            "oceniany_jest_urzednikiem",
+            "ocena_pozytywna",
+            "skladany_wniosek_o_stopien"
+          ],
+          "przypisy": [
+            18
+          ],
+          "pola": [
+            {
+              "id": "urzednik.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w1 k2"
+            },
+            {
+              "id": "urzednik.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w2 k2"
+            },
+            {
+              "id": "urzednik.rok_mianowania",
+              "etykieta": "Rok mianowania",
+              "rodzaj": "rok",
+              "lokalizator": "tabela 16 w3 k2"
+            },
+            {
+              "id": "urzednik.stopien_sluzbowy",
+              "etykieta": "Posiadany stopień służbowy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w4 k2"
+            },
+            {
+              "id": "urzednik.data_przyznania_stopnia",
+              "etykieta": "Data przyznania stopnia służbowego",
+              "rodzaj": "data",
+              "lokalizator": "tabela 16 w5 k2"
+            },
+            {
+              "id": "wniosek_o_stopien.imie_nazwisko",
+              "etykieta": "Imię i nazwisko urzędnika we wniosku",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w2 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.stopien",
+              "etykieta": "Wnioskowany stopień służbowy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w2 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.umotywowanie",
+              "etykieta": "Umotywowanie wniosku",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 17 w4 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w5 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 17 w5 k2"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka oceniającego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 17 w5 k3"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 17 w5 k4"
+            }
+          ]
+        }
+      ],
+      "przypisy": {
+        "1": "Arkusz służy do sporządzenia oceny okresowej urzędnika służby cywilnej lub pracownika służby cywilnej, zatrudnionego na stanowisku, na którym praca polega na bezpośrednim kierowaniu pracownikami.",
+        "2": "Należy wskazać pełną nazwę stanowiska pracy wraz z jego rozszerzeniem określającym, do jakich spraw jest to stanowisko (jeżeli zostało to określone w opisie stanowiska pracy).",
+        "3": "Należy wpisać nazwy wybranych kryteriów, korzystając z załącznika nr 1 do rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej.",
+        "4": "W trakcie rozmowy omawiane są: 1) główne obowiązki wynikające z opisu stanowiska pracy zajmowanego przez ocenianego, 2) kryteria obowiązkowe i kryteria dodatkowe, jeżeli są wybierane przez oceniającego, 3) oczekiwania oceniającego co do sposobu spełniania kryteriów oceny przez ocenianego, 4) cele do osiągnięcia w okresie, w którym oceniany podlega ocenie, jeżeli ich określenie jest uzasadnione ze względu na charakter obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego, a także sposób realizacji wyznaczonych celów.",
+        "5": "W trakcie rozmowy oceniającej omawia się: 1) główne obowiązki wykonywane przez ocenianego w okresie, w którym podlegał ocenie, oraz sposób ich realizacji, z uwzględnieniem spełniania przez ocenianego ustalonych kryteriów oceny, 2) sposób realizowania przez ocenianego celów do osiągnięcia w okresie, w którym oceniany podlegał ocenie, jeżeli cele te zostały wyznaczone, 3) kierunki dalszego rozwoju zawodowego i potrzeby ocenianego w zakresie podnoszenia kwalifikacji i doskonalenia umiejętności.",
+        "6": "Data „od” oznacza datę zapoznania ocenianego z kryteriami oceny – z części I arkusza oceny.",
+        "7": "Data „do” oznacza datę sporządzenia oceny na piśmie. Jeżeli ocena okresowa jest sporządzana w związku z zastosowaniem art. 81 ust. 6 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej (Dz. U. z 2014 r. poz. 1111, z późn. zm.) i nie została sporządzona przed zmianą stanowiska pracy, należy w tym polu wpisać ostatni dzień pracy na zajmowanym stanowisku pracy.",
+        "8": "Należy wstawić znak „X” w odpowiednie pole.",
+        "9": "Należy wpisać nazwy wybranych kryteriów, korzystając z załącznika nr 1 do rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej.",
+        "10": "POZYTYWNA – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie „znacznie powyżej oczekiwań”, „powyżej oczekiwań” albo „na poziomie oczekiwań”, pod warunkiem nieuzyskania przez ocenianego żadnej z ocen cząstkowych na poziomie „znacznie poniżej oczekiwań”.",
+        "11": "NEGATYWNA – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie „poniżej oczekiwań” albo „znacznie poniżej oczekiwań”, a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie „znacznie poniżej oczekiwań”.",
+        "12": "Uzasadnienie jest obligatoryjne w przypadku otrzymania przez ocenianego negatywnej oceny okresowej. W przypadku przyznania oceny pozytywnej uzasadnienie jest fakultatywne. Sporządzenie uzasadnienia oceny może polegać na ogólnym omówieniu oceny lub na szczegółowym odniesieniu się do wszystkich ocen cząstkowych albo tylko do niektórych z nich.",
+        "13": "Uwzględniając sporządzoną ocenę, realizowane i przyszłe zadania oraz oczekiwania ocenianego, należy określić kierunki rozwoju zawodowego ocenianego, biorąc pod uwagę obszary wiedzy i umiejętności wymagające doskonalenia, oraz zaproponować optymalne formy i metody ich realizacji.",
+        "14": "Należy wpisać „pozytywna” lub „negatywna”.",
+        "15": "Należy wpisać, na jakim poziomie była przyznana poprzednia ocena okresowa (np. „na poziomie oczekiwań”).",
+        "16": "Należy wstawić znak „X” w odpowiednie pole.",
+        "17": "W urzędzie, w którym przepisy nie przewidują tworzenia stanowiska dyrektora generalnego urzędu, sprzeciw składa się do kierownika tego urzędu.",
+        "18": "Części III nie drukuje się i nie dołącza do arkusza oceny okresowej, w przypadku ocenianego będącego pracownikiem służby cywilnej oraz w razie nieskładania wniosku o przyznanie urzędnikowi służby cywilnej kolejnego stopnia służbowego."
+      },
+      "uwagi": [
+        "Część I i część II powtarzają dane i potwierdzenia w osobnych miejscach wzoru."
+      ]
+    },
+    {
+      "id": "okresowa_c",
+      "zrodlo": {
+        "sciezka": "materialy mc/Ocena okresowa w służbie cywilnej/Arkusz oceny C (2).docx",
+        "zalacznik": 4,
+        "sha256": "4845015f886a56c8715006a5b803e77c6d628eab9aa4989763214c170ba662f0"
+      },
+      "zakres_punktow": [
+        1,
+        3,
+        5,
+        7,
+        9
+      ],
+      "kolejnosc_kryteriow": [
+        "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+        "Rzetelność",
+        "Organizacja pracy i orientacja na osiąganie celów",
+        "Współpraca",
+        "Komunikacja"
+      ],
+      "sekcje": [
+        {
+          "tytul": "Część I",
+          "pola": [
+            {
+              "id": "nazwa_urzedu",
+              "etykieta": "Nazwa urzędu",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 1 w1 k2"
+            },
+            {
+              "id": "oceniany.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w1 k2"
+            },
+            {
+              "id": "oceniany.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w2 k2"
+            },
+            {
+              "id": "oceniany.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w3 k2"
+            },
+            {
+              "id": "oceniany.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w4 k2",
+              "przypisy": [
+                2
+              ]
+            },
+            {
+              "id": "oceniajacy.czesc_I.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w1 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w2 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w3 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_I.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w4 k2"
+            },
+            {
+              "id": "kryterium_obowiazkowe.1",
+              "etykieta": "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w2 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.2",
+              "etykieta": "Rzetelność",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w3 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.3",
+              "etykieta": "Organizacja pracy i orientacja na osiąganie celów",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w4 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.4",
+              "etykieta": "Współpraca",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w5 k1"
+            },
+            {
+              "id": "kryterium_obowiazkowe.5",
+              "etykieta": "Komunikacja",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 4 w6 k1"
+            },
+            {
+              "id": "kryterium_dodatkowe.1",
+              "etykieta": "Kryterium dodatkowe 1",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w2 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "kryterium_dodatkowe.2",
+              "etykieta": "Kryterium dodatkowe 2",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w3 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "kryterium_dodatkowe.3",
+              "etykieta": "Kryterium dodatkowe 3",
+              "rodzaj": "wybor_kryterium",
+              "lokalizator": "tabela 4 w4 k2",
+              "fakultatywne": true,
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "termin_sporzadzenia_oceny",
+              "etykieta": "Termin sporządzenia oceny",
+              "rodzaj": "data",
+              "lokalizator": "tabela 4 w5 k3"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oswiadczenie",
+              "etykieta": "Potwierdzamy: przeprowadzenie rozmowy, o której mowa w § 5 ust. 1 rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej (Dz. U. poz. 470), i omówienie w trakcie tej rozmowy wszystkich wymaganych zagadnień), zapoznanie ocenianego z kryteriami oceny oraz terminem sporządzenia oceny.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 5 w1 k1",
+              "przypisy": [
+                4
+              ]
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 5 w2 k1"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w2 k2"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 5 w2 k3"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 5 w5 k1"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w5 k2"
+            },
+            {
+              "id": "potwierdzenie_kryteriow.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 5 w5 k3"
+            }
+          ]
+        },
+        {
+          "tytul": "Część II",
+          "pola": [
+            {
+              "id": "rozmowa_oceniajaca.data",
+              "etykieta": "Data przeprowadzenia rozmowy oceniającej",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w1 k2",
+              "przypisy": [
+                5
+              ]
+            },
+            {
+              "id": "okres_oceny.od",
+              "etykieta": "Okres oceny od",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w2 k3",
+              "przypisy": [
+                6
+              ]
+            },
+            {
+              "id": "okres_oceny.do",
+              "etykieta": "Okres oceny do",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w2 k5",
+              "przypisy": [
+                7
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.1",
+              "etykieta": "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w4 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.2",
+              "etykieta": "Rzetelność",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w5 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.3",
+              "etykieta": "Organizacja pracy i orientacja na osiąganie celów",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w6 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.4",
+              "etykieta": "Współpraca",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w7 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_obowiazkowa.5",
+              "etykieta": "Komunikacja",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w8 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.1.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 1",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w10 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.1_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.1.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 1",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w10 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.1_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.2.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 2",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w11 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.2_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.2.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 2",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w11 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.2_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.3.kryterium",
+              "etykieta": "Nazwa kryterium dodatkowego 3",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 7 w12 k1",
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.3_wybrane"
+              ],
+              "przypisy": [
+                9
+              ]
+            },
+            {
+              "id": "ocena_dodatkowa.3.punkty",
+              "etykieta": "Ocena kryterium dodatkowego 3",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 7 w12 k2",
+              "warianty": [
+                1,
+                3,
+                5,
+                7,
+                9
+              ],
+              "pokaz_gdy": [
+                "kryterium_dodatkowe.3_wybrane"
+              ],
+              "przypisy": [
+                8
+              ]
+            },
+            {
+              "id": "srednia",
+              "etykieta": "Średnia arytmetyczna z ocen cząstkowych",
+              "rodzaj": "liczba_dziesietna",
+              "lokalizator": "tabela 7 w13 k2"
+            },
+            {
+              "id": "poziom",
+              "etykieta": "Ogólny poziom spełnienia kryteriów oceny",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 8 w2 k1",
+              "warianty": [
+                "znacznie poniżej oczekiwań",
+                "poniżej oczekiwań",
+                "na poziomie oczekiwań",
+                "powyżej oczekiwań",
+                "znacznie powyżej oczekiwań"
+              ]
+            },
+            {
+              "id": "wynik",
+              "etykieta": "Ocena okresowa w służbie cywilnej",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 8 w7 k3",
+              "warianty": [
+                "POZYTYWNA",
+                "NEGATYWNA"
+              ],
+              "przypisy": [
+                10,
+                11
+              ]
+            },
+            {
+              "id": "uzasadnienie",
+              "etykieta": "Uzasadnienie przyznanej oceny okresowej",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 9 w1 k1",
+              "wymagane_gdy": [
+                "ocena_negatywna"
+              ],
+              "przypisy": [
+                12
+              ]
+            },
+            {
+              "id": "wnioski_iprz",
+              "etykieta": "Wnioski dotyczące indywidualnego programu rozwoju zawodowego",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 10 w1 k1",
+              "przypisy": [
+                13
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.wynik",
+              "etykieta": "Ocena poprzednia",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 11 w1 k2",
+              "warianty": [
+                "pozytywna",
+                "negatywna"
+              ],
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ],
+              "przypisy": [
+                14
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.poziom",
+              "etykieta": "Poziom poprzedniej oceny",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 11 w1 k4",
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ],
+              "przypisy": [
+                15
+              ]
+            },
+            {
+              "id": "poprzednia_ocena.data",
+              "etykieta": "Data sporządzenia poprzedniej oceny",
+              "rodzaj": "data",
+              "lokalizator": "tabela 11 w1 k6",
+              "pokaz_gdy": [
+                "oceniany_jest_urzednikiem"
+              ]
+            },
+            {
+              "id": "wniosek_o_stopien.status",
+              "etykieta": "Czy dołączono wniosek o przyznanie kolejnego stopnia służbowego",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 12 w1 k2",
+              "warianty": [
+                "TAK",
+                "NIE",
+                "NIE DOTYCZY"
+              ],
+              "przypisy": [
+                16
+              ]
+            },
+            {
+              "id": "oceniajacy.czesc_II.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w1 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w2 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w3 k2"
+            },
+            {
+              "id": "oceniajacy.czesc_II.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w4 k2"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 13 w5 k1"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 13 w5 k2"
+            },
+            {
+              "id": "dokonanie_oceny.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 13 w5 k3"
+            },
+            {
+              "id": "zapoznanie.oswiadczenie",
+              "etykieta": "Przeprowadzono ze mną rozmowę oceniającą oraz zapoznałem(-łam) się z oceną okresową i wnioskami dotyczącymi indywidualnego programu rozwoju zawodowego.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 14 w1 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 14 w2 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 14 w2 k2"
+            },
+            {
+              "id": "zapoznanie.oceniany.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka ocenianego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 14 w2 k3"
+            },
+            {
+              "id": "zapoznanie.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 14 w2 k4"
+            },
+            {
+              "id": "pouczenie",
+              "etykieta": "Zgodnie z art. 83 ust. 1 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej od oceny okresowej służy, w terminie 7 dni od dnia zapoznania się z oceną, sprzeciw do dyrektora generalnego urzędu).",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 15 w2 k1",
+              "przypisy": [
+                17
+              ]
+            }
+          ]
+        },
+        {
+          "tytul": "Część III",
+          "drukuj_gdy": [
+            "oceniany_jest_urzednikiem",
+            "ocena_pozytywna",
+            "skladany_wniosek_o_stopien"
+          ],
+          "przypisy": [
+            18
+          ],
+          "pola": [
+            {
+              "id": "urzednik.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w1 k2"
+            },
+            {
+              "id": "urzednik.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w2 k2"
+            },
+            {
+              "id": "urzednik.rok_mianowania",
+              "etykieta": "Rok mianowania",
+              "rodzaj": "rok",
+              "lokalizator": "tabela 16 w3 k2"
+            },
+            {
+              "id": "urzednik.stopien_sluzbowy",
+              "etykieta": "Posiadany stopień służbowy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w4 k2"
+            },
+            {
+              "id": "urzednik.data_przyznania_stopnia",
+              "etykieta": "Data przyznania stopnia służbowego",
+              "rodzaj": "data",
+              "lokalizator": "tabela 16 w5 k2"
+            },
+            {
+              "id": "wniosek_o_stopien.imie_nazwisko",
+              "etykieta": "Imię i nazwisko urzędnika we wniosku",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w2 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.stopien",
+              "etykieta": "Wnioskowany stopień służbowy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w2 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.umotywowanie",
+              "etykieta": "Umotywowanie wniosku",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 17 w4 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 17 w5 k1"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 17 w5 k2"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka oceniającego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 17 w5 k3"
+            },
+            {
+              "id": "wniosek_o_stopien.oceniajacy.podpis",
+              "etykieta": "Podpis oceniającego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 17 w5 k4"
+            }
+          ]
+        }
+      ],
+      "przypisy": {
+        "1": "Arkusz służy do sporządzenia oceny okresowej urzędnika służby cywilnej lub pracownika służby cywilnej, zatrudnionego na stanowisku, które nie jest: – stanowiskiem kierownika urzędu, będącym stanowiskiem pracy w służbie cywilnej, ani – stanowiskiem, na którym praca polega na bezpośrednim kierowaniu pracownikami.",
+        "2": "Należy wskazać pełną nazwę stanowiska pracy wraz z jego rozszerzeniem określającym, do jakich spraw jest to stanowisko (jeżeli zostało to określone w opisie stanowiska pracy).",
+        "3": "Należy wpisać nazwy wybranych kryteriów, korzystając z załącznika nr 1 do rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej.",
+        "4": "W trakcie rozmowy omawiane są: 1) główne obowiązki wynikające z opisu stanowiska pracy zajmowanego przez ocenianego, 2) kryteria obowiązkowe i kryteria dodatkowe, jeżeli są wybierane przez oceniającego, 3) oczekiwania oceniającego co do sposobu spełniania kryteriów oceny przez ocenianego, 4) cele do osiągnięcia w okresie, w którym oceniany podlega ocenie, jeżeli ich określenie jest uzasadnione ze względu na charakter obowiązków wynikających z opisu stanowiska pracy zajmowanego przez ocenianego, a także sposób realizacji wyznaczonych celów.",
+        "5": "W trakcie rozmowy oceniającej omawia się: 1) główne obowiązki wykonywane przez ocenianego w okresie, w którym podlegał ocenie, oraz sposób ich realizacji, z uwzględnieniem spełniania przez ocenianego ustalonych kryteriów oceny, 2) sposób realizowania przez ocenianego celów do osiągnięcia w okresie, w którym oceniany podlegał ocenie, jeżeli cele te zostały wyznaczone, 3) kierunki dalszego rozwoju zawodowego i potrzeby ocenianego w zakresie podnoszenia kwalifikacji i doskonalenia umiejętności.",
+        "6": "Data „od” oznacza datę zapoznania ocenianego z kryteriami oceny – z części I arkusza oceny.",
+        "7": "Data „do” oznacza datę sporządzenia oceny na piśmie. Jeżeli ocena okresowa jest sporządzana w związku z zastosowaniem art. 81 ust. 6 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej (Dz. U. z 2014 r. poz. 1111, z późn. zm.) i nie została sporządzona przed zmianą stanowiska pracy, należy w tym polu wpisać ostatni dzień pracy na zajmowanym stanowisku pracy.",
+        "8": "Należy wstawić znak „X” w odpowiednie pole.",
+        "9": "Należy wpisać nazwy wybranych kryteriów, korzystając z załącznika nr 1 do rozporządzenia Prezesa Rady Ministrów z dnia 4 kwietnia 2016 r. w sprawie warunków i sposobu przeprowadzania ocen okresowych urzędników służby cywilnej i pracowników służby cywilnej.",
+        "10": "POZYTYWNA – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie „znacznie powyżej oczekiwań”, „powyżej oczekiwań” albo „na poziomie oczekiwań”, pod warunkiem nieuzyskania przez ocenianego żadnej z ocen cząstkowych na poziomie „znacznie poniżej oczekiwań”.",
+        "11": "NEGATYWNA – w przypadku ustalenia ogólnego poziomu spełniania kryteriów oceny na poziomie „poniżej oczekiwań” albo „znacznie poniżej oczekiwań”, a także w przypadku uzyskania przez ocenianego co najmniej jednej oceny cząstkowej na poziomie „znacznie poniżej oczekiwań”.",
+        "12": "Uzasadnienie jest obligatoryjne w przypadku otrzymania przez ocenianego negatywnej oceny okresowej. W przypadku przyznania oceny pozytywnej uzasadnienie jest fakultatywne. Sporządzenie uzasadnienia oceny może polegać na ogólnym omówieniu oceny lub na szczegółowym odniesieniu się do wszystkich ocen cząstkowych albo tylko do niektórych z nich.",
+        "13": "Uwzględniając sporządzoną ocenę, realizowane i przyszłe zadania oraz oczekiwania ocenianego, należy określić kierunki rozwoju zawodowego ocenianego, biorąc pod uwagę obszary wiedzy i umiejętności wymagające doskonalenia, oraz zaproponować optymalne formy i metody ich realizacji.",
+        "14": "Należy wpisać „pozytywna” lub „negatywna”.",
+        "15": "Należy wpisać, na jakim poziomie była przyznana poprzednia ocena okresowa (np. „na poziomie oczekiwań”).",
+        "16": "Należy wstawić znak „X” w odpowiednie pole.",
+        "17": "W urzędzie, w którym przepisy nie przewidują tworzenia stanowiska dyrektora generalnego urzędu, sprzeciw składa się do kierownika tego urzędu.",
+        "18": "Części III nie drukuje się i nie dołącza do arkusza oceny okresowej w przypadku ocenianego będącego pracownikiem służby cywilnej oraz w razie nieskładania wniosku o przyznanie urzędnikowi służby cywilnej kolejnego stopnia służbowego."
+      },
+      "uwagi": [
+        "Część I i część II powtarzają dane i potwierdzenia w osobnych miejscach wzoru."
+      ]
+    },
+    {
+      "id": "pierwsza",
+      "zrodlo": {
+        "sciezka": "materialy mc/Pierwsza ocena w służbie cywilnej/Arkusz pierwszej oceny (2).docx",
+        "zalacznik": 2,
+        "sha256": "12a6f89a8bb8b667e2e20b6efd504259c6cc061b36460b8d9b87fed50a5b1721"
+      },
+      "zakres_punktow": [
+        3,
+        5,
+        7
+      ],
+      "kolejnosc_kryteriow": [
+        "Rzetelność",
+        "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+        "Organizacja pracy i orientacja na osiąganie celów",
+        "Komunikacja",
+        "Współpraca"
+      ],
+      "sekcje": [
+        {
+          "tytul": "Część ogólna",
+          "pola": [
+            {
+              "id": "nazwa_urzedu",
+              "etykieta": "Nazwa urzędu",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 1 w1 k2"
+            },
+            {
+              "id": "oceniany.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w1 k2"
+            },
+            {
+              "id": "oceniany.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w2 k2"
+            },
+            {
+              "id": "oceniany.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w3 k2"
+            },
+            {
+              "id": "oceniany.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 2 w4 k2"
+            },
+            {
+              "id": "oceniany.data_nawiazania_stosunku_pracy",
+              "etykieta": "Data nawiązania stosunku pracy",
+              "rodzaj": "data",
+              "lokalizator": "tabela 2 w5 k2",
+              "przypisy": [
+                1
+              ]
+            },
+            {
+              "id": "bezposredni_przelozony.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w1 k2"
+            },
+            {
+              "id": "bezposredni_przelozony.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w2 k2"
+            },
+            {
+              "id": "bezposredni_przelozony.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w3 k2"
+            },
+            {
+              "id": "bezposredni_przelozony.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 3 w4 k2"
+            },
+            {
+              "id": "kierujacy_komorka.imie",
+              "etykieta": "Imię",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 4 w1 k2"
+            },
+            {
+              "id": "kierujacy_komorka.nazwisko",
+              "etykieta": "Nazwisko",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 4 w2 k2"
+            },
+            {
+              "id": "kierujacy_komorka.komorka_organizacyjna",
+              "etykieta": "Komórka organizacyjna",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 4 w3 k2"
+            },
+            {
+              "id": "kierujacy_komorka.stanowisko",
+              "etykieta": "Stanowisko pracy",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 4 w4 k2"
+            }
+          ]
+        },
+        {
+          "tytul": "Rozmowa wstępna",
+          "pola": [
+            {
+              "id": "rozmowa_wstepna.data",
+              "etykieta": "Data przeprowadzenia rozmowy wstępnej",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w1 k2"
+            },
+            {
+              "id": "termin_sprawozdania.od",
+              "etykieta": "Termin złożenia sprawozdania od",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w2 k2"
+            },
+            {
+              "id": "termin_sprawozdania.do",
+              "etykieta": "Termin złożenia sprawozdania do",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w2 k2"
+            },
+            {
+              "id": "okres_pierwszej_oceny.od",
+              "etykieta": "Okres dokonania pierwszej oceny od",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w3 k2"
+            },
+            {
+              "id": "okres_pierwszej_oceny.do",
+              "etykieta": "Okres dokonania pierwszej oceny do",
+              "rodzaj": "data",
+              "lokalizator": "tabela 5 w3 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.oswiadczenie",
+              "etykieta": "Potwierdzamy przeprowadzenie rozmowy wstępnej oraz wyznaczenie terminu na złożenie sprawozdania i zapoznanie z nim ocenianego.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 6 w1 k1"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.przelozony.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 6 w2 k1"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.przelozony.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w2 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.przelozony.podpis",
+              "etykieta": "Podpis bezpośredniego przełożonego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 6 w2 k3"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 6 w4 k1"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 6 w4 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_wstepnej.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 6 w4 k3"
+            }
+          ]
+        },
+        {
+          "tytul": "Rozmowa oceniająca",
+          "pola": [
+            {
+              "id": "rozmowa_oceniajaca.data",
+              "etykieta": "Data przeprowadzenia rozmowy oceniającej",
+              "rodzaj": "data",
+              "lokalizator": "tabela 7 w1 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.oswiadczenie",
+              "etykieta": "Potwierdzamy przeprowadzenie rozmowy oceniającej i omówienie w trakcie tej rozmowy wszystkich wymaganych zagadnień).",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 8 w1 k1",
+              "przypisy": [
+                2
+              ]
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.przelozony.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 8 w2 k1"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.przelozony.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 8 w2 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.przelozony.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka bezpośredniego przełożonego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 8 w2 k3"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.przelozony.podpis",
+              "etykieta": "Podpis bezpośredniego przełożonego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 8 w2 k4"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 8 w4 k1"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 8 w4 k2"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.oceniany.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka ocenianego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 8 w4 k3"
+            },
+            {
+              "id": "potwierdzenie_rozmowy_oceniajacej.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 8 w4 k4"
+            }
+          ]
+        },
+        {
+          "tytul": "Ocena cząstkowa i wynik",
+          "pola": [
+            {
+              "id": "ocena_czastkowa.1",
+              "etykieta": "Rzetelność",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 9 w4 k2",
+              "warianty": [
+                3,
+                5,
+                7
+              ],
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "ocena_czastkowa.2",
+              "etykieta": "Wykorzystywanie wiedzy i doskonalenie zawodowe",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 9 w5 k2",
+              "warianty": [
+                3,
+                5,
+                7
+              ],
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "ocena_czastkowa.3",
+              "etykieta": "Organizacja pracy i orientacja na osiąganie celów",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 9 w6 k2",
+              "warianty": [
+                3,
+                5,
+                7
+              ],
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "ocena_czastkowa.4",
+              "etykieta": "Komunikacja",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 9 w7 k2",
+              "warianty": [
+                3,
+                5,
+                7
+              ],
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "ocena_czastkowa.5",
+              "etykieta": "Współpraca",
+              "rodzaj": "wybor_punktow",
+              "lokalizator": "tabela 9 w8 k2",
+              "warianty": [
+                3,
+                5,
+                7
+              ],
+              "przypisy": [
+                3
+              ]
+            },
+            {
+              "id": "ocena_laczna",
+              "etykieta": "Ocena łączna",
+              "rodzaj": "liczba_dziesietna",
+              "lokalizator": "tabela 9 w9 k2",
+              "przypisy": [
+                4
+              ]
+            },
+            {
+              "id": "egzamin",
+              "etykieta": "Oceniany zaliczył egzamin ze służby przygotowawczej",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 10 w2 k2",
+              "warianty": [
+                "TAK",
+                "NIE",
+                "NIE DOTYCZY"
+              ],
+              "przypisy": [
+                5
+              ]
+            },
+            {
+              "id": "sprawozdanie_w_terminie",
+              "etykieta": "Sprawozdanie zostało złożone w wyznaczonym terminie",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 11 w2 k2",
+              "warianty": [
+                "TAK",
+                "NIE"
+              ]
+            },
+            {
+              "id": "wynik",
+              "etykieta": "Pierwsza ocena w służbie cywilnej",
+              "rodzaj": "wybor",
+              "lokalizator": "tabela 12 w2 k2",
+              "warianty": [
+                "POZYTYWNA",
+                "NEGATYWNA"
+              ],
+              "przypisy": [
+                6
+              ]
+            },
+            {
+              "id": "uzasadnienie",
+              "etykieta": "Uzasadnienie przyznanej oceny",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 13 w2 k1",
+              "wymagane_gdy": [
+                "ocena_negatywna"
+              ],
+              "przypisy": [
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "tytul": "Wnioski dotyczące rozwoju zawodowego ocenianego",
+          "pokaz_gdy": [
+            "ocena_pozytywna"
+          ],
+          "pola": [
+            {
+              "id": "wnioski_rozwojowe",
+              "etykieta": "Wnioski dotyczące rozwoju zawodowego ocenianego",
+              "rodzaj": "tekst_wielowierszowy",
+              "lokalizator": "tabela 14 w2 k1",
+              "fakultatywne": true,
+              "przypisy": [
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "tytul": "Potwierdzenie dokonania i zapoznania z oceną",
+          "pola": [
+            {
+              "id": "dokonanie_oceny.przelozony.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 15 w2 k1"
+            },
+            {
+              "id": "dokonanie_oceny.przelozony.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 15 w2 k2"
+            },
+            {
+              "id": "dokonanie_oceny.przelozony.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka bezpośredniego przełożonego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 15 w2 k3"
+            },
+            {
+              "id": "dokonanie_oceny.przelozony.podpis",
+              "etykieta": "Podpis bezpośredniego przełożonego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 15 w2 k4"
+            },
+            {
+              "id": "dokonanie_oceny.kierujacy.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 15 w4 k1"
+            },
+            {
+              "id": "dokonanie_oceny.kierujacy.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 15 w4 k2"
+            },
+            {
+              "id": "dokonanie_oceny.kierujacy.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka kierującego komórką organizacyjną",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 15 w4 k3"
+            },
+            {
+              "id": "dokonanie_oceny.kierujacy.podpis",
+              "etykieta": "Podpis kierującego komórką organizacyjną",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 15 w4 k4"
+            },
+            {
+              "id": "zapoznanie.oswiadczenie",
+              "etykieta": "Zapoznałam(-łem) się z pierwszą oceną w służbie cywilnej.",
+              "rodzaj": "tekst_staly",
+              "lokalizator": "tabela 16 w1 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.miejscowosc",
+              "etykieta": "Miejscowość",
+              "rodzaj": "tekst",
+              "lokalizator": "tabela 16 w2 k1"
+            },
+            {
+              "id": "zapoznanie.oceniany.data",
+              "etykieta": "Data",
+              "rodzaj": "data",
+              "lokalizator": "tabela 16 w2 k2"
+            },
+            {
+              "id": "zapoznanie.oceniany.imie_nazwisko_lub_pieczatka",
+              "etykieta": "Imię i nazwisko lub pieczątka ocenianego",
+              "rodzaj": "tekst_lub_pieczatka",
+              "lokalizator": "tabela 16 w2 k3"
+            },
+            {
+              "id": "zapoznanie.oceniany.podpis",
+              "etykieta": "Podpis ocenianego",
+              "rodzaj": "miejsce_na_podpis_odreczny",
+              "lokalizator": "tabela 16 w2 k4"
+            }
+          ]
+        }
+      ],
+      "przypisy": {
+        "1": "W przypadku ocenianego zatrudnionego w celu zastępstwa nieobecnego członka korpusu służby cywilnej – data ustalenia przez strony stosunku pracy, że oceniany będzie podlegać pierwszej ocenie.",
+        "2": "W trakcie rozmowy oceniającej omawiane są: postawa ocenianego, jego zaangażowanie i postępy w pracy, relacje ze współpracownikami oraz terminowość wykonywania zadań, oceniane za pomocą elementów oceny, wynik egzaminu ze służby przygotowawczej, jeżeli oceniany był obowiązany do przystąpienia do tego egzaminu, sprawozdanie sporządzone przez ocenianego. Można również omówić kierunki dalszego rozwoju zawodowego i potrzeby ocenianego.",
+        "3": "Opisy elementów oceny są określone w załączniku nr 1 do rozporządzenia Prezesa Rady Ministrów z dnia 23 lipca 2015 r. w sprawie szczegółowych warunków i sposobu dokonywania pierwszej oceny w służbie cywilnej (Dz. U. poz. 1144).",
+        "4": "Ocena łączna jest średnią arytmetyczną ze wszystkich ocen cząstkowych.",
+        "5": "Nie dotyczy ocenianego będącego: absolwentem Krajowej Szkoły Administracji Publicznej, który nie złożył wniosku o mianowanie w służbie cywilnej, pracownikiem służby cywilnej zatrudnionym w celu zastępstwa nieobecnego członka korpusu służby cywilnej, podlegającym pierwszej ocenie, pracownikiem służby cywilnej zatrudnionym na wyższym stanowisku w służbie cywilnej.",
+        "6": "Pozytywną pierwszą ocenę należy przyznać ocenianemu, który łącznie spełnił następujące warunki: zaliczył egzamin ze służby przygotowawczej, chyba że nie dotyczył go obowiązek przystąpienia do tego egzaminu, złożył sprawozdanie w wyznaczonym terminie, uzyskał nie więcej niż jedną ocenę cząstkową w wysokości 3 punktów za postawę ocenianego, jego zaangażowanie i postępy w pracy, relacje ze współpracownikami oraz terminowość wykonywania zadań, uzyskał ocenę łączną nie niższą niż 5 punktów za postawę ocenianego, jego zaangażowanie i postępy w pracy, relacje ze współpracownikami oraz terminowość wykonywania zadań.",
+        "7": "W przypadku przyznania negatywnej pierwszej oceny uzasadnienie przyznanej oceny jest obowiązkowe, a w przypadku przyznania pozytywnej pierwszej oceny – fakultatywne. Uzasadnienie przyznanej oceny może polegać na ogólnym omówieniu oceny lub na szczegółowym odniesieniu się do wszystkich ocen cząstkowych albo tylko do niektórych z nich.",
+        "8": "Wnioski dotyczące rozwoju zawodowego ocenianego sporządza się fakultatywnie – tylko w przypadku przyznania pozytywnej pierwszej oceny. Określa się m.in. zakres wiedzy, która powinna być poszerzona, zakres umiejętności, które wymagają doskonalenia, oraz proponowane formy rozwoju zawodowego ocenianego."
+      },
+      "uwagi": [
+        "Data faktycznego złożenia sprawozdania i przesłanka zwolnienia z egzaminu należą do procesu #34. We wzorze mają odpowiednio wybór terminowości i opcję „NIE DOTYCZY” z przypisem 5."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+# Korpus wersji MC BDG. Źródła: wyłącznie folder „materialy mc” (tylko do odczytu).
+# Ścieżki plików są względne wobec tego pliku. Inny manifest: zmienna KOMPAS_MC_MANIFEST.
+#
+# Pola wersji MC (core czyta tylko doc_id, doc_version i plik):
+#   nazwa      – nazwa pokazywana użytkownikowi
+#   sciezka    – pierwsza | okresowa | wspolne (asystent filtruje fragmenty według ścieżki)
+#   kategoria  – kategoria cytatów z tego dokumentu (PRZEPIS | OBJAŚNIENIE_MATERIAŁU)
+#   podzial    – jak dzielić na fragmenty: jednostki (§, ust., poz.) | strony | komorki | akapity
+#   asystent   – false: dokument w korpusie (do cytowania w panelu braków), ale poza asystentem
+
+dokumenty:
+  - doc_id: rozp-2015-pierwsza
+    doc_version: "2015"
+    nazwa: Rozporządzenie w sprawie pierwszej oceny (2015)
+    plik: "../../materialy mc/Pierwsza ocena w służbie cywilnej/Rozporządzenie o pierwszej ocenie z 2015 r. (1).pdf"
+    sciezka: pierwsza
+    kategoria: PRZEPIS
+    podzial: jednostki
+
+  - doc_id: rozp-2016-okresowe
+    doc_version: "2016"
+    nazwa: Rozporządzenie w sprawie ocen okresowych (2016)
+    plik: "../../materialy mc/Ocena okresowa w służbie cywilnej/Rozporządzenie o ocenach okresowych z 2016 r. (3).pdf"
+    sciezka: okresowa
+    kategoria: PRZEPIS
+    podzial: jednostki
+
+  - doc_id: poradnik-pierwsza
+    doc_version: "2016"
+    nazwa: Pierwsza ocena w służbie cywilnej – poradnik (2016)
+    plik: "../../materialy mc/Pierwsza ocena w służbie cywilnej/Pierwsza ocena w służbie cywilnej - poradnik z 2016 r. (1).pdf"
+    sciezka: pierwsza
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: strony
+
+  - doc_id: poradnik-okresowa
+    nazwa: Poradnik – oceny okresowe w służbie cywilnej
+    plik: "../../materialy mc/Ocena okresowa w służbie cywilnej/Poradnik - oceny okresowe w służbie cywilnej (2).pdf"
+    sciezka: okresowa
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: strony
+
+  - doc_id: arkusz-pierwszej
+    nazwa: Arkusz pierwszej oceny
+    plik: "../../materialy mc/Pierwsza ocena w służbie cywilnej/Arkusz pierwszej oceny (2).docx"
+    sciezka: pierwsza
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: arkusz-b
+    nazwa: Arkusz oceny B
+    plik: "../../materialy mc/Ocena okresowa w służbie cywilnej/Arkusz oceny B (2).docx"
+    sciezka: okresowa
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: arkusz-c
+    nazwa: Arkusz oceny C
+    plik: "../../materialy mc/Ocena okresowa w służbie cywilnej/Arkusz oceny C (2).docx"
+    sciezka: okresowa
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: model-kompetencji
+    nazwa: Model kompetencji
+    plik: "../../materialy mc/Model_kompetencji.xlsx"
+    sciezka: wspolne
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: komorki
+
+  - doc_id: osp-starszy-specjalista
+    nazwa: OSP DC WZKSOiC 6 – starszy specjalista
+    plik: "../../materialy mc/OSP_word/OSP DC WZKSOiC 6 starszy specjalista.docx"
+    sciezka: wspolne
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: osp-radca
+    nazwa: OSP DSI WWI 5 – radca
+    plik: "../../materialy mc/OSP_word/OSP DSI WWI 5 radca.docx"
+    sciezka: wspolne
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: osp-naczelnik
+    nazwa: OSP DWM WKAM 1 – naczelnik wydziału
+    plik: "../../materialy mc/OSP_word/OSP DWM WKAM 1 naczelnik wydziału.docx"
+    sciezka: wspolne
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: akapity
+
+  - doc_id: zadanie-mc
+    nazwa: MC BDG – pełna treść zadania konkursowego
+    plik: "../../materialy mc/MC BDG - Pełna treść zadania konkursowego.pdf"
+    sciezka: wspolne
+    kategoria: OBJAŚNIENIE_MATERIAŁU
+    podzial: strony
+    asystent: false
+
+# Plik, który jest fragmentem innego źródła. Nie jest osobnym źródłem: ładowanie
+# sprawdza, że jego tekst pokrywa się z dokumentem `duplikat_z`, i go pomija.
+duplikaty:
+  - plik: "../../materialy mc/Rozporządzenie o ocenach okresowych z 2016 r. (4).pdf"
+    duplikat_z: rozp-2016-okresowe
+    opis: Załączniki do rozporządzenia z 2016 r. (wykaz kryteriów), wycięte z pełnego aktu.
+
+# Pliki z „materialy mc” świadomie poza korpusem.
+pominiete:
+  - plik: "../../materialy mc/Kompas Kompetencji_ Ścieżki Oceny.png"
+    powod: grafika bez warstwy tekstowej (schemat ścieżek – podstawa maszyny stanów, nie cytatów)

@@ -1,0 +1,96 @@
+# Kroki 3–5 wersji MC (#31): skale ocen cząstkowych, metodyka sugerowanego poziomu, mapowanie 5→3.
+# Kod (kompas_mc/ocena.py) czyta stąd skale, progi i etykiety; treść ma cytaty sprawdzane walidatorem.
+
+poziom_oczekiwan: 5   # poziom modelu „na poziomie oczekiwań” (kolumna D arkuszy modelu)
+
+skale:
+  okresowa:
+    punkty: [1, 3, 5, 7, 9]
+    etykiety:
+      1: znacznie poniżej oczekiwań
+      3: poniżej oczekiwań
+      5: na poziomie oczekiwań
+      7: powyżej oczekiwań
+      9: znacznie powyżej oczekiwań
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2016-okresowe
+        lokalizator: § 11 ust. 1 pkt 1
+        strona: 3
+        cytat_dosłowny: >-
+          a) znacznie poniżej oczekiwań – 1 punkt, b) poniżej oczekiwań – 3 punkty, c) na poziomie
+          oczekiwań – 5 punktów, d) powyżej oczekiwań – 7 punktów, e) znacznie powyżej oczekiwań –
+          9 punktów;
+  pierwsza:
+    punkty: [3, 5, 7]
+    etykiety:
+      3: poniżej oczekiwań
+      5: na poziomie oczekiwań
+      7: powyżej oczekiwań
+    adnotacje:
+      - kategoria: PRZEPIS
+        doc_id: rozp-2015-pierwsza
+        lokalizator: § 9 ust. 1
+        strona: 3
+        cytat_dosłowny: >-
+          przyznaje się według skali punktowej: 1) 3 punkty – poniżej oczekiwań; 2) 5 punktów – na
+          poziomie oczekiwań; 3) 7 punktów – powyżej oczekiwań.
+
+metodyka:
+  id: sugestia-mc-1
+  status: DECYZJA_PROJEKTOWA – wymaga zatwierdzenia
+  minimalny_udzial_ocenionych: 0.5
+  opis: >-
+    Sugerowany poziom kryterium to mediana poziomów ocenionych wskaźników (1/3/5/7/9). Wskaźniki
+    z „brakiem podstaw do oceny” nie wchodzą do mediany, więc jej nie obniżają. Przy parzystej
+    liczbie ocen i różnych wartościach środkowych system pokazuje obie i nie wybiera. Gdy oceniono
+    mniej niż połowę wybranych wskaźników albo żadnego, sugestii nie ma („niewystarczające dane”).
+    W pierwszej ocenie wynik przelicza się na skalę 3/5/7: 1 i 3 → 3 pkt, 5 → 5 pkt, 7 i 9 → 7 pkt.
+    Sugestia nigdy nie wpisuje oceny cząstkowej; wybiera przełożony.
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2016-okresowe
+      lokalizator: § 11 ust. 1 pkt 1
+      strona: 3
+      cytat_dosłowny: >-
+        przyznaniu ocen cząstkowych odpowiednio do poziomu spełniania przez ocenianego każdego
+        z kryteriów
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: model-kompetencji
+      lokalizator: Model kompetencji!A6
+      cytat_dosłowny: >-
+        Jeśli brak było okazji do zaobserwowania zachowania, odnotuj brak podstaw do oceny danego
+        wskaźnika.
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Ani model kompetencji, ani rozporządzenia nie opisują, jak z ocen wskaźników wyznaczyć
+        ocenę kryterium (braki.yaml: brak.agregacja-modelu). Mediana jest odporna na pojedynczą
+        skrajną ocenę i zawsze daje poziom ze skali przy nieparzystej liczbie ocen.
+      zatwierdził: osoba E (ścieżka oceny MC) – do zatwierdzenia przez mentora MC
+
+mapowanie_pierwsza:
+  wartosci: {1: 3, 3: 3, 5: 5, 7: 7, 9: 7}
+  adnotacje:
+    - kategoria: PRZEPIS
+      doc_id: rozp-2015-pierwsza
+      lokalizator: § 9 ust. 1
+      strona: 3
+      cytat_dosłowny: >-
+        przyznaje się według skali punktowej: 1) 3 punkty – poniżej oczekiwań; 2) 5 punktów – na
+        poziomie oczekiwań; 3) 7 punktów – powyżej oczekiwań.
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Model ma 5 poziomów, pierwsza ocena 3 (braki.yaml: rozbieznosc.skala-5-3). Skrajne poziomy
+        modelu przypisujemy do najbliższego punktu skali pierwszej oceny.
+      zatwierdził: osoba E (ścieżka oceny MC) – do zatwierdzenia przez mentora MC
+
+przyklady:
+  adnotacje:
+    - kategoria: OBJAŚNIENIE_MATERIAŁU
+      doc_id: model-kompetencji
+      lokalizator: Model kompetencji!A5
+      cytat_dosłowny: >-
+        Oprzyj ocenę na konkretnych przykładach z ocenianego okresu. Zapisz sytuację, działanie i
+        jego rezultat. Uwzględnij powtarzalność zachowania, złożoność sytuacji i dostępne uprawnienia.
+  ostrzezenie_bez_przykladu: >-
+    Poziom inny niż „na poziomie oczekiwań” bez przykładu – opisz sytuację, działanie i rezultat.
