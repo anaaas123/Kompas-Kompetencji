@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { pobierzZrodla, type Zrodla } from "./api";
-import { Logowanie, Pracownicy, type Sesja } from "./Konto";
+import { Logowanie, type Sesja } from "./Konto";
 import { Krok1 } from "./Krok1";
 import { Krok2 } from "./Krok2";
 import { Ocena } from "./Ocena";
@@ -14,6 +14,8 @@ import { Pulpit } from "./Pulpit";
 import { Zespol } from "./Zespol";
 import { KartaPracownika } from "./KartaPracownika";
 import { MojaSamoocena } from "./Samoocena";
+import { ListaPracownikow } from "./ListaPracownikow";
+import type { FiltrPracownikow } from "./zespol-dane";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
@@ -29,6 +31,8 @@ export default function App() {
   const [karta, setKarta] = useState<Pracownik | null>(null);
   // „Moja samoocena” (#9): proces otwarty z karty na koncie pracownika.
   const [samoocena, setSamoocena] = useState<number | null>(null);
+  // Filtr listy Pracownicy ustawiany z Zespołu (kliknięcie liczby albo komórki) i z pulpitu.
+  const [filtr, setFiltr] = useState<FiltrPracownikow>({});
   const [oceniany, setOceniany] = useState<Pracownik | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
   const [etap, setEtap] = useState<Etap>("krok2");
@@ -57,11 +61,19 @@ export default function App() {
   // Wybór pozycji menu zamyka otwartą ocenę i wraca do listy.
   const przejdz = useCallback((w: Widok) => {
     setWidok(w);
+    setFiltr({});
     setKarta(null);
     setSamoocena(null);
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
+  }, []);
+
+  const doPracownikow = useCallback((f: FiltrPracownikow = {}) => {
+    setWidok("pracownicy");
+    setFiltr(f);
+    setKarta(null);
+    setOceniany(null);
   }, []);
 
   // Pytanie z pulpitu otwiera panel asystenta i trafia do czatu.
@@ -180,8 +192,10 @@ export default function App() {
           onZespol={() => przejdz("zespol")}
         />
       )}
-      {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onWybierz={setKarta} />}
-      {!karta && !oceniany && widok === "pracownicy" && <Pracownicy sesja={sesja} onWyloguj={wyloguj} onWybierz={setKarta} />}
+      {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onPracownicy={doPracownikow} />}
+      {!karta && !oceniany && widok === "pracownicy" && (
+        <ListaPracownikow sesja={sesja} filtr={filtr} onFiltr={setFiltr} onWyloguj={wyloguj} onWybierz={setKarta} />
+      )}
     </Powloka>
   );
 }

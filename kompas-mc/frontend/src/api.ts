@@ -216,6 +216,23 @@ export const pobierzKrok1 = (token: string, osobaId: string) =>
 export const pobierzProcesy = (token: string) =>
   fetch("/api/procesy", { headers: autoryzacja(token) }).then((r) => json<ProcesOceny[]>(r));
 
+/** Etap cyklu oceny i następna czynność dla każdej osoby, także bez procesu (#23). Liczy backend. */
+export interface EtapOsoby {
+  osoba_id: string;
+  sciezka: Sciezka | null;
+  etap: "kryteria" | "okres" | "ocena" | "brak_danych";
+  czynnosc: string;
+  termin: { nazwa: string; data: string; adnotacje: SourceRef[] } | null;
+  dni_do_terminu: number | null;
+  po_terminie: boolean;
+  proces_id: number | null;
+  kryteria_ustalone: string | null;
+  braki: string[];
+}
+
+export const pobierzCykl = (token: string) =>
+  fetch("/api/cykl", { headers: autoryzacja(token) }).then((r) => json<EtapOsoby[]>(r));
+
 /** Najbliższy termin procesu (te same wiersze co panel HR, bez treści ocen). */
 export interface TerminProcesu {
   proces_id: number;

@@ -37,8 +37,9 @@ export function Powloka({ sesja, widok, onWidok, onWyloguj, asystent, onAsystent
   const { login, rola } = sesja.uzytkownik;
   const pozycje: [Widok, NazwaIkony, string][] = [
     ["pulpit", "dom", "Pulpit"],
-    // Zespół (działy, liczby, wykresy) zastępuje płaską listę pracowników; oceniany widzi swoje dane.
-    rola === "oceniany" ? ["pracownicy", "osoby", "Twoje dane"] : ["zespol", "osoby", "Zespół"],
+    ["pracownicy", "osoby", rola === "oceniany" ? "Twoje dane" : "Pracownicy"],
+    // Zespół: analiza komórek (liczby, wyniki, porównanie wydziałów); ocenianemu niepotrzebny.
+    ...(rola === "oceniany" ? [] : ([["zespol", "wykres", "Zespół"]] as [Widok, NazwaIkony, string][])),
     ...(rola === "hr" ? ([["zrodla", "ksiazka", "Źródła i braki"]] as [Widok, NazwaIkony, string][]) : []),
   ];
 

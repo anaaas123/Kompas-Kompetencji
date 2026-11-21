@@ -13,6 +13,7 @@ const SCIEZKI = {
   wstecz: "m15 6-6 6 6 6",
   dokument: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 16.5h4",
   ok: "m5 12.5 4.5 4.5L19 7",
+  wykres: "M4 20V10M10 20V4M16 20v-7M22 20H2",
 } as const;
 
 export type NazwaIkony = keyof typeof SCIEZKI;

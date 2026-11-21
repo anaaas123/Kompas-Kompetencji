@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { pobierzKrok1, pobierzPracownikow, pobierzProcesy, pobierzTerminy, type Pracownik } from "./api";
+import { pobierzCykl, pobierzKrok1, pobierzPracownikow, pobierzProcesy, pobierzTerminy } from "./api";
 import type { Sesja } from "./Konto";
-import { Inicjaly, SzkieletListy, WierszListy } from "./Lista";
-import { Kafel, PasekUdzialow } from "./Wykresy";
-import { lat, lataStazu, stazTekst, NAZWA_SCIEZKI, nastepnyKrok, osoby, wedlugKomorek, type Sprawa } from "./zespol-dane";
+import { SzkieletListy, WierszListy } from "./Lista";
+import { Ikona } from "./Ikona";
+import { Kafel, PasekUdzialow, type Udzial } from "./Wykresy";
+import { data, osoby, podzial, poTerminie, wkrotce, doZrobienia, type FiltrPracownikow, type Sprawa } from "./zespol-dane";
 import "./widoki.css";
 
 /**
@@ -18,27 +19,28 @@ export function useSprawy(sesja: Sesja, onWyloguj: () => void) {
     let aktualne = true;
     (async () => {
       try {
-        const [ludzie, procesy, terminy] = await Promise.all([
+        const [ludzie, procesy, terminy, cykl] = await Promise.all([
           pobierzPracownikow(sesja.token),
           pobierzProcesy(sesja.token),
-          // Brak terminów nie blokuje widoku; kafel powie wtedy, że terminu nie ma.
+          // Brak terminów albo etapów nie blokuje widoku; liczby powiedzą wtedy, czego nie wiadomo.
           pobierzTerminy(sesja.token).catch(() => []),
+          pobierzCykl(sesja.token).catch(() => []),
         ]);
         const wynik = await Promise.all(
           ludzie.map(async (osoba): Promise<Sprawa> => {
             const proces = procesy.find((p) => p.osoba_id === osoba.osoba_id && p.status === "W_TOKU") ?? null;
             const termin = (proces && terminy.find((t) => t.proces_id === proces.id)) || null;
-            if (proces) return { osoba, proces, proponowana: proces.sciezka, termin };
+            const c = cykl.find((x) => x.osoba_id === osoba.osoba_id) ?? null;
+            if (proces) return { osoba, proces, proponowana: proces.sciezka, termin, cykl: c };
+            // Ścieżkę podaje /api/cykl; analiza kroku 1 tylko wtedy, gdy etapu brak.
+            if (c) return { osoba, proces: null, proponowana: c.sciezka, termin: null, cykl: c };
             const analiza = await pobierzKrok1(sesja.token, osoba.osoba_id).catch(() => null);
-            return { osoba, proces: null, proponowana: analiza?.sciezka.proponowana ?? null, termin: null };
+            return { osoba, proces: null, proponowana: analiza?.sciezka.proponowana ?? null, termin: null, cykl: null };
           }),
         );
-        // Najpierw oceny w toku (najbliższy termin pierwszy), potem osoby do rozpoczęcia.
-        wynik.sort(
-          (a, b) =>
-            Number(!!b.proces) - Number(!!a.proces) ||
-            (a.termin?.dni_do_terminu ?? 9999) - (b.termin?.dni_do_terminu ?? 9999),
-        );
+        // Najpierw najbliższy termin z cyklu (po terminie na górze), osoby bez terminu na końcu.
+        const dniDo = (s: Sprawa) => s.cykl?.dni_do_terminu ?? s.termin?.dni_do_terminu ?? 99999;
+        wynik.sort((a, b) => dniDo(a) - dniDo(b));
         if (aktualne) setSprawy(wynik);
       } catch (err) {
         if (String(err).includes("401")) onWyloguj();
@@ -53,128 +55,188 @@ export function useSprawy(sesja: Sesja, onWyloguj: () => void) {
   return { sprawy, blad };
 }
 
-const PROGI_STAZU: [string, number, number][] = [
-  ["do 2 lat", 0, 2],
-  ["2–5 lat", 2, 5],
-  ["5–10 lat", 5, 10],
-  ["ponad 10 lat", 10, 999],
-];
+/** Wybrana komórka: cały zakres (urząd albo zespół przełożonego), departament albo wydział. */
+interface Wybor {
+  departament?: string;
+  wydzial?: string;
+}
 
+const komorkaWyboru = (w: Wybor) => (w.wydzial ? `${w.departament} / ${w.wydzial}` : w.departament);
+
+function wZakresie(s: Sprawa, w: Wybor): boolean {
+  const { departament, wydzial } = podzial(s.osoba.komorka);
+  return (!w.departament || departament === w.departament) && (!w.wydzial || wydzial === w.wydzial);
+}
+
+function policz(lista: Sprawa[]) {
+  return {
+    osob: lista.length,
+    poTerminie: lista.filter(poTerminie),
+    wkrotce: lista.filter(wkrotce),
+    teraz: lista.filter(doZrobienia),
+    pozytywne: lista.filter((s) => s.osoba.ostatnia_ocena_okresowa?.wynik === "pozytywna").length,
+    negatywne: lista.filter((s) => s.osoba.ostatnia_ocena_okresowa?.wynik === "negatywna").length,
+    bezOceny: lista.filter((s) => !s.osoba.ostatnia_ocena_okresowa).length,
+  };
+}
+
+const kto = (s: Sprawa) => `${s.osoba.imie} ${s.osoba.nazwisko}`;
+const czynnoscZDniem = (s: Sprawa) => (s.cykl?.termin ? `${s.cykl.czynnosc}, ${data(s.cykl.termin.data)}` : s.cykl?.czynnosc ?? "");
+
+/**
+ * Zespół: analiza komórki, bez listy osób (osoby są w „Pracownicy”). Odpowiada w 10 sekund: kto jest po terminie,
+ * co jest najbliżej, co trzeba zrobić teraz, jak wypadły ostatnie oceny i która komórka ma zaległości.
+ * Każda liczba ma podstawę (osoba i czynność albo źródło). Kliknięcie liczby albo komórki otwiera listę z filtrem.
+ */
 export function Zespol({
   sesja,
-  onWybierz,
+  onPracownicy,
   onWyloguj,
 }: {
   sesja: Sesja;
-  onWybierz: (p: Pracownik) => void;
+  onPracownicy: (f: FiltrPracownikow) => void;
   onWyloguj: () => void;
 }) {
   const { sprawy, blad } = useSprawy(sesja, onWyloguj);
+  const [wybor, setWybor] = useState<Wybor>({});
   const hr = sesja.uzytkownik.rola === "hr";
+  const korzen = hr ? "Cały urząd" : "Mój zespół";
 
   if (blad) return <p className="blad">{blad}</p>;
   if (!sprawy)
     return (
       <div className="widok">
-        <h1>{hr ? "Urząd" : "Mój zespół"}</h1>
-        <SzkieletListy wiersze={4} />
+        <h1>Zespół</h1>
+        <SzkieletListy wiersze={3} />
       </div>
     );
 
-  const ludzie = sprawy.map((s) => s.osoba);
-  const grupy = wedlugKomorek(sprawy, (s) => s.osoba.komorka);
-  const wydzialow = grupy.reduce((a, g) => a + g.wydzialy.length, 0);
-  const wToku = sprawy.filter((s) => s.proces).length;
-  const doRozpoczecia = sprawy.filter((s) => !s.proces && s.proponowana).length;
-  const ost = (w: "pozytywna" | "negatywna") => ludzie.filter((p) => p.ostatnia_ocena_okresowa?.wynik === w).length;
-  const bezOceny = ludzie.filter((p) => !p.ostatnia_ocena_okresowa).length;
-  const staze = ludzie.map((p) => lataStazu(p.data_zatrudnienia));
-  const sredniStaz = staze.length ? Math.round(staze.reduce((a, b) => a + b, 0) / staze.length) : 0;
+  const zakres = sprawy.filter((s) => wZakresie(s, wybor));
+  const l = policz(zakres);
+  const komorka = komorkaWyboru(wybor);
+  const doListy = (f: FiltrPracownikow = {}) => () => onPracownicy({ komorka, ...f });
+  const najblizszy = [...l.wkrotce].sort((a, b) => (a.cykl?.dni_do_terminu ?? 0) - (b.cykl?.dni_do_terminu ?? 0))[0];
+  const bezEtapu = zakres.filter((s) => !s.cykl).length;
+
+  // Komórki podrzędne: departamenty w całym zakresie, wydziały w departamencie; posortowane po zaległości.
+  const podrzedne = wybor.wydzial
+    ? []
+    : [...new Set(zakres.map((s) => (wybor.departament ? podzial(s.osoba.komorka).wydzial : podzial(s.osoba.komorka).departament)))]
+        .map((nazwa) => {
+          const w: Wybor = wybor.departament ? { departament: wybor.departament, wydzial: nazwa } : { departament: nazwa };
+          return { nazwa, wybor: w, liczby: policz(zakres.filter((s) => wZakresie(s, w))) };
+        })
+        .sort(
+          (a, b) =>
+            b.liczby.poTerminie.length - a.liczby.poTerminie.length ||
+            b.liczby.wkrotce.length - a.liczby.wkrotce.length ||
+            a.nazwa.localeCompare(b.nazwa, "pl"),
+        );
+
+  const oceny: Udzial[] = [
+    { nazwa: "pozytywna", liczba: l.pozytywne, ton: "dobrze", onClick: doListy({ ocena: "pozytywna" }) },
+    { nazwa: "negatywna", liczba: l.negatywne, ton: "zle", onClick: doListy({ ocena: "negatywna" }) },
+    { nazwa: "jeszcze bez oceny", liczba: l.bezOceny, ton: "pusty", onClick: doListy({ ocena: "brak" }) },
+  ];
 
   return (
     <div className="widok">
       <div className="naglowek-widoku">
-        <h1>{hr ? "Urząd" : "Mój zespół"}</h1>
+        <h1>Zespół</h1>
+        <nav className="okruszki" aria-label="Wybrana komórka">
+          <button type="button" className="link" aria-current={!wybor.departament ? "page" : undefined} onClick={() => setWybor({})}>
+            {korzen}
+          </button>
+          {wybor.departament && (
+            <>
+              <Ikona nazwa="dalej" rozmiar={16} />
+              <button
+                type="button"
+                className="link"
+                aria-current={!wybor.wydzial ? "page" : undefined}
+                onClick={() => setWybor({ departament: wybor.departament })}
+              >
+                {wybor.departament}
+              </button>
+            </>
+          )}
+          {wybor.wydzial && (
+            <>
+              <Ikona nazwa="dalej" rozmiar={16} />
+              <span aria-current="page">{wybor.wydzial}</span>
+            </>
+          )}
+        </nav>
         <p className="meta">
-          {osoby(ludzie.length)} · {grupy.length} {grupy.length === 1 ? "departament" : "departamenty"} · {wydzialow}{" "}
-          {wydzialow === 1 ? "wydział" : "wydziały"} · dane kadrowe z QNT
+          {osoby(l.osob)} · etapy i terminy z reguł ocen{bezEtapu ? ` · bez ustalonego etapu: ${bezEtapu}` : ""}
         </p>
       </div>
 
       <div className="kafle">
-        <Kafel etykieta="Oceny w toku" wartosc={wToku} opis={`z ${osoby(ludzie.length)} w zespole`} />
-        <Kafel etykieta="Do rozpoczęcia" wartosc={doRozpoczecia} opis="ścieżka z analizy opisu stanowiska" />
-        <Kafel etykieta="Średni staż" wartosc={lat(sredniStaz)} opis="od daty zatrudnienia w QNT" />
-      </div>
-
-      <div className="wykresy">
-        <PasekUdzialow
-          tytul="Ostatnia ocena okresowa"
-          podstawa="z kartoteki QNT"
-          udzialy={[
-            { nazwa: "pozytywna", liczba: ost("pozytywna"), ton: "dobrze" },
-            { nazwa: "negatywna", liczba: ost("negatywna"), ton: "zle" },
-            { nazwa: "jeszcze bez oceny", liczba: bezOceny, ton: "pusty" },
-          ]}
+        <Kafel
+          etykieta="Po terminie"
+          wartosc={l.poTerminie.length}
+          ton={l.poTerminie.length ? "zle" : undefined}
+          opis={
+            l.poTerminie.length
+              ? l.poTerminie.slice(0, 2).map((s) => `${kto(s)}: ${czynnoscZDniem(s)}`).join(" · ") +
+                (l.poTerminie.length > 2 ? ` i ${l.poTerminie.length - 2} więcej` : "")
+              : "Nikt nie przekroczył terminu."
+          }
+          onClick={l.poTerminie.length ? doListy({ termin: "po_terminie" }) : undefined}
         />
-        <PasekUdzialow
-          tytul="Stan ocen"
-          podstawa="procesy w aplikacji i analiza kroku 1"
-          udzialy={[
-            { nazwa: "w toku", liczba: wToku, ton: "info" },
-            { nazwa: "do rozpoczęcia", liczba: doRozpoczecia, ton: "uwaga" },
-            { nazwa: "bez ścieżki", liczba: sprawy.length - wToku - doRozpoczecia, ton: "pusty" },
-          ]}
+        <Kafel
+          etykieta="Termin w ciągu 14 dni"
+          wartosc={l.wkrotce.length}
+          ton={l.wkrotce.length ? "uwaga" : undefined}
+          opis={najblizszy ? `Najbliższy: ${kto(najblizszy)}, ${czynnoscZDniem(najblizszy)}` : "Żaden termin nie wypada w ciągu 14 dni."}
+          onClick={l.wkrotce.length ? doListy({ termin: "wkrotce" }) : undefined}
         />
-        <PasekUdzialow
-          tytul="Staż pracy"
-          podstawa="od daty zatrudnienia"
-          udzialy={PROGI_STAZU.map(([nazwa, od, do_], i) => ({
-            nazwa,
-            liczba: staze.filter((s) => s >= od && s < do_).length,
-            ton: "info" as const,
-          }))}
+        <Kafel
+          etykieta="Do zrobienia teraz"
+          wartosc={l.teraz.length}
+          opis={
+            l.teraz.length
+              ? `ustalenie kryteriów: ${l.teraz.filter((s) => s.cykl?.etap === "kryteria").length} · ocena końcowa: ${
+                  l.teraz.filter((s) => s.cykl?.etap === "ocena").length
+                }`
+              : "Wszyscy są w okresie oceny."
+          }
+          onClick={l.teraz.length ? () => onPracownicy({ komorka }) : undefined}
         />
       </div>
 
-      {grupy.map((g) => (
-        <section key={g.departament} className="departament">
-          <h2>{g.departament}</h2>
-          {g.wydzialy.map((w) => (
-            <div key={w.wydzial} className="sekcja">
-              <div className="wiersz-tytulu">
-                <span className="kafel-etykieta">{w.wydzial}</span>
-                <span className="meta">{osoby(w.ludzie.length)}</span>
-              </div>
-              <div className="lista">
-                {w.ludzie.map((s) => (
-                  <WierszListy
-                    key={s.osoba.osoba_id}
-                    lewa={<Inicjaly imie={s.osoba.imie} nazwisko={s.osoba.nazwisko} />}
-                    tytul={`${s.osoba.imie} ${s.osoba.nazwisko}`}
-                    znacznik={
-                      s.osoba.ostatnia_ocena_okresowa && (
-                        <span className={`status ${s.osoba.ostatnia_ocena_okresowa.wynik}`}>
-                          ostatnio {s.osoba.ostatnia_ocena_okresowa.wynik}
-                        </span>
-                      )
-                    }
-                    opis={`${s.osoba.stanowisko} · ${nastepnyKrok(s)}`}
-                    prawa={
-                      <>
-                        {stazTekst(lataStazu(s.osoba.data_zatrudnienia))}
-                        <br />
-                        {s.proponowana ? NAZWA_SCIEZKI[s.proponowana] : "ścieżka do ustalenia"}
-                      </>
-                    }
-                    onClick={() => onWybierz(s.osoba)}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-      ))}
+      <PasekUdzialow tytul="Ostatnia ocena okresowa" podstawa="kartoteka QNT; kliknij liczbę, aby zobaczyć osoby" udzialy={oceny} />
+
+      {podrzedne.length > 0 && (
+        <div className="sekcja">
+          <h2>{wybor.departament ? "Wydziały" : hr ? "Departamenty" : "Komórki"}</h2>
+          <div className="lista">
+            {podrzedne.map((k) => (
+              <WierszListy
+                key={k.nazwa}
+                lewa={<Ikona nazwa="osoby" />}
+                tytul={k.nazwa}
+                znacznik={
+                  k.liczby.poTerminie.length > 0 && <span className="status negatywna">po terminie {k.liczby.poTerminie.length}</span>
+                }
+                opis={
+                  <>
+                    {osoby(k.liczby.osob)} · termin w 14 dni: {k.liczby.wkrotce.length} · do zrobienia teraz: {k.liczby.teraz.length}
+                    <br />
+                    ostatnie oceny: pozytywne {k.liczby.pozytywne} · negatywne {k.liczby.negatywne} · bez oceny {k.liczby.bezOceny}
+                  </>
+                }
+                onClick={() => setWybor(k.wybor)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button type="button" className="jasny do-listy" onClick={doListy()}>
+        Pracownicy: {wybor.wydzial ?? wybor.departament ?? korzen.toLowerCase()} ({osoby(l.osob)})
+      </button>
     </div>
   );
 }

@@ -37,6 +37,8 @@ export interface Udzial {
   liczba: number;
   /** Klasa koloru z tokenów: dobrze, zle, uwaga, info, pusty. */
   ton: "dobrze" | "zle" | "uwaga" | "info" | "pusty";
+  /** Kliknięcie pozycji legendy (np. przejście do listy z filtrem). */
+  onClick?: () => void;
 }
 
 /** Poziomy pasek udziałów z legendą; liczby zawsze w legendzie, nie tylko w kolorze. */
@@ -57,8 +59,17 @@ export function PasekUdzialow({ tytul, udzialy, podstawa }: { tytul: string; udz
       <ul className="legenda">
         {udzialy.map((u) => (
           <li key={u.nazwa}>
-            <span className={`kropka ${u.ton}`} aria-hidden="true" />
-            {u.nazwa} <strong>{u.liczba}</strong>
+            {u.onClick && u.liczba > 0 ? (
+              <button type="button" className="pozycja-legendy" onClick={u.onClick}>
+                <span className={`kropka ${u.ton}`} aria-hidden="true" />
+                {u.nazwa} <strong>{u.liczba}</strong>
+              </button>
+            ) : (
+              <>
+                <span className={`kropka ${u.ton}`} aria-hidden="true" />
+                {u.nazwa} <strong>{u.liczba}</strong>
+              </>
+            )}
           </li>
         ))}
       </ul>
