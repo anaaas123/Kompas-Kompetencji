@@ -7,6 +7,8 @@ import { Ocena } from "./Ocena";
 import { Rozmowa } from "./Rozmowa";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
+import { Wnioski } from "./Wnioski";
+import PanelHR from "./PanelHR";
 import type { Pracownik, ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
@@ -16,7 +18,7 @@ import { KartaPracownika } from "./KartaPracownika";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
-type Etap = "krok2" | "ocena" | "rozmowa" | "wynik" | "arkusz";
+type Etap = "krok2" | "ocena" | "rozmowa" | "wynik" | "arkusz" | "wnioski";
 
 export default function App() {
   const [blad, setBlad] = useState<string | null>(null);
@@ -78,8 +80,9 @@ export default function App() {
   }
 
   const prowadzi = sesja.uzytkownik.rola === "przelozony";
-  // Panel źródeł i braków widzi tylko HR/administrator (API też to egzekwuje).
+  // Panel źródeł i braków oraz panel procesów widzi tylko HR/administrator (API też to egzekwuje).
   const widokZrodel = widok === "zrodla" && sesja.uzytkownik.rola === "hr";
+  const widokProcesow = widok === "procesy" && sesja.uzytkownik.rola === "hr";
 
   return (
     <Powloka
@@ -149,6 +152,16 @@ export default function App() {
           proces={proces}
           moznaProwadzic={prowadzi}
           onWstecz={() => setEtap("wynik")}
+          onDalej={() => setEtap("wnioski")}
+        />
+      )}
+      {oceniany && proces && etap === "wnioski" && (
+        <Wnioski
+          token={sesja.token}
+          osoba={oceniany}
+          proces={proces}
+          moznaProwadzic={prowadzi}
+          onWstecz={() => setEtap("arkusz")}
         />
       )}
       {karta && !oceniany && (
@@ -162,6 +175,7 @@ export default function App() {
         />
       )}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
+      {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit
           sesja={sesja}
