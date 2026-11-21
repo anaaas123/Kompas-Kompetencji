@@ -7,7 +7,7 @@ System proponuje wskaźniki i kryteria dodatkowe; wybór zatwierdza przełożony
 from __future__ import annotations
 
 import unicodedata
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -122,6 +122,13 @@ class WyborKroku2(BaseModel):
     kryteria: list[WybraneKryterium]
     zapisal: str
     zapisano: datetime
+    zapoznanie: date | None = None
+    """Data rozmowy z § 5 ust. 1 i zapoznania ocenianego z kryteriami (§ 6 ust. 2): zakończenie części I.
+    Nowy zapis kryteriów ją kasuje, bo część I trzeba wtedy podpisać od nowa."""
+
+
+class ZapisZapoznania(BaseModel):
+    data: date
 
 
 class PropozycjaKroku2(BaseModel):

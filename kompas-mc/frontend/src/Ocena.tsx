@@ -5,6 +5,7 @@ import {
   pobierzKrok2,
   przygotujRozmowe,
   zapiszDecyzje,
+  zapiszRozmowe,
   zapiszWskazniki,
   type KryteriumOceny,
   type PlanRozmowy,
@@ -14,6 +15,7 @@ import {
   type StanOceny,
   type Sugestia,
   type WskaznikOceny,
+  type ZapisRozmowy,
 } from "./api";
 import { NAZWA_SCIEZKI, Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 import { AgendaRozbieznosci, LegendaPorownania, SamoocenaPrzyWskazniku, StatusSamoocenyPrzelozonego } from "./Samoocena";
@@ -22,6 +24,7 @@ import { data } from "./zespol-dane";
 import { usePoprzedniaOcena } from "./PoprzedniaOcena";
 import { Zwijane } from "./Zwijane";
 import { Ikona } from "./Ikona";
+import { PoleDaty, poprawnaData } from "./Wynik";
 import "./krok2.css";
 import "./ocena.css";
 
@@ -334,30 +337,58 @@ function OcenaKryterium({
   );
 }
 
-/** Notatka z rozmowy w sessionStorage karty (API jej nie zapisuje; arkusz bierze wnioski z kroku 7). */
-function useNotatka(klucz: string): [string, (t: string) => void] {
-  const [tekst, setTekst] = useState(() => sessionStorage.getItem(klucz) ?? "");
-  useEffect(() => {
-    if (tekst) sessionStorage.setItem(klucz, tekst);
-  }, [klucz, tekst]);
-  return [tekst, setTekst];
+/** Pole tekstowe rozmowy: zapis w API po wyjściu z pola, gdy treść się zmieniła. */
+function PoleRozmowy({
+  etykieta,
+  wartosc,
+  placeholder,
+  tylkoOdczyt,
+  onZapisz,
+}: {
+  etykieta: string;
+  wartosc: string;
+  placeholder?: string;
+  tylkoOdczyt: boolean;
+  onZapisz: (t: string) => void;
+}) {
+  const [tekst, setTekst] = useState(wartosc);
+  useEffect(() => setTekst(wartosc), [wartosc]);
+  return (
+    <label className="etykieta oc-uwagi">
+      {etykieta}
+      <textarea
+        rows={3}
+        value={tekst}
+        placeholder={placeholder}
+        disabled={tylkoOdczyt}
+        onChange={(e) => setTekst(e.target.value)}
+        onBlur={() => tekst !== wartosc && onZapisz(tekst)}
+      />
+    </label>
+  );
 }
 
-/** Temat rozmowy (§ 10): pytania z szablonów, notatka; przy „Rozwoju” szkic informacji zwrotnej i asystent. */
+/** Temat rozmowy (§ 10): pytania z szablonów i notatka; przy „Rozwoju” szkic informacji zwrotnej i asystent.
+ *  Wszystko zapisuje się w API (rozmowa oceniająca), arkusz bierze stąd wnioski i datę. */
 function EkranTematu({
   temat,
   plan,
+  rozmowa,
   token,
   procesId,
   tylkoOdczyt,
+  blad,
+  onZapisz,
 }: {
   temat: Temat;
   plan: PlanRozmowy | null;
+  rozmowa: ZapisRozmowy | null | undefined;
   token: string;
   procesId: number;
   tylkoOdczyt: boolean;
+  blad?: string;
+  onZapisz: (zmiana: ZapisRozmowy) => void;
 }) {
-  const [notatka, setNotatka] = useNotatka(`kompas-notatka-${procesId}-${temat}`);
   const [czat, setCzat] = useState(false);
   const wszystkie = (plan?.pytania ?? []).filter((q) => tematPytania(q.id) === temat).map((q) => q.tresc);
   // Obowiązki: szablon pyt.osp.zadanie to jedno pytanie + treść zadania; pytanie raz, pod nim lista zadań z OSP.
@@ -366,21 +397,26 @@ function EkranTematu({
   const pytania = temat === "obowiazki" && wszystkie[0]?.includes(ZADANIE) ? [wszystkie[0].split(ZADANIE)[0]] : wszystkie;
   const zadaniaOsp = temat === "obowiazki" ? wszystkie.map((t) => (t.split(ZADANIE)[1] ?? "").replace(/^„|”\.?$/g, "")).filter(Boolean) : [];
   const zakres = (plan?.zakres ?? []).filter((z) => ZAKRES_TEMATU[temat].test(z.id));
-  // Szkic informacji zwrotnej z bieżących ocen (plan liczony przy wejściu na ekran); zmiany zostają w karcie.
-  const klucz = `kompas-szkic-${procesId}`;
-  const zapisany = JSON.parse(sessionStorage.getItem(klucz) ?? "null") as { mocne: string; rozwoj: string } | null;
-  const [mocne, setMocne] = useState(zapisany?.mocne ?? "");
-  const [obszary, setObszary] = useState(zapisany?.rozwoj ?? "");
+  // Szkic informacji zwrotnej liczony przy wejściu na „Rozwój”, czyli już po ocenie wskaźników (#72 pkt 5).
+  // Zapisuje się raz jako punkt wyjścia; dalej przełożony go poprawia.
+  const szkicZapisany = rozmowa?.mocne_strony != null || rozmowa?.obszary_rozwoju != null;
   useEffect(() => {
-    if (!zapisany && plan) {
-      setMocne(plan.informacja_zwrotna.mocne_strony.join("\n"));
-      setObszary(plan.informacja_zwrotna.obszary_rozwoju.join("\n"));
-    }
+    if (temat !== "rozwoj" || szkicZapisany || tylkoOdczyt) return;
+    let zyje = true;
+    przygotujRozmowe(token, procesId, {})
+      .then((p) => {
+        if (zyje)
+          onZapisz({
+            mocne_strony: p.informacja_zwrotna.mocne_strony.join("\n"),
+            obszary_rozwoju: p.informacja_zwrotna.obszary_rozwoju.join("\n"),
+          });
+      })
+      .catch(() => undefined);
+    return () => {
+      zyje = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan]);
-  useEffect(() => {
-    if (mocne || obszary) sessionStorage.setItem(klucz, JSON.stringify({ mocne, rozwoj: obszary }));
-  }, [klucz, mocne, obszary]);
+  }, [temat, szkicZapisany]);
 
   return (
     <div className="oc-ekran">
@@ -424,26 +460,27 @@ function EkranTematu({
           </div>
         </div>
       )}
-      <label className="etykieta oc-uwagi">
-        Notatka z rozmowy (opcjonalnie)
-        <textarea rows={3} value={notatka} disabled={tylkoOdczyt} onChange={(e) => setNotatka(e.target.value)} />
-      </label>
+      <PoleRozmowy
+        etykieta={temat === "rozwoj" ? "Kierunki rozwoju i potrzeby (opcjonalnie)" : "Notatka z rozmowy (opcjonalnie)"}
+        wartosc={rozmowa?.notatki?.[temat] ?? ""}
+        tylkoOdczyt={tylkoOdczyt}
+        onZapisz={(t) => onZapisz({ notatki: { [temat]: t } })}
+      />
       {temat === "rozwoj" && (
         <>
-          <label className="etykieta oc-uwagi">
-            Mocne strony (szkic z Twoich ocen)
-            <textarea rows={3} value={mocne} disabled={tylkoOdczyt} onChange={(e) => setMocne(e.target.value)} />
-          </label>
-          <label className="etykieta oc-uwagi">
-            Obszary rozwoju (szkic z Twoich ocen)
-            <textarea
-              rows={3}
-              value={obszary}
-              disabled={tylkoOdczyt}
-              placeholder="Brak wskaźników poniżej oczekiwań. Dopisz, jeśli coś wyszło w rozmowie."
-              onChange={(e) => setObszary(e.target.value)}
-            />
-          </label>
+          <PoleRozmowy
+            etykieta="Mocne strony (szkic z Twoich ocen)"
+            wartosc={rozmowa?.mocne_strony ?? ""}
+            tylkoOdczyt={tylkoOdczyt}
+            onZapisz={(t) => onZapisz({ mocne_strony: t })}
+          />
+          <PoleRozmowy
+            etykieta="Obszary rozwoju (szkic z Twoich ocen)"
+            wartosc={rozmowa?.obszary_rozwoju ?? ""}
+            placeholder="Brak wskaźników poniżej oczekiwań. Dopisz, jeśli coś wyszło w rozmowie."
+            tylkoOdczyt={tylkoOdczyt}
+            onZapisz={(t) => onZapisz({ obszary_rozwoju: t })}
+          />
           <button type="button" className="link oc-brak" aria-expanded={czat} onClick={() => setCzat((v) => !v)}>
             {czat ? "Ukryj asystenta" : "Zapytaj asystenta o rozmowę"}
           </button>
@@ -452,6 +489,7 @@ function EkranTematu({
           </Zwijane>
         </>
       )}
+      {blad && <p className="blad">{blad}</p>}
       {zakres[0] && <Zrodla adnotacje={zakres.flatMap((z) => z.adnotacje)} />}
     </div>
   );
@@ -600,6 +638,7 @@ export function Ocena({
   const [bledy, setBledy] = useState<Record<string, string>>({});
   const [czekam, setCzekam] = useState<string | null>(null);
   const poprzednie = usePoprzedniaOcena(token, osoba.osoba_id);
+  const [dataRozmowy, setDataRozmowy] = useState<string | null>(null);
 
   useEffect(() => {
     pobierzOcene(token, proces.id)
@@ -630,6 +669,8 @@ export function Ocena({
   }
 
   const tylkoOdczyt = !moznaProwadzic;
+  // Data rozmowy: zapisana albo dzisiejsza (rozmowę zwykle kończy się w dniu, w którym się odbyła).
+  if (dataRozmowy === null && dane) setDataRozmowy(dane.rozmowa?.data ?? new Date().toLocaleDateString("sv-SE"));
   const lista = kroki(dane, plan);
   // Pytania przy wskaźniku: pierwsze na wierzchu, dopytania (standard, powtarzalność) pod „Dopytaj”.
   const pytaniaWskaznika = (id: string) => (plan?.pytania ?? []).filter((q) => q.powiazanie.wskaznik_id === id).map((q) => q.tresc);
@@ -646,6 +687,19 @@ export function Ocena({
       setBledy((b) => ({ ...b, [id]: bladZapisu(err) }));
     } finally {
       setCzekam(null);
+    }
+  }
+
+  /** Scala zmianę z ostatnim zapisem rozmowy (notatki tematów łączone po kluczu) i zapisuje całość. */
+  async function zapiszRozmowe1(zmiana: ZapisRozmowy): Promise<boolean> {
+    const r = dane?.rozmowa ?? {};
+    setBledy(({ rozmowa: _, ...reszta }) => reszta);
+    try {
+      setDane(await zapiszRozmowe(token, proces.id, { ...r, ...zmiana, notatki: { ...r.notatki, ...zmiana.notatki } }));
+      return true;
+    } catch (err) {
+      setBledy((b) => ({ ...b, rozmowa: bladZapisu(err) }));
+      return false;
     }
   }
 
@@ -684,7 +738,19 @@ export function Ocena({
       </>
     );
   } else if (k.typ === "temat") {
-    ekran = <EkranTematu key={k.temat} temat={k.temat} plan={plan} token={token} procesId={proces.id} tylkoOdczyt={tylkoOdczyt} />;
+    ekran = (
+      <EkranTematu
+        key={k.temat}
+        temat={k.temat}
+        plan={plan}
+        rozmowa={dane.rozmowa}
+        token={token}
+        procesId={proces.id}
+        tylkoOdczyt={tylkoOdczyt}
+        blad={bledy.rozmowa}
+        onZapisz={zapiszRozmowe1}
+      />
+    );
   } else {
     ekran = (
       <div className="oc-ekran">
@@ -714,9 +780,17 @@ export function Ocena({
         <p className="meta">
           {kp.kryteria_z_decyzja === kp.kryteria
             ? "Wszystkie kryteria mają punkty. Dalej zobaczysz wynik, średnią i arkusz."
-            : `Punkty przyznane: ${kp.kryteria_z_decyzja} z ${kp.kryteria} kryteriów.`}
+            : `Punkty przyznane: ${kp.kryteria_z_decyzja} z ${kp.kryteria} kryteriów. Rozmowę zakończysz po przyznaniu punktów wszystkim kryteriom.`}
         </p>
         {dane.samoocena_status === "przekazana" && <AgendaRozbieznosci stan={dane} />}
+        {!tylkoOdczyt && (
+          <div className="oc-zakonczenie">
+            <h3>Zakończenie rozmowy</h3>
+            <p className="meta">Data rozmowy trafia do części II arkusza (§ 10 rozporządzenia). Ocenę na piśmie sporządzisz w następnym kroku.</p>
+            <PoleDaty nazwa="Data rozmowy oceniającej" wartosc={dataRozmowy} onZmiana={(v) => setDataRozmowy(v)} />
+            {bledy.rozmowa && <p className="blad">{bledy.rozmowa}</p>}
+          </div>
+        )}
       </div>
     );
   }
@@ -762,8 +836,18 @@ export function Ocena({
               {etykietaDalej(nastepny, dane)}
             </button>
           ) : (
-            <button type="button" onClick={onDalej}>
-              Dalej: ocena na piśmie
+            <button
+              type="button"
+              disabled={!tylkoOdczyt && (kp.kryteria_z_decyzja < kp.kryteria || !dataRozmowy || !poprawnaData(dataRozmowy) || czekam === "rozmowa")}
+              onClick={async () => {
+                if (tylkoOdczyt) return onDalej();
+                setCzekam("rozmowa");
+                const ok = await zapiszRozmowe1({ data: dataRozmowy });
+                setCzekam(null);
+                if (ok) onDalej();
+              }}
+            >
+              {tylkoOdczyt ? "Dalej: ocena na piśmie" : czekam === "rozmowa" ? "Zapisuję…" : "Zakończ rozmowę"}
             </button>
           )}
         </div>

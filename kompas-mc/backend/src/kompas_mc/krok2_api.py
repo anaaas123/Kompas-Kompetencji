@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Dziennik, Uzytkownik
@@ -11,6 +11,7 @@ from kompas_core.zrodla import Fragment
 
 from .kompetencje import ModelKompetencji
 from .krok2 import (
+    ZapisZapoznania,
     BladWyboru,
     KonfiguracjaKroku2,
     PropozycjaKroku2,
@@ -108,6 +109,37 @@ def router(
             konf.wersja,
         )
         return po
+
+    @r.put("/procesy/{proces_id}/krok2/zapoznanie")
+    def zapoznanie(
+        proces_id: int,
+        body: ZapisZapoznania,
+        request: Request,
+        uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> ProcesOceny:
+        """Zakończenie części I: data rozmowy na początku okresu i zapoznania ocenianego z kryteriami
+        (rozp. 2016 § 5 ust. 1, § 6 ust. 2). 409 przed zapisem kryteriów albo poza toku; 422, gdy
+        data jest z przyszłości albo wcześniejsza niż zapis kryteriów."""
+        proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
+        if proces.status != "W_TOKU":
+            raise HTTPException(409, "Proces nie jest w toku")
+        if proces.krok2 is None:
+            raise HTTPException(409, "Najpierw zatwierdź kryteria (krok 2).")
+        if body.data > date.today() or body.data < proces.krok2.zapisano.date():
+            raise HTTPException(422, "Data zapoznania z kryteriami musi przypadać od dnia ich zapisu do dziś.")
+        baza = request.app.state.baza
+        przed = proces.krok2.zapoznanie
+        with baza:
+            baza.execute(
+                "UPDATE procesy SET krok2 = ? WHERE id = ?",
+                (proces.krok2.model_copy(update={"zapoznanie": body.data}).model_dump_json(), proces.id),
+            )
+        dziennik: Dziennik = request.app.state.dziennik
+        dziennik.zapisz(
+            uz.login, "proces", str(proces.id),
+            {"zapoznanie": przed.isoformat() if przed else None}, {"zapoznanie": body.data.isoformat()}, konf.wersja,
+        )
+        return wczytaj_proces(baza, proces.id)
 
     return r
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Dziennik, Uzytkownik
@@ -12,6 +12,7 @@ from pydantic import TypeAdapter
 from .krok2_api import StanKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import (
+    ZapisRozmowy,
     BladOceny,
     Decyzja,
     KonfiguracjaOceny,
@@ -37,6 +38,11 @@ def _wczytaj_dane(baza, proces_id: int) -> tuple[dict[str, OcenaWskaznika], dict
         "SELECT oceny_wskaznikow, decyzje FROM procesy WHERE id = ?", (proces_id,)
     ).fetchone()
     return (_OCENY.validate_json(o) if o else {}), (_DECYZJE.validate_json(d) if d else {})
+
+
+def _wczytaj_rozmowe(baza, proces_id: int) -> ZapisRozmowy | None:
+    (r,) = baza.execute("SELECT rozmowa FROM procesy WHERE id = ?", (proces_id,)).fetchone()
+    return ZapisRozmowy.model_validate_json(r) if r else None
 
 
 def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
@@ -65,10 +71,12 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
 
     def stan(request: Request, proces: ProcesOceny) -> StanOceny:
         oceny, decyzje = _wczytaj_dane(request.app.state.baza, proces.id)
-        return zbuduj_stan(
+        wynik = zbuduj_stan(
             proces.id, proces.sciezka, proces.arkusz, proces.krok2, oceny, decyzje, stan2.model,
             konf_procesu(request, proces),
         )
+        wynik.rozmowa = _wczytaj_rozmowe(request.app.state.baza, proces.id)
+        return wynik
 
     def zapisz(
         request: Request, uz: Uzytkownik, proces: ProcesOceny, kolumna: str, wartosc: str, przed, po
@@ -162,5 +170,33 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
             request, uz, proces, "decyzje", _DECYZJE.dump_json(nowe).decode(),
             {"decyzje": zrzut(obecne)}, {"decyzje": zrzut(nowe)},
         )
+
+    @r.put("/procesy/{proces_id}/ocena/rozmowa")
+    def rozmowa(
+        proces_id: int,
+        body: ZapisRozmowy,
+        request: Request,
+        uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> StanOceny:
+        """Rozmowa oceniająca (§ 10): notatki tematów, szkic informacji zwrotnej i data. Zastępuje
+        poprzedni zapis. Data rozmowy przy komplecie ocen cząstkowych kończy rozmowę: proces przechodzi
+        do oceny na piśmie (krok 6). 422, gdy data jest z przyszłości albo sprzed zapoznania z kryteriami."""
+        proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
+        if proces.status != "W_TOKU":
+            raise HTTPException(409, "Proces nie jest w toku")
+        zapoznanie = proces.krok2.zapoznanie if proces.krok2 else None
+        if body.data and (body.data > date.today() or (zapoznanie and body.data < zapoznanie)):
+            raise HTTPException(422, "Data rozmowy musi przypadać od zapoznania z kryteriami do dziś.")
+        przed = _wczytaj_rozmowe(request.app.state.baza, proces.id)
+        nowy = zapisz(
+            request, uz, proces, "rozmowa", body.model_dump_json(),
+            {"rozmowa_data": przed.data.isoformat() if przed and przed.data else None},
+            {"rozmowa_data": body.data.isoformat() if body.data else None},
+        )
+        if body.data and nowy.kompletnosc.wszystkie_decyzje:
+            baza = request.app.state.baza
+            with baza:
+                baza.execute("UPDATE procesy SET krok = MAX(krok, 6) WHERE id = ?", (proces.id,))
+        return nowy
 
     return r
