@@ -324,45 +324,75 @@ function etykietaDalej(k: Krok | undefined, dane: StanOceny): string {
   return `Dalej: wskaźnik ${k.w + 1} z ${dane.kryteria[k.kr].wskazniki.length}`;
 }
 
-/** Oś postępu u góry: kryteria z kropkami wskaźników i podsumowanie; każdy punkt przenosi do swojego ekranu. */
+/** Postęp jak w formularzach administracji: „Kryterium X z N”, cienki pasek z odcinkiem na każdy wskaźnik
+ *  (pogrupowany po kryteriach), lista kryteriów do przejścia dopiero po „Plan oceny”. */
 function Os({ dane, lista, biezacy, onIdz }: { dane: StanOceny; lista: Krok[]; biezacy: number; onIdz: (i: number) => void }) {
+  const [plan, setPlan] = useState(false);
   const k = lista[biezacy];
-  const indeks = (i: number, j: number) => lista.findIndex((x) => x.typ === "wskaznik" && x.kr === i && x.w === j);
+  const wszystkie = dane.kryteria.reduce((n, kr) => n + kr.wskazniki.length, 0);
+  const ocenione = dane.kryteria.reduce((n, kr) => n + kr.wskazniki.filter(oceniony).length, 0);
+  const idz = (i: number) => {
+    setPlan(false);
+    onIdz(i);
+  };
   return (
     <nav className="oc-os" aria-label="Plan oceny">
-      <ol>
-        {dane.kryteria.map((kr, i) => {
-          const tu = k.typ === "wskaznik" && k.kr === i;
-          return (
-            <li key={kr.kompetencja_id} className={tu ? "biezace" : ""}>
-              <button type="button" aria-current={tu ? "step" : undefined} onClick={() => onIdz(indeks(i, 0))}>
-                <span className="oc-os-nazwa">{nazwaKryterium(kr.nazwa)}</span>
-                <span className="meta">{kr.decyzja ? `${kr.decyzja.punkty} pkt` : `${kr.wskazniki.filter(oceniony).length}/${kr.wskazniki.length}`}</span>
-              </button>
-              <span className="oc-os-kropki">
-                {kr.wskazniki.map((w, j) => (
-                  <button
-                    key={w.wskaznik_id}
-                    type="button"
-                    className={`oc-os-kropka ${oceniony(w) ? "pelna" : ""}`}
-                    aria-label={`${w.nazwa}${oceniony(w) ? `: ${stanWskaznika(w)}` : ""}`}
-                    aria-current={tu && k.typ === "wskaznik" && k.w === j ? "step" : undefined}
-                    onClick={() => onIdz(indeks(i, j))}
-                  />
-                ))}
+      <div className="oc-os-glowa">
+        <p className="oc-os-krok">
+          {k.typ === "podsumowanie" ? "Podsumowanie" : `Kryterium ${k.kr + 1} z ${dane.kryteria.length}`}
+          <span className="meta"> · ocenione wskaźniki {ocenione} z {wszystkie}</span>
+        </p>
+        <button type="button" className="link" aria-expanded={plan} onClick={() => setPlan((v) => !v)}>
+          {plan ? "Zwiń plan" : "Plan oceny"}
+        </button>
+      </div>
+      <div className="oc-os-pasek" role="progressbar" aria-label="Ocenione wskaźniki" aria-valuemin={0} aria-valuemax={wszystkie} aria-valuenow={ocenione}>
+        {dane.kryteria.map((kr, i) => (
+          <span key={kr.kompetencja_id} className="oc-os-grupa" style={{ flexGrow: kr.wskazniki.length }}>
+            {kr.wskazniki.map((w, j) => (
+              <span
+                key={w.wskaznik_id}
+                className={`oc-os-odcinek ${oceniony(w) ? "pelny" : ""} ${k.typ === "wskaznik" && k.kr === i && k.w === j ? "biezacy" : ""}`}
+              />
+            ))}
+          </span>
+        ))}
+      </div>
+      <Zwijane otwarte={plan}>
+        <ol className="oc-os-lista">
+          {dane.kryteria.map((kr, i) => {
+            const tu = k.typ === "wskaznik" && k.kr === i;
+            return (
+              <li key={kr.kompetencja_id}>
+                <button
+                  type="button"
+                  aria-current={tu ? "step" : undefined}
+                  onClick={() => idz(lista.findIndex((x) => x.typ === "wskaznik" && x.kr === i))}
+                >
+                  <span className={`oc-os-nr ${kr.decyzja ? "gotowe" : ""}`} aria-hidden="true">
+                    {kr.decyzja ? <Ikona nazwa="ok" rozmiar={14} /> : i + 1}
+                  </span>
+                  <span className="oc-os-nazwa">{nazwaKryterium(kr.nazwa)}</span>
+                  <span className="meta">
+                    {kr.decyzja ? `${kr.decyzja.punkty} pkt` : `${kr.wskazniki.filter(oceniony).length} z ${kr.wskazniki.length}`}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+          <li>
+            <button type="button" aria-current={k.typ === "podsumowanie" ? "step" : undefined} onClick={() => idz(lista.length - 1)}>
+              <span className="oc-os-nr" aria-hidden="true">
+                {dane.kryteria.length + 1}
               </span>
-            </li>
-          );
-        })}
-        <li className={k.typ === "podsumowanie" ? "biezace" : ""}>
-          <button type="button" aria-current={k.typ === "podsumowanie" ? "step" : undefined} onClick={() => onIdz(lista.length - 1)}>
-            <span className="oc-os-nazwa">Podsumowanie</span>
-            <span className="meta">
-              {dane.kompletnosc.kryteria_z_decyzja}/{dane.kompletnosc.kryteria}
-            </span>
-          </button>
-        </li>
-      </ol>
+              <span className="oc-os-nazwa">Podsumowanie</span>
+              <span className="meta">
+                {dane.kompletnosc.kryteria_z_decyzja} z {dane.kompletnosc.kryteria}
+              </span>
+            </button>
+          </li>
+        </ol>
+      </Zwijane>
     </nav>
   );
 }

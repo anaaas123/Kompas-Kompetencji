@@ -88,31 +88,36 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .oc-nawigacja button.link { min-height: 44px; }
 .oc-licznik { margin: 0 0 0 auto; font-variant-numeric: tabular-nums; }
 
-/* Oś postępu: kryteria z kropkami wskaźników i podsumowanie. */
-.oc-os ol { margin: 0; padding: 0 0 var(--o-4); list-style: none; display: flex; gap: var(--o-8); overflow-x: auto; }
-.oc-os li { flex: 1 1 0; min-width: 132px; display: flex; flex-direction: column; gap: var(--o-8); padding: var(--o-12); border-radius: var(--r-wiersz); background: var(--k-wiersz); box-shadow: inset 0 -2px 0 transparent; transition: background-color var(--ruch-szybki) var(--ruch-krzywa), box-shadow var(--ruch-szybki) var(--ruch-krzywa); }
-.oc-os li.biezace { background: var(--k-info-bg); box-shadow: inset 0 -2px 0 var(--k-link); }
-.oc-os li > button {
-  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-2); width: 100%; min-height: 44px; padding: 0;
-  border: 0; border-radius: var(--r-sm); background: none; color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
+/* Postęp (wzór formularzy administracji): „Kryterium X z N”, cienki pasek odcinków, plan po rozwinięciu. */
+.oc-os { display: flex; flex-direction: column; gap: var(--o-8); max-width: 1040px; }
+.oc-os-glowa { display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-16); }
+.oc-os-krok { margin: 0; font-weight: var(--f-semibold); }
+.oc-os-krok .meta { font-weight: var(--f-regular); }
+.oc-os-glowa button.link { min-height: 44px; white-space: nowrap; }
+.oc-os-pasek { display: flex; gap: var(--o-8); }
+.oc-os-grupa { display: flex; gap: var(--o-2); flex-basis: 0; }
+.oc-os-odcinek { flex: 1; height: 6px; border-radius: 999px; background: var(--k-chart-track); transition: background-color var(--ruch-szybki) var(--ruch-krzywa); }
+.oc-os-odcinek.pelny { background: var(--k-link); }
+.oc-os-odcinek.biezacy { box-shadow: 0 0 0 2px var(--k-canvas), 0 0 0 3px var(--k-link); }
+.oc-os-lista { margin: var(--o-8) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-os-lista button {
+  display: flex; align-items: center; gap: var(--o-12); width: 100%; min-height: 48px; padding: var(--o-8) var(--o-12);
+  border: 0; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
 }
-.oc-os li > button .meta { margin: 0; font-variant-numeric: tabular-nums; }
-.oc-os-nazwa { max-width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-weight: var(--f-semibold); }
-.oc-os li.biezace .oc-os-nazwa { color: var(--k-link); }
-.oc-os-kropki { display: flex; flex-wrap: wrap; gap: var(--o-2); }
-.oc-os-kropki button.oc-os-kropka { display: grid; place-items: center; width: 24px; min-height: 24px; padding: 0; border: 0; border-radius: 999px; background: none; }
-.oc-os-kropka::before { content: ""; width: 10px; height: 10px; border: 2px solid var(--k-line-control); border-radius: 999px; transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa); }
-.oc-os-kropka.pelna::before { border-color: var(--k-link); background: var(--k-link); }
-.oc-os-kropka[aria-current="step"]::before { box-shadow: 0 0 0 2px var(--k-surface), 0 0 0 4px var(--k-link); }
-@media (pointer: coarse) { .oc-os-kropki button.oc-os-kropka { width: 44px; min-height: 44px; } }
+.oc-os-lista button[aria-current="step"] { color: var(--k-link); font-weight: var(--f-semibold); }
+.oc-os-lista button:active { background: var(--k-wiersz-pressed); }
+.oc-os-lista .meta { margin: 0 0 0 auto; flex: none; font-variant-numeric: tabular-nums; }
+.oc-os-nr { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--k-line-control); border-radius: 999px; font-size: var(--t-small-r); line-height: var(--t-small-l); font-variant-numeric: tabular-nums; }
+.oc-os-nr.gotowe { border-color: var(--k-success-pelny); background: var(--k-success-pelny); color: var(--k-canvas); }
+.oc-os-nazwa { min-width: 0; }
+.oc-tytul:focus, .oc-tytul:focus-visible { outline: none; }
 
 @media (hover: hover) and (pointer: fine) {
   .oc-kafle button.oc-kafel:not(:disabled):hover { background: var(--k-wiersz-hover); }
   .oc-kafle button.oc-kafel[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
-  .oc-os li > button:not(:disabled):hover { background: none; color: var(--k-link); }
-  .oc-os-kropki button.oc-os-kropka:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-os-lista button:not(:disabled):hover { background: var(--k-wiersz-hover); }
 }
-.oc-kafle button.oc-kafel:focus-visible, .oc-os button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.oc-kafle button.oc-kafel:focus-visible, .oc-os-lista button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 
 /* Ruch: wejście ekranu i bloku, zwijane wejście i wyjście; tylko opacity i transform. */
 @keyframes oc-wejscie { from { opacity: 0; transform: translateY(var(--o-8)); } }
@@ -124,7 +129,7 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .zwijane.zamyka { animation: oc-zwin 160ms ease forwards; }
 @media (prefers-reduced-motion: reduce) {
   .oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna, .zwijane, .zwijane.zamyka { animation: none; }
-  .oc-kafle button.oc-kafel, .oc-os li, .oc-os-kropka::before { transition: none; }
+  .oc-kafle button.oc-kafel, .oc-os-odcinek { transition: none; }
   .oc-kafle button.oc-kafel:active { transform: none; }
 }
 
@@ -149,8 +154,6 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .oc-punkty button.oc-punkt:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 @media (max-width: 760px) { .oc-punkty { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .oc-punkty button.oc-punkt { transition: none; } .oc-punkty button.oc-punkt:active { transform: none; } }
-.oc-tytul:focus { outline: none; }
-.oc-tytul:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 4px; }
 
 /* Krok 6: pytania w zwijanych grupach */
 label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }
