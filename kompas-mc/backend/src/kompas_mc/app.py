@@ -11,6 +11,7 @@ from kompas_core.llm import DziennikJsonl
 from pydantic import BaseModel, Field
 
 from .arkusz_api import router as router_arkusza
+from .arkusz_api import zastosuj_zakonczone
 from .arkusze import WzoryArkuszy
 from .asystent import Asystent, KonfiguracjaAsystenta, OdpowiedzAsystenta, Sciezka
 from .baza import polacz
@@ -66,6 +67,7 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         app.state.ustawienia = ust
         app.state.baza = polacz(ust.baza)
         app.state.dziennik = Dziennik(ust.baza)
+        zastosuj_zakonczone(app.state.baza, qnt)
         app.state.korpus = korpus = zaladuj(ust.manifest)
         katalog.wczytaj(korpus)
         krok2.model = odczytaj_model(korpus)

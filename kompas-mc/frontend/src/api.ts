@@ -196,7 +196,7 @@ export interface ProcesOceny {
   rozpoczeto: string;
   zgodna_z_propozycja: boolean;
   uzasadnienie: string | null;
-  /** Kryteria zatwierdzone w kroku 2 (z datą zapoznania, gdy część I jest zakończona). */
+  /** Kryteria zatwierdzone w kroku 2 (z datą zapoznania, gdy część I jest zakończona); null przed zapisem. */
   krok2?: WyborKroku2 | null;
 }
 

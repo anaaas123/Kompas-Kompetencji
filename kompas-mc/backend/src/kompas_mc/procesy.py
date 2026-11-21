@@ -7,7 +7,8 @@ przełożony wybiera inną albo propozycji nie ma, musi podać uzasadnienie.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
@@ -26,6 +27,15 @@ class NowyProces(BaseModel):
     osoba_id: str
     sciezka: Sciezka
     uzasadnienie: str | None = Field(default=None, max_length=4000)
+
+
+STREFA_URZEDU = ZoneInfo("Europe/Warsaw")
+"""Daty czynności (ustalenie kryteriów, rozpoczęcie) liczy się w czasie urzędowym, nie w UTC zapisu (#72)."""
+
+
+def dzien_urzedowy(chwila: datetime) -> date:
+    """Dzień kalendarzowy w Polsce dla chwili zapisanej w UTC (zapis po północy to już następny dzień)."""
+    return (chwila if chwila.tzinfo else chwila.replace(tzinfo=UTC)).astimezone(STREFA_URZEDU).date()
 
 
 class ProcesOceny(BaseModel):
