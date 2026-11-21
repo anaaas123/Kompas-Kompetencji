@@ -297,3 +297,15 @@ def test_zapis_rozmowy_i_zakonczenie(klient, naglowek):
     assert r.status_code == 200, r.text
     assert klient.get(f"/api/procesy/{proces['id']}", headers=h).json()["krok"] >= 6
     assert klient.put(f"{url}/rozmowa", json={}, headers=naglowek("hr")).status_code == 403
+
+
+def test_przyklad_z_pola_uwag_liczy_sie_dla_rozwoju(klient, naglowek):
+    """#72 pkt 7: przykład wpisany przy wskaźniku (pole uwag) trafia do propozycji rozwoju."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/ocena"
+    w = klient.get(url, headers=h).json()["kryteria"][0]["wskazniki"][0]["wskaznik_id"]
+    r = klient.put(f"{url}/wskazniki", json={"wskazniki": {w: {"poziom": 7, "uwagi": "Przygotowała opinię w 2 dni."}}}, headers=h)
+    assert r.status_code == 200, r.text
+    dla = {x["wskaznik_id"]: x for x in r.json()["dla_rozwoju"]}
+    assert dla[w]["przyklady"] == ["Przygotowała opinię w 2 dni."]

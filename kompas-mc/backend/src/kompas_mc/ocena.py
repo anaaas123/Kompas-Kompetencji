@@ -368,7 +368,8 @@ def zbuduj_stan(
                         wskaznik=w.nazwa,
                         wskaznik_id=w.id,
                         poziom=o.poziom,
-                        przyklady=[p.jako_tekst() for p in o.przyklady],
+                        # Pole „Przykład z okresu” przy wskaźniku zapisuje się jako uwagi (#72 pkt 7).
+                        przyklady=[p.jako_tekst() for p in o.przyklady] or ([o.uwagi] if o.uwagi else []),
                     )
                 )
         kryteria.append(
