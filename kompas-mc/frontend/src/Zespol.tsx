@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { pobierzCykl, pobierzKrok1, pobierzPracownikow, pobierzProcesy, pobierzTerminy } from "./api";
+import { MapaKompetencji } from "./Kompetencje";
+import {
+  pobierzCykl,
+  pobierzKrok1,
+  pobierzMapeKompetencji,
+  pobierzPracownikow,
+  pobierzProcesy,
+  pobierzTerminy,
+  type MapaKompetencji as Mapa,
+  type Pracownik,
+} from "./api";
 import type { Sesja } from "./Konto";
 import { SzkieletListy, WierszListy } from "./Lista";
 import { Ikona } from "./Ikona";
@@ -92,13 +102,21 @@ export function Zespol({
   sesja,
   onPracownicy,
   onWyloguj,
+  onWybierz,
 }: {
   sesja: Sesja;
   onPracownicy: (f: FiltrPracownikow) => void;
   onWyloguj: () => void;
+  onWybierz?: (p: Pracownik) => void;
 }) {
   const { sprawy, blad } = useSprawy(sesja, onWyloguj);
   const [wybor, setWybor] = useState<Wybor>({});
+  // Mapa kompetencji (#33) tylko dla przełożonego: HR nie ma prawa do treści ocen (zadanie MC, minimalizacja danych).
+  const [mapa, setMapa] = useState<Mapa | null>(null);
+  const przelozony = sesja.uzytkownik.rola === "przelozony";
+  useEffect(() => {
+    if (przelozony) pobierzMapeKompetencji(sesja.token).then(setMapa).catch(() => setMapa(null));
+  }, [sesja.token, przelozony]);
   const hr = sesja.uzytkownik.rola === "hr";
   const korzen = hr ? "Cały urząd" : "Mój zespół";
 
@@ -205,6 +223,8 @@ export function Zespol({
           onClick={l.teraz.length ? () => onPracownicy({ komorka }) : undefined}
         />
       </div>
+
+      {mapa && <MapaKompetencji mapa={mapa} ludzie={zakres.map((s) => s.osoba)} onWybierz={onWybierz} />}
 
       <PasekUdzialow tytul="Ostatnia ocena okresowa" podstawa="kartoteka QNT; kliknij liczbę, aby zobaczyć osoby" udzialy={oceny} />
 

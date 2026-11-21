@@ -2,6 +2,7 @@
 # Wszystkie osoby i daty są wymyślone. Brak PESEL, adresów i danych wrażliwych
 # (zasada minimalizacji danych z treści zadania, pkt 5).
 # Stanowiska i komórki pochodzą z 3 opisów stanowisk w „materialy mc/OSP_word”.
+# Oceny cząstkowe ostatniej oceny (#33) są fikcyjne i zgodne z wynikiem: negatywna = któreś kryterium 1 albo średnia < 4.
 # „Dziś” demo = 2026-11-21. Każdy rekord ma `scenariusz`: co ma pokazać na demo.
 # Arkusz (A/B/C) NIE jest polem danych – wylicza go reguła z § 3 rozp. 2016
 # na podstawie `kieruje_pracownikami`; podany niżej tylko jako oczekiwany wynik testu.
@@ -22,7 +23,10 @@ pracownicy:
     korpus: urzednik_sc
     data_zatrudnienia: 2015-03-02
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2024-12-10, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2024-12-10
+      wynik: pozytywna
+      oceny_czastkowe: { zarzadzanie-ludzmi: 7, podejmowanie-decyzji-i-odpowiedzialnosc: 7, organizacja-pracy-i-orientacja-na-osiaganie-celow: 5, wspolpraca: 7, komunikacja: 7 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: B
     scenariusz: Przełożona w demo; sama podlega ocenie okresowej na arkuszu B (§ 3 ust. 3).
 
@@ -36,7 +40,10 @@ pracownicy:
     korpus: pracownik_sc
     data_zatrudnienia: 2018-09-01
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2025-01-20, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2025-01-20
+      wynik: pozytywna
+      oceny_czastkowe: { zarzadzanie-ludzmi: 5, podejmowanie-decyzji-i-odpowiedzialnosc: 5, organizacja-pracy-i-orientacja-na-osiaganie-celow: 7, wspolpraca: 5, komunikacja: 5 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: B
     scenariusz: Drugi przełożony – test, że nie widzi podwładnych P-001 (reguła dostępu).
 
@@ -52,7 +59,10 @@ pracownicy:
     korpus: urzednik_sc
     data_zatrudnienia: 2019-05-06
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2024-12-02, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2024-12-02
+      wynik: pozytywna
+      oceny_czastkowe: { wykorzystywanie-wiedzy-i-doskonalenie-zawodowe: 7, rzetelnosc: 7, organizacja-pracy-i-orientacja-na-osiaganie-celow: 5, wspolpraca: 5, komunikacja: 3 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: C
     scenariusz: GŁÓWNA ŚCIEŻKA DEMO. Ocena okresowa na arkuszu C, termin 24 mies. od 2024-12-02 → 2026-12-02 (za 11 dni); urzędnik SC → możliwy wniosek o stopień służbowy (§ 11 ust. 5).
 
@@ -67,7 +77,10 @@ pracownicy:
     korpus: pracownik_sc
     data_zatrudnienia: 2021-02-01
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2026-11-16, wynik: negatywna }
+    ostatnia_ocena_okresowa:
+      data: 2026-11-16
+      wynik: negatywna
+      oceny_czastkowe: { wykorzystywanie-wiedzy-i-doskonalenie-zawodowe: 3, rzetelnosc: 1, organizacja-pracy-i-orientacja-na-osiaganie-celow: 3, wspolpraca: 3, komunikacja: 3 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: C
     scenariusz: Po ocenie negatywnej – rozmowa i kryteria w 7 dni od 2026-11-16 → do 2026-11-23 (§ 7 pkt 2); alert HR „pilne”.
 
@@ -82,7 +95,10 @@ pracownicy:
     korpus: pracownik_sc
     data_zatrudnienia: 2020-10-12
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2025-06-30, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2025-06-30
+      wynik: pozytywna
+      oceny_czastkowe: { wykorzystywanie-wiedzy-i-doskonalenie-zawodowe: 7, rzetelnosc: 7, organizacja-pracy-i-orientacja-na-osiaganie-celow: 7, wspolpraca: 5, komunikacja: 5 }   # fikcyjne punkty z arkusza (demo #33)
     zmiana_oceniajacego: { data: 2026-03-01, poprzedni_przelozony: P-000 }
     oczekiwany_arkusz: C
     scenariusz: Zmiana oceniającego w trakcie okresu – kryteria wybrane wcześniej zostają (§ 9 ust. 3).
@@ -98,7 +114,10 @@ pracownicy:
     korpus: pracownik_sc
     data_zatrudnienia: 2023-01-09
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2025-10-15, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2025-10-15
+      wynik: pozytywna
+      oceny_czastkowe: { wykorzystywanie-wiedzy-i-doskonalenie-zawodowe: 9, rzetelnosc: 5, organizacja-pracy-i-orientacja-na-osiaganie-celow: 5, wspolpraca: 7, komunikacja: 3 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: C
     scenariusz: Ocena w toku bez pilnego terminu (następna 2027-10-15) – tło listy HR.
 
@@ -113,7 +132,10 @@ pracownicy:
     korpus: pracownik_sc
     data_zatrudnienia: 2021-02-15
     rodzaj_umowy: nieokreslony
-    ostatnia_ocena_okresowa: { data: 2024-12-03, wynik: pozytywna }
+    ostatnia_ocena_okresowa:
+      data: 2024-12-03
+      wynik: pozytywna
+      oceny_czastkowe: { zarzadzanie-ludzmi: 5, podejmowanie-decyzji-i-odpowiedzialnosc: 7, organizacja-pracy-i-orientacja-na-osiaganie-celow: 7, wspolpraca: 5, komunikacja: 5 }   # fikcyjne punkty z arkusza (demo #33)
     oczekiwany_arkusz: B
     scenariusz: Ocena okresowa na arkuszu B i rejestracja wydruku w mocku EZD.
 

@@ -22,6 +22,9 @@ class _Model(BaseModel):
 class OstatniaOcenaOkresowa(_Model):
     data: date
     wynik: Literal["pozytywna", "negatywna"]
+    oceny_czastkowe: dict[str, int] = Field(default_factory=dict, exclude=True)
+    """Punkty ocen cząstkowych z arkusza w aktach (kompetencja_id → 1/3/5/7/9). Treść oceny: poza
+    ``model_dump`` (lista pracowników, HR); udostępnia ją tylko ``/api/zespol/kompetencje`` (#33)."""
 
 
 class ZmianaOceniajacego(_Model):
