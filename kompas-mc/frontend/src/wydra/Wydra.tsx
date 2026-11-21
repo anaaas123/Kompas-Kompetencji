@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import stoi from "./wydra-stoi.webp";
 import skok from "./wydra-skok.webp";
 import macha from "./wydra-macha.webp";
@@ -31,11 +31,22 @@ type Props = {
   podskok?: number;
   machanie?: number;
   proszenie?: number;
-  /** Jeden ruch przy pierwszym pokazaniu. */
+  /** Jeden ruch przy pierwszym pokazaniu; domyślnie pierwszy ruch danej pozy. */
   naStart?: RuchWydry;
   /** Ruch po kliknięciu; domyślnie pierwszy ruch danej pozy. */
   naKlik?: RuchWydry;
+  /** Czy wydra rusza się sama co kilka sekund (domyślnie tak). */
+  samoczynnie?: boolean;
 };
+
+// Przerwa między samoczynnymi ruchami: losowa, żeby nie wyglądało jak metronom.
+const PRZERWA_MIN = 6000;
+const PRZERWA_MAX = 12000;
+
+const losuj = <T,>(lista: readonly T[]) => lista[Math.floor(Math.random() * lista.length)];
+
+const malyRuch = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 const KLATKI = [
   ["stoi", stoi],
@@ -45,9 +56,18 @@ const KLATKI = [
   ["sklada", sklada],
 ] as const;
 
-export function Wydra({ poza = "stoi", szerokosc = 160, podskok, machanie, proszenie, naStart, naKlik }: Props) {
+export function Wydra({
+  poza = "stoi",
+  szerokosc = 160,
+  podskok,
+  machanie,
+  proszenie,
+  naStart,
+  naKlik,
+  samoczynnie = true,
+}: Props) {
   const dozwolony = (r?: RuchWydry) => (r && RUCHY[poza].includes(r) ? r : null);
-  const [ruch, setRuch] = useState<RuchWydry | null>(dozwolony(naStart));
+  const [ruch, setRuch] = useState<RuchWydry | null>(dozwolony(naStart ?? RUCHY[poza][0]));
 
   // Nowy ruch w trakcie trwającego jest ignorowany: wydra najpierw kończy.
   // Ruch spoza bieżącej pozy też, bo skończyłby się na cudzej klatce.
@@ -58,7 +78,28 @@ export function Wydra({ poza = "stoi", szerokosc = 160, podskok, machanie, prosz
   useEffect(() => { if (podskok) rusz("podskok"); }, [podskok]);
   useEffect(() => { if (machanie) rusz("machanie"); }, [machanie]);
   useEffect(() => { if (proszenie) rusz("proszenie"); }, [proszenie]);
-  useEffect(() => setRuch(null), [poza]);
+  // Zmiana pozy przerywa ruch. Porównanie z poprzednią pozą, bo sam efekt
+  // odpala się też przy montowaniu i skasowałby ruch startowy.
+  const poprzedniaPoza = useRef(poza);
+  useEffect(() => {
+    if (poprzedniaPoza.current === poza) return;
+    poprzedniaPoza.current = poza;
+    setRuch(null);
+  }, [poza]);
+
+  // Samoczynny ruch co kilka sekund; pomijany przy ograniczonym ruchu i w ukrytej karcie.
+  useEffect(() => {
+    if (!samoczynnie || malyRuch()) return;
+    let licznik: number;
+    const zaplanuj = () => {
+      licznik = window.setTimeout(() => {
+        if (!document.hidden) rusz(losuj(RUCHY[poza]));
+        zaplanuj();
+      }, PRZERWA_MIN + Math.random() * (PRZERWA_MAX - PRZERWA_MIN));
+    };
+    zaplanuj();
+    return () => window.clearTimeout(licznik);
+  }, [samoczynnie, poza]);
 
   return (
     <button
@@ -69,6 +110,10 @@ export function Wydra({ poza = "stoi", szerokosc = 160, podskok, machanie, prosz
       data-poza={poza}
       data-ruch={ruch ?? undefined}
       onClick={() => rusz(naKlik ?? RUCHY[poza][0])}
+      // Najechanie myszą (nie dotyk, bo tam po dotknięciu przychodzi też klik).
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") rusz(losuj(RUCHY[poza]));
+      }}
       onAnimationEnd={(e) => {
         if (KONIEC[e.animationName] === ruch) setRuch(null);
       }}
