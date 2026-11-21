@@ -53,6 +53,7 @@ export function Rozmowa({
   const [egzamin, setEgzamin] = useState<"tak" | "nie" | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
   const [czekam, setCzekam] = useState(false);
+  const [dane, setDane] = useState(false);
   const ostatnie = useRef(0);
 
   const przygotuj = useCallback(
@@ -273,8 +274,10 @@ export function Rozmowa({
       </section>
 
       <section>
-        <details className="pozostale">
-          <summary>Dane do planu (opcjonalnie)</summary>
+        <button type="button" className="link" aria-expanded={dane} onClick={() => setDane((v) => !v)}>
+          {dane ? "Ukryj dane do planu" : "Dane do planu (opcjonalnie)"}
+        </button>
+        <Zwijane otwarte={dane}>
           <fieldset className="formularz" disabled={czekam}>
             <label className="etykieta">
               Cele na okres oceny, każdy w osobnym wierszu
@@ -301,7 +304,7 @@ export function Rozmowa({
               </button>
             </div>
           </fieldset>
-        </details>
+        </Zwijane>
       </section>
 
       {dalej}

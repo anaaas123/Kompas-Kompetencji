@@ -17,6 +17,7 @@ import {
 } from "./api";
 import { PoprzedniaOcena, zdanieOOsobie } from "./PoprzedniaOcena";
 import { Zwijane } from "./Zwijane";
+import { data } from "./zespol-dane";
 import "./krok2.css";
 import "./ocena.css";
 
@@ -248,6 +249,9 @@ function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 |
   const osp = analiza.osp;
   const obowiazkowe = krok2?.kryteria.filter((k) => k.rodzaj === "OBOWIAZKOWE") ?? [];
   const proponowane = krok2?.kryteria.filter((k) => k.rodzaj === "DODATKOWE_PROPONOWANE") ?? [];
+  // Z opisu stanowiska pokazujemy tylko to, czego nie ma już wśród obowiązkowych (bez powtórzeń).
+  const obowiazkoweNazwy = new Set(obowiazkowe.map((k) => k.nazwa.toLowerCase()));
+  const zOsp = (osp?.kompetencje_miekkie.lista ?? []).filter((k) => !obowiazkoweNazwy.has(k.toLowerCase()));
   if (!osp && !krok2) return null;
   const arkusz = krok2 ? (krok2.arkusz === "PIERWSZA" ? "arkusz pierwszej oceny" : `arkusz ${krok2.arkusz}`) : null;
   return (
@@ -260,10 +264,10 @@ function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 |
             <dd>{obowiazkowe.map((k) => nazwaKryterium(k.nazwa)).join(" · ")}</dd>
           </div>
         )}
-        {osp && osp.kompetencje_miekkie.lista.length > 0 && (
+        {zOsp.length > 0 && (
           <div>
-            <dt>Wskazane w opisie stanowiska</dt>
-            <dd>{osp.kompetencje_miekkie.lista.map((k) => nazwaKryterium(k)).join(" · ")}</dd>
+            <dt>{obowiazkowe.length ? "Z opisu stanowiska, poza obowiązkowymi" : "Wskazane w opisie stanowiska"}</dt>
+            <dd>{zOsp.map((k) => nazwaKryterium(k)).join(" · ")}</dd>
           </div>
         )}
         {proponowane.length > 0 && (
@@ -439,7 +443,8 @@ export function Krok1({
                 <>
                   <p className="k1-tytul">Kryteria i wskaźniki</p>
                   <p className="meta">
-                    Ocena w toku: {NAZWA_SCIEZKI[proces.sciezka]}, rozpoczął {proces.rozpoczal}.
+                    {NAZWA_SCIEZKI[proces.sciezka].charAt(0).toUpperCase() + NAZWA_SCIEZKI[proces.sciezka].slice(1)} w toku od{" "}
+                    {data(proces.rozpoczeto)}.
                   </p>
                   <button type="button" className="k2-zatwierdz" onClick={() => onDalej(proces)}>
                     Dalej: krok 2
