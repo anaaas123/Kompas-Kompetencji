@@ -92,7 +92,7 @@ def test_hr_bez_profilu_i_mapy(przegladarka):
     wiersze = _csv(page)
     assert wiersze[0] == KOLUMNY, wiersze[0]
 
-    # Klik w odcinek paska etapów otwiera listę z filtrem etapu.
+    # Klik w odcinek paska etapów otwiera listę z filtrem etapu (znacznik w liście albo aktywna pigułka w tabeli #54).
     page.locator("figure.udzialy", has_text="Etap cyklu oceny").locator(".pasek-klik button").first.click()
-    expect(page.locator(".znacznik-filtra").first).to_be_visible()
+    expect(page.locator(".znacznik-filtra, .pigulka.aktywna").first).to_be_visible()
     page.close()
