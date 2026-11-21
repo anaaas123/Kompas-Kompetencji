@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
+from kompas_core.llm import Tryb
 from kompas_core.zrodla import SourceRef
 from pydantic import BaseModel, Field
 
@@ -36,6 +37,7 @@ class KonfiguracjaLlmCelow(BaseModel):
     maks_celow: int = 3
     zrodla: list[str]
     """ID fragmentów poradników o wnioskach rozwojowych i IPRZ, dołączanych do każdego zapytania."""
+    adnotacje: list[SourceRef]
 
 
 class KonfiguracjaCelow(BaseModel):
@@ -114,10 +116,10 @@ class WynikPodpowiedzi(BaseModel):
     zrodlo: Literal["llm", "reguly"] = "reguly"
     """Skąd pochodzą podpowiedzi: z LLM po walidacji albo z reguł (także gdy LLM zawiódł)."""
     dostawca: str | None = None
-    tryb: str | None = None
-    """Znacznik trybu odpowiedzi LLM (np. ``NA_ŻYWO``); None dla reguł."""
+    tryb: Tryb | None = None
+    """Znacznik trybu odpowiedzi LLM; None dla reguł."""
     odrzucone: list[str] = Field(default_factory=list)
-    """Powody odrzucenia celów z LLM albo całej odpowiedzi."""
+    """Powody odrzucenia celów z LLM albo informacja, który dostawca zawiódł (szczegóły w ``llm.jsonl``)."""
 
 
 def podpowiedzi_regulowe(wynik: WynikRozwoju, poziom_oczekiwan: int) -> list[PodpowiedzCelu]:

@@ -39,3 +39,11 @@ llm:
     - poradnik-okresowa#s41        # przykład arkusza: wnioski do IPRZ
     - poradnik-okresowa#s44        # przykład arkusza: wnioski do IPRZ
     - poradnik-pierwsza@2016#s33   # 6.5.4 wnioski dotyczące rozwoju zawodowego
+  adnotacje:
+    - kategoria: DECYZJA_PROJEKTOWA
+      uzasadnienie: >-
+        Spec #2 ustala łańcuch openai_zgodny → ollama → ekstrakcyjny. Dostawca ekstrakcyjny zwraca
+        tylko fragmenty źródeł i nie ułoży celu SMART, dlatego przy podpowiedziach celów jego
+        miejsce zajmują podpowiedzi regułowe z rozwoj.yaml. Cel zwrócony przez model musi wskazać
+        wskaźnik z modelu kompetencji i cytat występujący w podanym fragmencie korpusu.
+      zatwierdził: Hubert Nowak

@@ -71,24 +71,26 @@ class PodpowiedziLlm:
         if brak:
             raise ValueError(f"cele.yaml: llm.zrodla spoza korpusu: {brak}")
         self.zrodla = [po_id[z] for z in konf.zrodla]
-        self.model_fragmenty = {f.lokalizator: f for f in fragmenty if f.doc_id == DOC_MODELU}
+        model_fragmenty = {f.lokalizator: f for f in fragmenty if f.doc_id == DOC_MODELU}
+        self.fragmenty_wskaznikow = {
+            wid: [
+                model_fragmenty[lok]
+                for lok in [w.adnotacja.lokalizator] + [p.adnotacja.lokalizator for p in w.poziomy]
+                if lok in model_fragmenty
+            ]
+            for wid, (_, w) in _wskazniki(model).items()
+        }
+        """Fragmenty modelu dla wskaźnika: jego opis i opisy pięciu poziomów."""
         self.model = model
         self.konf = konf
         self.dostawcy = [d for d in dostawcy if d.tryb != Tryb.EKSTRAKCYJNE]
         self.dziennik = dziennik
 
-    def _fragmenty_wskaznika(self, wskaznik_id: str) -> list[Fragment]:
-        w = _wskazniki(self.model).get(wskaznik_id)
-        if w is None:
-            return []
-        lokalizatory = [w[1].adnotacja.lokalizator] + [p.adnotacja.lokalizator for p in w[1].poziomy]
-        return [self.model_fragmenty[lok] for lok in lokalizatory if lok in self.model_fragmenty]
-
     def zaproponuj(self, kontekst: str, wskazniki: list[str], dzis: date) -> WynikLlmCelow:
         """``kontekst`` musi być już pseudonimizowany; ``wskazniki`` to ID ocenionych wskaźników."""
         if not self.dostawcy:
             return WynikLlmCelow(podpowiedzi=[], odrzucone=["brak skonfigurowanego dostawcy LLM"])
-        fragmenty = [f for w in wskazniki for f in self._fragmenty_wskaznika(w)] + self.zrodla
+        fragmenty = [f for w in wskazniki for f in self.fragmenty_wskaznikow.get(w, [])] + self.zrodla
         zapytanie = Zapytanie(
             operacja=OPERACJA,
             prompt_wersja=self.konf.wersja,
@@ -102,8 +104,9 @@ class PodpowiedziLlm:
         try:
             wynik = wywolaj(zapytanie, self.dostawcy, self.dziennik)
         except BrakOdpowiedzi as e:
+            # Szczegóły błędów (np. brak klucza, adres usługi) są w llm.jsonl; użytkownik widzi tylko dostawcę.
             return WynikLlmCelow(
-                podpowiedzi=[], odrzucone=[f"{w.dostawca}: {'; '.join(w.bledy)}" for w in e.wpisy]
+                podpowiedzi=[], odrzucone=[f"{w.dostawca}: brak poprawnej odpowiedzi" for w in e.wpisy]
             )
         przyjete, odrzucone = waliduj_cele(
             wynik.odpowiedz.tresc, fragmenty, self.model, dzis, self.konf.maks_celow
@@ -118,7 +121,7 @@ def _wskazniki(model: ModelKompetencji) -> dict[str, tuple[str, Wskaznik]]:
 
 
 def waliduj_cele(
-    tresc: str | None, fragmenty: list[Fragment], model: ModelKompetencji, dzis: date, maks: int = 3
+    tresc: str | None, fragmenty: list[Fragment], model: ModelKompetencji, dzis: date, maks: int
 ) -> tuple[list[PodpowiedzCelu], list[str]]:
     """Cele z odpowiedzi modelu, które przeszły walidację, i powody odrzucenia pozostałych.
 

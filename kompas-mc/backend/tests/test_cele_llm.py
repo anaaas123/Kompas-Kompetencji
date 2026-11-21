@@ -47,7 +47,7 @@ def test_cel_z_nieistniejacym_wskaznikiem_albo_cytatem_bez_pokrycia_jest_odrzuco
         _cel(nazwa="Obcy fragment", fragment_id="rozp-2016-okresowe#1"),
     ]}, ensure_ascii=False)
 
-    przyjete, odrzucone = waliduj_cele(tresc, [fragment], model, DZIS)
+    przyjete, odrzucone = waliduj_cele(tresc, [fragment], model, DZIS, maks=3)
 
     assert [c.nazwa for c in przyjete] == ["Rzetelne przygotowanie dokumentów"]
     cel = przyjete[0]
@@ -62,12 +62,12 @@ def test_cel_z_nieistniejacym_wskaznikiem_albo_cytatem_bez_pokrycia_jest_odrzuco
 
 def test_najwyzej_trzy_cele_i_termin_z_przeszlosci_do_uzupelnienia(model, fragment):
     tresc = json.dumps({"cele": [_cel(nazwa=f"Cel {i}", termin="2020-01-01") for i in range(5)]})
-    przyjete, _ = waliduj_cele(tresc, [fragment], model, DZIS)
+    przyjete, _ = waliduj_cele(tresc, [fragment], model, DZIS, maks=3)
     assert len(przyjete) == 3 and all(c.termin is None for c in przyjete)
 
 
 def test_tresc_bez_json_nie_daje_celow(model, fragment):
-    przyjete, odrzucone = waliduj_cele("To nie jest JSON", [fragment], model, DZIS)
+    przyjete, odrzucone = waliduj_cele("To nie jest JSON", [fragment], model, DZIS, maks=3)
     assert przyjete == [] and odrzucone
 
 
@@ -177,7 +177,7 @@ def test_bez_klucza_zwracane_sa_podpowiedzi_regulowe(srodowisko, monkeypatch):
     assert wynik["zrodlo"] == "reguly"
     assert [p["wskaznik_id"] for p in wynik["podpowiedzi"]] == [slaby]
     assert wynik["podpowiedzi"][0]["zrodlo"] == "reguly"
-    assert any("KOMPAS_TEST_BRAK_KLUCZA" in o for o in wynik["odrzucone"])
+    assert wynik["odrzucone"] == ["openai_zgodny: brak poprawnej odpowiedzi"]  # bez szczegółów konfiguracji
 
 
 def test_gdy_llm_zwroci_same_niepoprawne_cele_zostaja_regulowe(srodowisko):
