@@ -1,6 +1,6 @@
 """Kroki 3–5 (#31): zachowania i przykłady, sugerowany poziom, decyzja przełożonego."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from kompas_core.zrodla import cytat_w_korpusie
@@ -275,3 +275,25 @@ def test_uwagi_zastepuja_przyklad_w_ostrzezeniu(konf):
     assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7), konf)
     assert not ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="Wyjaśniła akt UODO prostym językiem."), konf)
     assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="   "), konf)
+
+
+def test_zapis_rozmowy_i_zakonczenie(klient, naglowek):
+    """Rozmowa oceniająca (§ 10) zapisuje się w API, a data przy komplecie ocen kończy ją (krok 6)."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/ocena"
+    body = {"notatki": {"obowiazki": "Omówiono trzy zadania z OSP."}, "mocne_strony": "Jasne pisma."}
+    r = klient.put(f"{url}/rozmowa", json=body, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["rozmowa"]["notatki"]["obowiazki"] == "Omówiono trzy zadania z OSP."
+    assert klient.get(url, headers=h).json()["rozmowa"]["mocne_strony"] == "Jasne pisma."
+    jutro = (date.today() + timedelta(days=1)).isoformat()
+    assert klient.put(f"{url}/rozmowa", json={"data": jutro}, headers=h).status_code == 422
+    assert klient.put(f"{url}/rozmowa", json={"notatki": {"inne": "x"}}, headers=h).status_code == 422
+    stan = klient.get(url, headers=h).json()
+    for kr in stan["kryteria"]:
+        klient.put(f"{url}/decyzje", json={kr["kompetencja_id"]: {"punkty": 5}}, headers=h)
+    r = klient.put(f"{url}/rozmowa", json={**body, "data": date.today().isoformat()}, headers=h)
+    assert r.status_code == 200, r.text
+    assert klient.get(f"/api/procesy/{proces['id']}", headers=h).json()["krok"] >= 6
+    assert klient.put(f"{url}/rozmowa", json={}, headers=naglowek("hr")).status_code == 403

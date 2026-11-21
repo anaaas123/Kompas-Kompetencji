@@ -8,9 +8,9 @@ cząstkowej; decyzję podejmuje przełożony, uzasadnienie odejścia od sugestii
 from __future__ import annotations
 
 import math
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import yaml
 from kompas_core.zrodla import SourceRef
@@ -218,6 +218,19 @@ class SkalaWidok(BaseModel):
     adnotacje: list[SourceRef]
 
 
+Tekst = Annotated[str, Field(max_length=4000)]
+
+
+class ZapisRozmowy(BaseModel):
+    """Rozmowa oceniająca (rozp. 2016 § 10): notatki tematów, szkic informacji zwrotnej i data.
+    Data trafia do części II arkusza, notatka o rozwoju podpowiada wnioski (§ 11 ust. 1 pkt 5)."""
+
+    data: date | None = None
+    notatki: dict[Literal["obowiazki", "sprawozdanie", "cele", "rozwoj"], Tekst] = Field(default_factory=dict)
+    mocne_strony: Tekst | None = None
+    obszary_rozwoju: Tekst | None = None
+
+
 class StanOceny(BaseModel):
     samoocena_status: Literal["brak", "szkic", "przekazana"] | None = None
     """Status samooceny (#8), tylko dla przełożonego; treść przy wskaźnikach po przekazaniu."""
@@ -232,6 +245,8 @@ class StanOceny(BaseModel):
     kompletnosc: Kompletnosc
     ostrzezenia: list[str]
     dla_rozwoju: list[WskaznikDlaRozwoju]
+    rozmowa: ZapisRozmowy | None = None
+    """Zapis rozmowy oceniającej; ``None``, dopóki przełożony nic nie zapisał."""
 
 
 # ---------------------------------------------------------------- logika

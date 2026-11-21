@@ -69,7 +69,8 @@ def etap_okresowej(
     """``od_kiedy``: od tego dnia aplikacja prowadzi oceny (stan danych kadrowych). Wcześniejszy termin
     kryteriów dotrzymano poza aplikacją (ta sama zasada co w ``hr.terminy_z_regul``); późniejszy pilnujemy."""
     ustalone = proces.krok2.zapisano.date() if proces and proces.krok2 else None
-    t = oblicz_terminy(p, DaneTerminow(data_ustalenia_kryteriow=ustalone), konf)
+    zapoznanie = proces.krok2.zapoznanie if proces and proces.krok2 else None
+    t = oblicz_terminy(p, DaneTerminow(data_ustalenia_kryteriow=ustalone, data_zapoznania_z_kryteriami=zapoznanie), konf)
     ocena = t.termin_sporzadzenia_oceny or t.termin_bazowy
     termin_oceny = _termin("sporządzenie oceny na piśmie", ocena) if ocena else None
 

@@ -271,3 +271,25 @@ def test_cytaty_kroku2_sa_w_korpusie(klient, naglowek, korpus_mc):
     for ref in refs:
         if ref and ref.get("cytat_dosłowny"):
             assert cytat_w_korpusie(ref["cytat_dosłowny"], korpus_mc.korpus, ref["doc_id"]), ref
+
+
+def test_zakonczenie_czesci_i_zapisuje_date_zapoznania(klient, naglowek):
+    """Część I kończy się datą rozmowy i zapoznania z kryteriami (rozp. 2016 § 5 ust. 1, § 6 ust. 2)."""
+    from datetime import date, timedelta
+
+    h = naglowek("przelozony2")
+    proces = _proces(klient, naglowek, "P-102", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/krok2"
+    dzis = date.today().isoformat()
+    p = klient.get(url, headers=h).json()
+    wsk = {k["kompetencja_id"]: [w["wskaznik_id"] for w in k["wskazniki"][:1]] for k in p["kryteria"] if k["rodzaj"] == "OBOWIAZKOWE"}
+    assert klient.put(url, json={"wskazniki": wsk}, headers=h).status_code == 200
+    jutro = (date.today() + timedelta(days=1)).isoformat()
+    assert klient.put(f"{url}/zapoznanie", json={"data": jutro}, headers=h).status_code == 422
+    assert klient.put(f"{url}/zapoznanie", json={"data": "2020-01-01"}, headers=h).status_code == 422
+    r = klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["krok2"]["zapoznanie"] == dzis
+    # Nowy zapis kryteriów kasuje datę: część I trzeba podpisać od nowa.
+    assert klient.put(url, json={"wskazniki": wsk}, headers=h).json()["krok2"]["zapoznanie"] is None
+    assert klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=naglowek("hr")).status_code == 403

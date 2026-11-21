@@ -196,6 +196,8 @@ export interface ProcesOceny {
   rozpoczeto: string;
   zgodna_z_propozycja: boolean;
   uzasadnienie: string | null;
+  /** Kryteria zatwierdzone w kroku 2 (z datą zapoznania, gdy część I jest zakończona). */
+  krok2?: WyborKroku2 | null;
 }
 
 /** Błąd API z kodem i polem `detail` (np. braki przy 422). */
@@ -299,6 +301,8 @@ export interface WyborKroku2 {
   }[];
   zapisal: string;
   zapisano: string;
+  /** Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2): zakończenie części I. */
+  zapoznanie?: string | null;
 }
 
 export interface Krok2 {
@@ -326,6 +330,18 @@ export async function zapiszKrok2(
     method: "PUT",
     headers: { "content-type": "application/json", ...autoryzacja(token) },
     body: JSON.stringify(dane),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc as ProcesOceny;
+}
+
+/** Zakończenie części I: data rozmowy na początku okresu i zapoznania z kryteriami (§ 5 ust. 1, § 6 ust. 2). */
+export async function zapiszZapoznanie(token: string, procesId: number, data: string): Promise<ProcesOceny> {
+  const r = await fetch(`/api/procesy/${procesId}/krok2/zapoznanie`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ data }),
   });
   const tresc = await r.json().catch(() => null);
   if (!r.ok) throw new BladApi(r.status, tresc?.detail);
@@ -393,9 +409,20 @@ export interface KryteriumOceny {
   decyzja: Decyzja | null;
 }
 
+export type TematRozmowy = "obowiazki" | "sprawozdanie" | "cele" | "rozwoj";
+
+/** Zapis rozmowy oceniającej (§ 10): notatki tematów, szkic informacji zwrotnej, data do części II arkusza. */
+export interface ZapisRozmowy {
+  data?: string | null;
+  notatki?: Partial<Record<TematRozmowy, string>>;
+  mocne_strony?: string | null;
+  obszary_rozwoju?: string | null;
+}
+
 export interface StanOceny {
   /** Status samooceny (#8), tylko dla przełożonego. */
   samoocena_status?: StatusSamooceny | null;
+  rozmowa?: ZapisRozmowy | null;
   proces_id: number;
   sciezka: Sciezka;
   arkusz: "B" | "C" | "PIERWSZA";
@@ -520,6 +547,9 @@ async function zapiszOcene(token: string, procesId: number, sciezka: string, dan
 
 export const zapiszWskazniki = (token: string, procesId: number, wskazniki: Record<string, OcenaWskaznika | null>) =>
   zapiszOcene(token, procesId, "wskazniki", { wskazniki });
+
+export const zapiszRozmowe = (token: string, procesId: number, zapis: ZapisRozmowy) =>
+  zapiszOcene(token, procesId, "rozmowa", zapis);
 
 export const zapiszDecyzje = (
   token: string,

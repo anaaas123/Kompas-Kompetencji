@@ -15,6 +15,7 @@ import {
 import { NAZWA_SCIEZKI, Zrodla, opisBledu } from "./Krok1";
 import { Ikona } from "./Ikona";
 import { zapiszPlik } from "./Wynik";
+import { ZakonczenieCzesciI } from "./CzescI";
 import { data, odmiana } from "./zespol-dane";
 import "./krok2.css";
 
@@ -284,10 +285,11 @@ export function Krok2({
     setBlad(null);
     try {
       if (!dane?.wybor || zmieniono) {
-        await zapiszKrok2(token, proces.id, {
+        const po = await zapiszKrok2(token, proces.id, {
           dodatkowe,
           wskazniki: Object.fromEntries(wybrane.map((id) => [id, wskazniki[id] ?? []])),
         });
+        setDane((d) => (d && po.krok2 ? { ...d, wybor: po.krok2 } : d));
         setZmieniono(false);
       }
     } catch (err) {
@@ -304,7 +306,8 @@ export function Krok2({
     const etap = await etapOsoby(token, osoba.osoba_id);
     setCykl(etap);
     setCzekam(false);
-    if (etap?.etap === "ocena") onDalej();
+    // Okresowa: część I kończy się zapisaną datą zapoznania z kryteriami (§ 6 ust. 2), także na końcu okresu.
+    if (etap?.etap === "ocena" && proces.sciezka !== "okresowa") onDalej();
     else setUstalone(etap?.kryteria_ustalone ? data(etap.kryteria_ustalone) : dzisiaj());
   }
 
@@ -348,7 +351,8 @@ export function Krok2({
   // Podgląd bez prawa prowadzenia: zapisany wybór prowadzi dalej tylko w etapie oceny, wcześniej pokazuje stan.
   const podgladUstalonych =
     tylkoOdczyt && dane.wybor && cykl?.etap !== "ocena" ? data(cykl?.kryteria_ustalone ?? dane.wybor.zapisano) : null;
-  const ustalonoDnia = ustalone ?? podgladUstalonych;
+  // Część I zakończona (data zapoznania zapisana): przy powrocie widać jej zakończenie, nie formularz od nowa.
+  const ustalonoDnia = ustalone ?? podgladUstalonych ?? (dane.wybor?.zapoznanie ? data(dane.wybor.zapisano) : null);
 
   return (
     <div className="k2 k2-kryteria">
@@ -365,6 +369,12 @@ export function Krok2({
 
       {tylkoOdczyt && !dane.wybor && (
         <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
+      )}
+      {!tylkoOdczyt && !dane.wybor && proces.sciezka === "okresowa" && cykl?.etap === "ocena" && (
+        <p className="meta">
+          Część I arkusza sporządzono na początku okresu oceny. Zaznacz kryteria dodatkowe tak, jak zapisano je w podpisanej części I
+          (§ 9 ust. 3: ocenia się według wybranych wcześniej kryteriów).
+        </p>
       )}
 
       <Sekcja tytul="Obowiązkowe" liczba={String(obowiazkowe.length)} podstawa={dane.podstawa_obowiazkowych}>
@@ -418,31 +428,44 @@ export function Krok2({
 
       <div className="k2-pasek">
         {ustalonoDnia ? (
-          <div className="k2-ustalone" role="status">
-            <p className="sukces">
-              <strong>Kryteria ustalone {ustalonoDnia}</strong>
-              {cykl?.termin && ` · ${cykl.termin.nazwa} do ${data(cykl.termin.data)}`}
-            </p>
-            {cykl?.etap === "brak_danych" && cykl.braki.length > 0 && (
-              <p className="meta">Termin oceny ustalisz po uzupełnieniu danych kadrowych: {cykl.braki.join(" ")}</p>
-            )}
-            <div className="k2-akcje">
-              <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
-                Wróć do pracownika
-              </button>
-              {moznaProwadzic && proces.sciezka === "okresowa" && cykl?.etap !== "brak_danych" && (
-                <button type="button" disabled={drukuje} onClick={drukuj}>
-                  {drukuje ? "Przygotowuję PDF…" : "Wydrukuj część I do podpisu"}
-                </button>
-              )}
-            </div>
-            {proces.sciezka === "okresowa" && (
-              <p className="meta">
-                Po podpisie ocenianego oryginał arkusza trafia do akt osobowych, a kopię części I doręczasz ocenianemu (§ 6 ust. 3).
+          proces.sciezka === "okresowa" && dane.wybor ? (
+            <ZakonczenieCzesciI
+              token={token}
+              proces={proces}
+              wybor={dane.wybor}
+              cykl={cykl}
+              moznaProwadzic={moznaProwadzic}
+              onZapisano={(po) => setDane((d) => (d && po.krok2 ? { ...d, wybor: po.krok2 } : d))}
+              onDalej={onDalej}
+              onPracownik={onPracownik}
+            />
+          ) : (
+            <div className="k2-ustalone" role="status">
+              <p className="sukces">
+                <strong>Kryteria ustalone {ustalonoDnia}</strong>
+                {cykl?.termin && ` · ${cykl.termin.nazwa} do ${data(cykl.termin.data)}`}
               </p>
-            )}
-            {blad && <p className="blad">{blad}</p>}
-          </div>
+              {cykl?.etap === "brak_danych" && cykl.braki.length > 0 && (
+                <p className="meta">Termin oceny ustalisz po uzupełnieniu danych kadrowych: {cykl.braki.join(" ")}</p>
+              )}
+              <div className="k2-akcje">
+                <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
+                  Wróć do pracownika
+                </button>
+                {moznaProwadzic && proces.sciezka === "okresowa" && cykl?.etap !== "brak_danych" && (
+                  <button type="button" disabled={drukuje} onClick={drukuj}>
+                    {drukuje ? "Przygotowuję PDF…" : "Wydrukuj część I do podpisu"}
+                  </button>
+                )}
+              </div>
+              {proces.sciezka === "okresowa" && (
+                <p className="meta">
+                  Po podpisie ocenianego oryginał arkusza trafia do akt osobowych, a kopię części I doręczasz ocenianemu (§ 6 ust. 3).
+                </p>
+              )}
+              {blad && <p className="blad">{blad}</p>}
+            </div>
+          )
         ) : (
           <>
             {dane.wybor && (
