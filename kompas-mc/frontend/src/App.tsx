@@ -4,7 +4,6 @@ import { Logowanie, type Sesja } from "./Konto";
 import { Krok1 } from "./Krok1";
 import { Krok2 } from "./Krok2";
 import { Ocena } from "./Ocena";
-import { Rozmowa } from "./Rozmowa";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
@@ -23,7 +22,7 @@ import type { FiltrPracownikow } from "./zespol-dane";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
-type Etap = "krok2" | "ocena" | "rozmowa" | "wynik" | "arkusz" | "wnioski";
+type Etap = "krok2" | "ocena" | "wynik" | "arkusz" | "wnioski";
 
 export default function App() {
   const [blad, setBlad] = useState<string | null>(null);
@@ -105,7 +104,7 @@ export default function App() {
 
   // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
   // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
-  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie.
+  // Pierwsza ocena nie ma ekranów wyniku ani arkusza B/C, więc od kroku 6 kończy się na rozmowie (podsumowanie i punkty).
   /** `wymus`: etap wybrany na karcie (#55), np. kryteria procesu, który jest już dalej. */
   const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null, wymus?: Etap) => {
     const k = p?.krok ?? 0;
@@ -117,8 +116,8 @@ export default function App() {
               (w): Etap => (w.zapisany ? "arkusz" : "wynik"),
               (): Etap => "wynik",
             )
-          : k >= 6
-            ? "rozmowa"
+          : k >= 6 && p?.sciezka === "okresowa"
+            ? "wynik"
             : k >= 3
               ? "ocena"
               : "krok2");
@@ -170,16 +169,6 @@ export default function App() {
           proces={proces}
           moznaProwadzic={prowadzi}
           onWstecz={() => setEtap("krok2")}
-          onDalej={() => setEtap("rozmowa")}
-        />
-      )}
-      {oceniany && proces && etap === "rozmowa" && (
-        <Rozmowa
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("ocena")}
           onDalej={() => setEtap("wynik")}
         />
       )}
@@ -189,7 +178,7 @@ export default function App() {
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("rozmowa")}
+          onWstecz={() => setEtap("ocena")}
           onDalej={() => setEtap("arkusz")}
         />
       )}
