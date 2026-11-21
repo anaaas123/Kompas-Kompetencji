@@ -1,5 +1,4 @@
-# Asystent formalny wersji MC BDG (RAG na korpusie MC, #27 → #37).
-# Domyślnie tryb ekstrakcyjny. Wersja MC dopuszcza wyłącznie darmowych lub lokalnych dostawców.
+# Asystent formalny (RAG na lokalnym korpusie).
 #
 # Przebieg (szczegóły: backend/src/kompas_mc/asystent.py):
 #   1. przygotowany zestaw pytań i odpowiedzi (faq.yaml) w ramach ścieżki,
@@ -76,10 +75,14 @@ komunikaty:
   faq: Odpowiedź z przygotowanego zestawu pytań i odpowiedzi; podstawą jest cytowany fragment źródła.
 
 llm:
-  dozwolone: [ollama, zapisane, ekstrakcyjny]
   dostawcy:
-    # Odkomentuj, żeby model lokalny układał odpowiedź z pobranych fragmentów:
-    # - {typ: ollama, model: llama3.1}
+    - typ: openai_zgodny
+      base_url: https://api.deepseek.com
+      model: deepseek-v4-flash
+      zmienna_klucza: DEEPSEEK_API_KEY
+      timeout: 30
+      temperatura: 0.0
+    - {typ: ollama, model: "qwen3:8b", timeout: 5}
     - {typ: ekstrakcyjny, k: 3}   # k ≥ cytaty
 
 reguly:

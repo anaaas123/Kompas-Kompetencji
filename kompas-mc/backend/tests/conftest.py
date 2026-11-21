@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from kompas_mc.app import utworz_aplikacje
@@ -11,7 +12,20 @@ from kompas_mc.ustawienia import Ustawienia
 @pytest.fixture(scope="session")
 def ustawienia(tmp_path_factory) -> Ustawienia:
     dane = tmp_path_factory.mktemp("dane")
-    return replace(Ustawienia.ze_srodowiska(), baza=dane / "test.db", log_llm=dane / "llm.jsonl")
+    ustawienia = Ustawienia.ze_srodowiska()
+    # Pełny zestaw testów jest zawsze offline. Testy łańcucha dostawców korzystają
+    # jawnie z produkcyjnej konfiguracji i atrap HTTP.
+    konfiguracja = yaml.safe_load(ustawienia.konfiguracja_asystenta.read_text(encoding="utf-8"))
+    konfiguracja["llm"] = {"dostawcy": [{"typ": "ekstrakcyjny", "k": 3}]}
+    konfiguracja["faq"] = str(ustawienia.konfiguracja_asystenta.parent / konfiguracja["faq"])
+    asystent = dane / "asystent-offline.yaml"
+    asystent.write_text(yaml.safe_dump(konfiguracja, allow_unicode=True), encoding="utf-8")
+    return replace(
+        ustawienia,
+        baza=dane / "test.db",
+        log_llm=dane / "llm.jsonl",
+        konfiguracja_asystenta=asystent,
+    )
 
 
 @pytest.fixture(scope="session")
