@@ -109,6 +109,8 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     page.locator(".lista button.pozycja", has_text="Zielińska").first.click()
     page.locator(".ramka.nastepny button").click()
     expect(page.get_by_text("Pracownik przekazał samoocenę")).to_be_visible()
+    # Rozmowa zaczyna się od obowiązków (§ 10 pkt 1); pierwszy wskaźnik jest na drugim ekranie.
+    page.get_by_role("button", name="Dalej: Wykorzystywanie wiedzy i doskonalenie zawodowe").click()
     rozbieznosc = page.locator(".porownanie.rozbieznosc").first
     expect(rozbieznosc).to_be_visible()
     expect(rozbieznosc).to_contain_text("Samoocena 9")
@@ -116,12 +118,10 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     expect(rozbieznosc).to_contain_text("do omówienia")
     _zrzut(page, f"krok3-przelozony-{tryb}")
 
-    # Krok 6: samoocena na rozmowie, rozbieżność na górze z pytaniem do rozmowy.
-    # Kroki 3–5 idą po jednym wskaźniku (#46); do rozmowy przechodzi się z podsumowania.
+    # Rozmowa oceniająca (kroki 3–6) to jeden przebieg; rozbieżności z samooceną są w jego podsumowaniu.
     plan = page.get_by_role("navigation", name="Plan oceny")
     plan.get_by_role("button", name="Plan oceny").click()
     plan.get_by_role("button", name="Podsumowanie").click()
-    page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
     agenda = page.locator(".agenda")
     expect(agenda).to_contain_text("Samoocena na rozmowie")
     expect(agenda.locator(".lista-agendy > li").first).to_contain_text("Jaka sytuacja z pracy stoi za samooceną?")

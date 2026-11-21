@@ -4,7 +4,6 @@ import { Logowanie, type Sesja } from "./Konto";
 import { Krok1 } from "./Krok1";
 import { Krok2 } from "./Krok2";
 import { Ocena } from "./Ocena";
-import { Rozmowa } from "./Rozmowa";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
@@ -23,7 +22,7 @@ import type { FiltrPracownikow } from "./zespol-dane";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
-type Etap = "krok2" | "ocena" | "rozmowa" | "wynik" | "arkusz" | "wnioski";
+type Etap = "krok2" | "ocena" | "wynik" | "arkusz" | "wnioski";
 
 export default function App() {
   const [blad, setBlad] = useState<string | null>(null);
@@ -170,16 +169,6 @@ export default function App() {
           proces={proces}
           moznaProwadzic={prowadzi}
           onWstecz={() => setEtap("krok2")}
-          onDalej={() => setEtap("rozmowa")}
-        />
-      )}
-      {oceniany && proces && etap === "rozmowa" && (
-        <Rozmowa
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("ocena")}
           onDalej={() => setEtap("wynik")}
         />
       )}
@@ -189,7 +178,7 @@ export default function App() {
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("rozmowa")}
+          onWstecz={() => setEtap("ocena")}
           onDalej={() => setEtap("arkusz")}
         />
       )}

@@ -95,7 +95,7 @@ szablony_pytan:
   - id: pyt.osp.zadanie
     powiazanie: zadanie_osp
     sciezka: okresowa
-    tresc: "Zadanie z opisu stanowiska: „{zadanie_osp}”. Jak wyglądała jego realizacja w tym okresie i co było efektem?"
+    tresc: "Jak wyglądała realizacja tego zadania w okresie oceny i co było efektem? Zadanie z opisu stanowiska: „{zadanie_osp}”."
     uzasadnienie: Rozmowa oceniająca obejmuje główne obowiązki i sposób ich realizacji.
     adnotacje:
       - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 1", strona: 3,
