@@ -103,13 +103,11 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     _zrzut(page, f"samoocena-przekazana-{tryb}")
     page.close()
 
-    # Przełożony: karta Anny → krok 1 → krok 2 → kroki 3–5: porównanie z rozbieżnością przy pierwszym wskaźniku.
+    # Przełożony: karta Anny → od razu kroki 3–5 (#49, proces w kroku 3): porównanie z rozbieżnością przy pierwszym wskaźniku.
     page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=tryb)
     _zaloguj(page, "przelozony1")
     page.locator(".lista button.pozycja", has_text="Zielińska").first.click()
-    page.get_by_role("button", name="Oceń kompetencje").click()  # karta po #38: przycisk nazwany czynnością
-    page.get_by_role("button", name="Dalej: krok 2").click()
-    page.get_by_role("button", name="Dalej: kroki 3–5").click()
+    page.locator(".ramka.nastepny button").click()
     expect(page.get_by_text("Pracownik przekazał samoocenę")).to_be_visible()
     rozbieznosc = page.locator(".porownanie.rozbieznosc").first
     expect(rozbieznosc).to_be_visible()
@@ -119,10 +117,6 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     _zrzut(page, f"krok3-przelozony-{tryb}")
 
     # Krok 6: samoocena na rozmowie, rozbieżność na górze z pytaniem do rozmowy.
-    # Kroki 3–5 idą po jednym wskaźniku (#46); do rozmowy przechodzi się z podsumowania.
-    plan = page.get_by_role("navigation", name="Plan oceny")
-    plan.get_by_role("button", name="Plan oceny").click()
-    plan.get_by_role("button", name="Podsumowanie").click()
     page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
     agenda = page.locator(".agenda")
     expect(agenda).to_contain_text("Samoocena na rozmowie")

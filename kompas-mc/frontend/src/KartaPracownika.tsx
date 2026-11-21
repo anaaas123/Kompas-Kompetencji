@@ -79,7 +79,8 @@ export function KartaPracownika({
   sesja: Sesja;
   osoba: Pracownik;
   onWroc: () => void;
-  onOcen: () => void;
+  /** Proces w toku (#49): App otwiera jego bieżący krok; null = krok 1. */
+  onOcen: (proces: ProcesOceny | null) => void;
   /** Pracownik otwiera „Moją samoocenę” procesu (#9). */
   onSamoocena?: (procesId: number) => void;
   /** Sekcja celów rozwojowych osoby (#11, komponent z gałęzi celów); bez niej sekcji nie ma. */
@@ -271,7 +272,12 @@ export function KartaPracownika({
             {dane.samoocena && onSamoocena ? (
               <NastepnySamoocena s={dane.samoocena} onOtworz={() => onSamoocena(dane.samoocena!.proces_id)} />
             ) : (
-              <NastepnyKrok dane={dane} prowadzi={prowadzi} onOcen={onOcen} przelozony={dane.przelozony} />
+              <NastepnyKrok
+                dane={dane}
+                prowadzi={prowadzi}
+                onOcen={() => onOcen(dane.proces?.status === "W_TOKU" ? dane.proces : null)}
+                przelozony={dane.przelozony}
+              />
             )}
 
             {dane.analiza?.arkusz_okresowy.arkusz && (
