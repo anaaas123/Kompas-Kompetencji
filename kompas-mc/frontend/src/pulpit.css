@@ -10,12 +10,12 @@
 .pulpit-kafle button.kafel:active { background: var(--k-wiersz-pressed); }
 
 .pulpit-kolumny { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-32); align-items: start; }
-.pulpit-kolumny > .sekcja, .pulpit-boczna > .sekcja { border-top: 0; padding-top: 0; margin: 0; }
+:is(.pulpit-kolumny, .pulpit-jedna) > .sekcja, .pulpit-boczna > .sekcja { border-top: 0; padding-top: 0; margin: 0; }
 .pulpit-boczna { display: flex; flex-direction: column; gap: var(--o-32); }
 .pulpit-boczna .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
 .pulpit .wiersz-tytulu h2 { margin: 0; }
 button.pulpit-wiecej { align-self: flex-start; min-height: 44px; text-align: left; white-space: normal; }
-.pulpit-kolumny > .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
+:is(.pulpit-kolumny, .pulpit-jedna) > .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
 .pulpit-fakty { margin: 0; display: flex; flex-direction: column; gap: var(--o-12); }
 .pulpit-fakty div { display: flex; flex-direction: column; gap: var(--o-2); }
 .pulpit-fakty dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
@@ -23,7 +23,8 @@ button.pulpit-wiecej { align-self: flex-start; min-height: 44px; text-align: lef
 
 .pulpit-pasek {
   position: sticky; bottom: 0; z-index: var(--z-sticky); margin-top: auto; margin-bottom: calc(-1 * var(--o-64));
-  padding: var(--o-16) 0 var(--o-24); background: var(--k-canvas);
+  padding: var(--o-16) 0 var(--o-24); border-top: 1px solid var(--k-line); background: var(--k-canvas);
+  box-shadow: 0 -12px 16px -12px var(--k-backdrop);
 }
 
 @container (min-width: 880px) {

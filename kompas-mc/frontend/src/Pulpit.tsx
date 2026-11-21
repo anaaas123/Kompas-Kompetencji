@@ -32,8 +32,8 @@ const NA_START = 5;
 type Filtr = "wszystkie" | "po_terminie" | "kryteria" | "ocena";
 const NAZWA_FILTRA: Record<Exclude<Filtr, "wszystkie">, string> = {
   po_terminie: "po terminie",
-  kryteria: "ustalenie kryteriów",
-  ocena: "do oceny",
+  kryteria: "do rozpoczęcia",
+  ocena: "do zakończenia",
 };
 
 interface Sprawa {
@@ -43,6 +43,18 @@ interface Sprawa {
 
 const doZrobienia = (s: Sprawa) => s.e.etap !== "okres";
 const pasuje = (s: Sprawa, f: Filtr) => f === "wszystkie" || (f === "po_terminie" ? s.e.po_terminie : s.e.etap === f);
+
+/** Czynność w wierszu: przełożony widzi swoją czynność z /api/cykl, pracownik to, co go czeka (rozmowa z przełożonym). */
+function opisCzynnosci(e: EtapOsoby, zespol: boolean): string {
+  const czynnosc = zespol
+    ? e.czynnosc
+    : e.etap === "kryteria"
+      ? "Rozmowa z przełożonym o kryteriach"
+      : e.etap === "ocena"
+        ? "Rozmowa z przełożonym"
+        : e.czynnosc;
+  return e.termin ? `${czynnosc} · do ${data(e.termin.data)}` : czynnosc;
+}
 
 /** „po terminie 2 dni” na czerwono, „za 5 dni” na bursztynowo do 14 dni; dalsze terminy bez plakietki. */
 function Plakietka({ e }: { e: EtapOsoby }) {
@@ -107,7 +119,7 @@ export function Pulpit({
 
   const lista = useMemo(() => {
     if (!sprawy) return null;
-    const q = szukaj.trim().toLowerCase();
+    const q = zespol ? szukaj.trim().toLowerCase() : "";
     if (q) return sprawy.filter((s) => `${s.osoba.imie} ${s.osoba.nazwisko}`.toLowerCase().includes(q));
     return sprawy.filter((s) => doZrobienia(s) && pasuje(s, filtr));
   }, [sprawy, szukaj, filtr]);
@@ -117,7 +129,7 @@ export function Pulpit({
     const q = szukaj.trim();
     if (!q) return;
     // Jedna osoba pasuje do wpisu: otwórz ją; inaczej to pytanie do asystenta.
-    if (lista && lista.length === 1) onWybierz(lista[0].osoba);
+    if (zespol && lista && lista.length === 1) onWybierz(lista[0].osoba);
     else setRozmowa({ id: Date.now(), tekst: q });
     setSzukaj("");
   }
@@ -129,8 +141,8 @@ export function Pulpit({
   const najblizszy = (f: Filtr) => sprawy?.find((s) => doZrobienia(s) && pasuje(s, f) && s.e.termin);
   const kafle: { f: Exclude<Filtr, "wszystkie">; etykieta: string; ton?: "zle" | "uwaga" }[] = [
     { f: "po_terminie", etykieta: "Po terminie", ton: "zle" },
-    { f: "kryteria", etykieta: "Ustal kryteria" },
-    { f: "ocena", etykieta: "Do oceny" },
+    { f: "kryteria", etykieta: "Do rozpoczęcia" },
+    { f: "ocena", etykieta: "Do zakończenia" },
   ];
   const ludzie = sprawy?.map((s) => s.osoba) ?? [];
   const wydzialow = sprawy ? wedlugKomorek(sprawy, (s) => s.osoba.komorka).reduce((a, g) => a + g.wydzialy.length, 0) : 0;
@@ -183,10 +195,10 @@ export function Pulpit({
         </div>
       )}
 
-      <div className="pulpit-kolumny">
+      <div className={zespol ? "pulpit-kolumny" : "pulpit-jedna"}>
         <section className="sekcja">
           <div className="wiersz-tytulu">
-            <h2>{szukaj ? "Wyniki wyszukiwania" : rola === "oceniany" ? "Twoja ocena" : rola === "hr" ? "Terminy w urzędzie" : "Do zrobienia"}</h2>
+            <h2>{zespol && szukaj ? "Wyniki wyszukiwania" : rola === "oceniany" ? "Twoja ocena" : rola === "hr" ? "Terminy w urzędzie" : "Do zrobienia"}</h2>
             {filtr !== "wszystkie" && !szukaj && (
               <button type="button" className="link" onClick={() => setFiltr("wszystkie")}>
                 Tylko {NAZWA_FILTRA[filtr]} · pokaż wszystko
@@ -208,7 +220,7 @@ export function Pulpit({
                   lewa={<Inicjaly imie={s.osoba.imie} nazwisko={s.osoba.nazwisko} />}
                   tytul={`${s.osoba.imie} ${s.osoba.nazwisko}`}
                   znacznik={<Plakietka e={s.e} />}
-                  opis={s.e.termin ? `${s.e.czynnosc} · do ${data(s.e.termin.data)}` : s.e.czynnosc}
+                  opis={opisCzynnosci(s.e, zespol)}
                   onClick={() => onWybierz(s.osoba)}
                 />
               ))}
@@ -276,8 +288,8 @@ export function Pulpit({
           <input
             value={szukaj}
             onChange={(e) => setSzukaj(e.target.value)}
-            placeholder="Znajdź pracownika albo zapytaj o zasady oceny…"
-            aria-label="Znajdź pracownika albo zapytaj o zasady oceny"
+            placeholder={zespol ? "Znajdź pracownika albo zapytaj o zasady oceny…" : "Zapytaj o zasady oceny…"}
+            aria-label={zespol ? "Znajdź pracownika albo zapytaj o zasady oceny" : "Zapytaj o zasady oceny"}
             autoComplete="off"
           />
           <button type="submit" className="wyslij" aria-label="Wyślij" disabled={!szukaj.trim()}>
