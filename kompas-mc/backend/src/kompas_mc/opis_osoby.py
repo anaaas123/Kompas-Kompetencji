@@ -112,7 +112,7 @@ def fakty(
     if p.rodzaj_umowy == "okreslony":
         umowa = "umowa na czas określony" + (f" do {_data(p.data_konca_zatrudnienia)}" if p.data_konca_zatrudnienia else "")
     w = [
-        Fakt(id="kadry.stanowisko", tekst=f"stanowisko: {p.stanowisko}", zrodlo=KADRY),
+        Fakt(id="kadry.stanowisko", tekst=p.stanowisko, zrodlo=KADRY),
         Fakt(id="kadry.korpus", tekst=_KORPUS[p.korpus], zrodlo=KADRY),
         Fakt(id="kadry.staz", tekst=f"w urzędzie od {d.year} r. ({_lata(max(staz, 0))})", zrodlo=KADRY),
         Fakt(id="kadry.umowa", tekst=umowa, zrodlo=KADRY),
@@ -164,7 +164,8 @@ def fakty(
 
 
 def opis_z_szablonu(fakty: Sequence[Fakt]) -> list[Zdanie]:
-    """2–4 zdania bez modelu: kadry, cykl, ostatnia ocena, bieżąca ocena z samooceną i celami."""
+    """2–3 zdania bez modelu: kadry, ostatnia ocena, bieżąca ocena z samooceną i celami. Etapu i terminu
+    szablon nie powtarza, bo karta pokazuje je tuż pod opisem („Teraz: …”); model dostaje je w faktach."""
     po_id = {f.id: f for f in fakty}
     czastkowe = [f for f in fakty if f.id.startswith("oceny_czastkowe.")]
     zdania: list[Zdanie] = []
@@ -179,7 +180,6 @@ def opis_z_szablonu(fakty: Sequence[Fakt]) -> list[Zdanie]:
     if po_id.get("kadry.kierowanie") and po_id["kadry.kierowanie"].tekst == "kieruje pracownikami":
         kadry.append("kadry.kierowanie")
     zdanie([("", po_id.get(i)) for i in kadry], ", ")
-    zdanie([("", po_id.get("cykl.etap")), ("", po_id.get("cykl.termin"))])
     ostatnia: list[tuple[str, Fakt | None]] = [("", po_id.get("ocena.ostatnia"))]
     if czastkowe:
         ostatnia.append(("najwyżej: ", czastkowe[0]))
