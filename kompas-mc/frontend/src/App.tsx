@@ -10,6 +10,7 @@ import { Arkusz } from "./Arkusz";
 import type { Pracownik, ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
+import { Pulpit } from "./Pulpit";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
@@ -20,7 +21,7 @@ export default function App() {
   const [zrodla, setZrodla] = useState<Zrodla | null>(null);
   const [widok, setWidok] = useState<Widok>("pulpit");
   const [asystent, setAsystent] = useState(false);
-  const [pytanie] = useState<{ id: number; tekst: string } | null>(null);
+  const [pytanie, setPytanie] = useState<{ id: number; tekst: string } | null>(null);
   const [oceniany, setOceniany] = useState<Pracownik | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
   const [etap, setEtap] = useState<Etap>("krok2");
@@ -50,6 +51,12 @@ export default function App() {
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
+  }, []);
+
+  // Pytanie z pulpitu otwiera panel asystenta i trafia do czatu.
+  const zapytajAsystenta = useCallback((tekst: string) => {
+    setAsystent(true);
+    setPytanie({ id: Date.now(), tekst });
   }, []);
 
   useEffect(() => {
@@ -139,7 +146,10 @@ export default function App() {
         />
       )}
       {!oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
-      {!oceniany && !widokZrodel && <Pracownicy sesja={sesja} onWyloguj={wyloguj} onWybierz={setOceniany} />}
+      {!oceniany && widok === "pulpit" && (
+        <Pulpit sesja={sesja} onWybierz={setOceniany} onZapytaj={zapytajAsystenta} onWyloguj={wyloguj} />
+      )}
+      {!oceniany && widok === "pracownicy" && <Pracownicy sesja={sesja} onWyloguj={wyloguj} onWybierz={setOceniany} />}
     </Powloka>
   );
 }

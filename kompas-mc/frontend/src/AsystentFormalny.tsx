@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { pytajAsystenta, type CytatAsystenta, type OdpowiedzAsystenta, type Sciezka } from "./api";
 
 /**
@@ -52,9 +52,12 @@ export default function AsystentFormalny({ sciezka, przyklady = [], pytanieZZewn
     }
   }
 
+  // Każde pytanie z zewnątrz wysyłamy raz (StrictMode uruchamia efekt podwójnie).
+  const wyslane = useRef<number | null>(null);
   useEffect(() => {
-    if (pytanieZZewnatrz) void zapytaj(pytanieZZewnatrz.tekst);
-    // zapytaj zależy od stanu czatu; pytanie wysyłamy raz na zmianę id
+    if (!pytanieZZewnatrz || wyslane.current === pytanieZZewnatrz.id) return;
+    wyslane.current = pytanieZZewnatrz.id;
+    void zapytaj(pytanieZZewnatrz.tekst);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pytanieZZewnatrz?.id]);
 
