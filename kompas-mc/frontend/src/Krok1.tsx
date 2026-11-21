@@ -404,7 +404,7 @@ export function Krok1({
         <button type="button" className="link" onClick={onWroc}>
           Wróć
         </button>
-        <p className="meta">Krok 1 z 8 · zanim ocenisz</p>
+        <p className="meta">Rozpoczęcie oceny · zanim ocenisz</p>
         <h1>
           {osoba.imie} {osoba.nazwisko}
         </h1>

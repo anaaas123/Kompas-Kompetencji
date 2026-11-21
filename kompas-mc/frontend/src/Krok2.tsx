@@ -356,7 +356,7 @@ export function Krok2({
         <button type="button" className="link" onClick={onWstecz}>
           Wróć do kroku 1
         </button>
-        <p className="meta">Krok 2 z 8</p>
+        <p className="meta">Rozpoczęcie oceny · kryteria (część I arkusza)</p>
         <h1>Kryteria i wskaźniki</h1>
         <p className="opis">
           {osoba.imie} {osoba.nazwisko} · {NAZWA_SCIEZKI[dane.sciezka]} · arkusz {nazwaArkusza}
@@ -436,6 +436,11 @@ export function Krok2({
                 </button>
               )}
             </div>
+            {proces.sciezka === "okresowa" && (
+              <p className="meta">
+                Po podpisie ocenianego oryginał arkusza trafia do akt osobowych, a kopię części I doręczasz ocenianemu (§ 6 ust. 3).
+              </p>
+            )}
             {blad && <p className="blad">{blad}</p>}
           </div>
         ) : (
@@ -459,7 +464,7 @@ export function Krok2({
               )}
               {tylkoOdczyt && dane.wybor && cykl?.etap === "ocena" && (
                 <button type="button" onClick={onDalej}>
-                  Dalej: ocena kompetencji
+                  Dalej: rozmowa oceniająca
                 </button>
               )}
             </div>

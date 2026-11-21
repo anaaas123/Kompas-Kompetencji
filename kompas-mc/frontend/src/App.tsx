@@ -26,6 +26,8 @@ type Etap = "krok2" | "ocena" | "wynik" | "arkusz" | "wnioski";
 
 export default function App() {
   const [blad, setBlad] = useState<string | null>(null);
+  // Kryteria otwarte z rozmowy: tylko podgląd części I (§ 5–6, § 9 ust. 3).
+  const [podgladCzesciI, setPodgladCzesciI] = useState(false);
   const [zrodla, setZrodla] = useState<Zrodla | null>(null);
   const [widok, setWidok] = useState<Widok>("pulpit");
   const [asystent, setAsystent] = useState(false);
@@ -122,6 +124,7 @@ export default function App() {
               ? "ocena"
               : "krok2");
     setEtap(nowyEtap);
+    setPodgladCzesciI(false);
     setProces(p);
     setOceniany(osoba);
   };
@@ -152,9 +155,12 @@ export default function App() {
           token={sesja.token}
           osoba={oceniany}
           proces={proces}
-          moznaProwadzic={prowadzi}
+          moznaProwadzic={prowadzi && !podgladCzesciI}
           onWstecz={() => setProces(null)}
-          onDalej={() => setEtap("ocena")}
+          onDalej={() => {
+            setPodgladCzesciI(false);
+            setEtap("ocena");
+          }}
           onPracownik={() => {
             setProces(null);
             setOceniany(null);
@@ -168,7 +174,11 @@ export default function App() {
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("krok2")}
+          onWstecz={() => {
+            // Z rozmowy kryteria tylko do podglądu: część I ustalono na początku okresu (§ 5–6, § 9 ust. 3).
+            setPodgladCzesciI(true);
+            setEtap("krok2");
+          }}
           onDalej={() => setEtap("wynik")}
         />
       )}
