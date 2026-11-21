@@ -66,7 +66,7 @@ def test_karta_otwiera_kroki_3_5_jednym_kliknieciem(przegladarka, proces_w_kroku
     przycisk.click()
 
     expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
-    expect(page.get_by_text("Krok 1 z 8")).to_have_count(0)
+    expect(page.get_by_text("Rozpoczęcie oceny · zanim ocenisz")).to_have_count(0)
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(ZRZUTY / f"karta-krok5-kroki-3-5-{tryb}.png"))
@@ -88,7 +88,7 @@ def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_
     etapy = page.locator(".cykl .etapy button.etap")
     expect(etapy).to_have_count(3)
     etapy.filter(has_text="Rozpoczęcie oceny").click()
-    expect(page.get_by_text("Krok 2 z 8")).to_be_visible()
+    expect(page.get_by_text("Rozpoczęcie oceny · kryteria (część I arkusza)")).to_be_visible()
 
     page.locator("nav.menu button.poz", has_text="Pulpit").click()
     page.locator(".lista button.pozycja", has_text="Maj-Demo").first.click()
