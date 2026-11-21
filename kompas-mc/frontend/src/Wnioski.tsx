@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  BladApi,
-  pobierzArkusz,
   pobierzWnioski,
-  zapiszArkusz,
   type PropozycjaRozwoju,
   type Pracownik,
   type ProcesOceny,
@@ -13,6 +10,21 @@ import {
 import { Zrodla, opisBledu } from "./Krok1";
 
 function Propozycja({ p }: { p: PropozycjaRozwoju }) {
+  const [komunikat, setKomunikat] = useState("");
+  async function kopiuj() {
+    const tekst = [
+      `${p.kompetencja} · ${p.wskaznik}`,
+      ...p.przyklady,
+      ...p.formy.map((f) => f.nazwa),
+      ...p.uwagi,
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(tekst);
+      setKomunikat("Skopiowano propozycję.");
+    } catch {
+      setKomunikat("Schowek jest niedostępny. Zaznacz i skopiuj tekst propozycji ręcznie.");
+    }
+  }
   return (
     <li className="kryterium">
       <strong>{p.wskaznik}</strong>
@@ -37,6 +49,8 @@ function Propozycja({ p }: { p: PropozycjaRozwoju }) {
           {u}
         </p>
       ))}
+      <button className="link" type="button" onClick={kopiuj}>Kopiuj propozycję</button>
+      <span className="meta" role="status">{komunikat}</span>
     </li>
   );
 }
@@ -55,47 +69,16 @@ export function Wnioski({
   onWstecz: () => void;
 }) {
   const [dane, setDane] = useState<WnioskiProcesu | null>(null);
-  const [tresc, setTresc] = useState("");
   const [blad, setBlad] = useState<string | null>(null);
-  const [czekam, setCzekam] = useState(false);
-  const [zapisano, setZapisano] = useState<string | null>(null);
 
   useEffect(() => {
     if (!moznaProwadzic) return;
+    let aktywny = true;
     pobierzWnioski(token, proces.id)
-      .then((d) => {
-        setDane(d);
-        setTresc(d.wnioski_w_arkuszu ?? "");
-      })
-      .catch((err) => setBlad(opisBledu(err)));
+      .then((d) => { if (aktywny) setDane(d); })
+      .catch((err) => { if (aktywny) setBlad(opisBledu(err)); });
+    return () => { aktywny = false; };
   }, [token, proces.id, moznaProwadzic]);
-
-  async function zapisz() {
-    if (!dane?.pole_arkusza) return;
-    setCzekam(true);
-    setBlad(null);
-    setZapisano(null);
-    try {
-      // Wnioski są polem arkusza z kroku 7: zapis idzie przez arkusz, który zastępuje cały zestaw uzupełnień.
-      const arkusz = await pobierzArkusz(token, proces.id);
-      const pola = Object.fromEntries(
-        arkusz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne).map((p) => [p.id, p.wartosc]),
-      );
-      pola[dane.pole_arkusza] = tresc.trim() || null;
-      const po = await zapiszArkusz(token, proces.id, pola, false);
-      setZapisano(
-        arkusz.zatwierdzony && !po.zatwierdzony
-          ? "Zapisano w arkuszu. Zmiana cofnęła zatwierdzenie i rejestrację w EZD: zatwierdź arkusz ponownie w kroku 7."
-          : "Zapisano w arkuszu.",
-      );
-      setDane(await pobierzWnioski(token, proces.id));
-    } catch (err) {
-      const d = err instanceof BladApi ? (err.detail as { komunikat?: string } | null) : null;
-      setBlad(d?.komunikat ?? opisBledu(err));
-    } finally {
-      setCzekam(false);
-    }
-  }
 
   const naglowek = (
     <section>
@@ -111,7 +94,7 @@ export function Wnioski({
           </p>
         </div>
         <button type="button" className="link" onClick={onWstecz}>
-          Wróć do arkusza
+          Wróć do kroku 7
         </button>
       </div>
       {!moznaProwadzic && <p className="brak">Propozycje rozwoju przygotowuje i widzi tylko przełożony. Wnioski są w arkuszu (krok 7).</p>}
@@ -175,41 +158,6 @@ export function Wnioski({
           )}
         </section>
       )}
-
-      <section>
-        <h2>Wnioski do indywidualnego programu rozwoju</h2>
-        <p className="meta">{dane.gdzie_wpisac}</p>
-        {dane.pole_arkusza ? (
-          <fieldset className="formularz" disabled={czekam}>
-            <label className="etykieta">
-              Treść wniosków (pisze przełożony)
-              <textarea
-                rows={5}
-                value={tresc}
-                placeholder={pr.struktura_wnioskow.join("\n")}
-                onChange={(e) => {
-                  setTresc(e.target.value);
-                  setZapisano(null);
-                }}
-              />
-            </label>
-            <div className="wiersz">
-              <span className="meta">Zapis do arkusza cofa jego zatwierdzenie, jeśli było.</span>
-              <button type="button" disabled={czekam || tresc.trim() === (dane.wnioski_w_arkuszu ?? "")} onClick={zapisz}>
-                {czekam ? "Zapisuję…" : "Zapisz wnioski w arkuszu"}
-              </button>
-            </div>
-          </fieldset>
-        ) : (
-          <p className="brak">Wnioski pierwszej oceny wpisuje się w kroku 7, w polu „Wnioski dotyczące rozwoju zawodowego”.</p>
-        )}
-        {zapisano && <p className="sukces">{zapisano}</p>}
-        {zapisano && (
-          <button type="button" className="jasny" onClick={onWstecz}>
-            Wróć do arkusza (krok 7)
-          </button>
-        )}
-      </section>
 
       <section>
         <h2>Zasady propozycji</h2>

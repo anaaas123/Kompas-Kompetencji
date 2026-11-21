@@ -156,36 +156,24 @@ export default function App() {
           onDalej={() => setEtap("wynik")}
         />
       )}
-      {oceniany && proces && etap === "wynik" && proces.sciezka === "pierwsza" && (
-        <Pierwsza
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("rozmowa")}
-          onDalej={() => setEtap("wnioski")}
-        />
-      )}
-      {oceniany && proces && etap === "wynik" && proces.sciezka === "okresowa" && (
-        <Wynik
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("rozmowa")}
-          onDalej={() => setEtap("arkusz")}
-        />
-      )}
-      {oceniany && proces && etap === "arkusz" && (
-        <Arkusz
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("wynik")}
-          onDalej={() => setEtap("wnioski")}
-        />
-      )}
+      {oceniany && proces && (etap === "wynik" || etap === "arkusz" || etap === "wnioski") && (() => {
+        const Ekran = proces.sciezka === "pierwsza" ? Pierwsza : etap === "arkusz" ? Arkusz : Wynik;
+        return (
+          <div hidden={etap === "wnioski"}>
+            <Ekran
+              key={proces.id}
+              token={sesja.token}
+              osoba={oceniany}
+              proces={proces}
+              moznaProwadzic={prowadzi}
+              zalogowanyId={sesja.uzytkownik.osoba_id}
+              onWstecz={() => setEtap("rozmowa")}
+              onZmienOcene={() => setEtap("ocena")}
+              onDalej={() => setEtap("wnioski")}
+            />
+          </div>
+        );
+      })()}
       {oceniany && proces && etap === "wnioski" && (
         <Wnioski
           token={sesja.token}

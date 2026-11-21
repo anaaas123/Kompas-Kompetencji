@@ -13,10 +13,11 @@ import {
   type StanPierwszejOceny,
   type Termin,
 } from "./api";
-import { PolaWzoru, bladArkusza, brakiPol } from "./Arkusz";
+import { PolaWzoru, bladArkusza, brakiPol, dzisiaj, pobierzPrzelozonego, podpowiedziPol } from "./Arkusz";
 import { Zrodla } from "./Krok1";
 import { Wybor } from "./Ocena";
 import {
+  BladPola,
   Naglowek,
   Podsumowanie,
   PoleDaty,
@@ -43,19 +44,23 @@ const NAZWY_TERMINOW: Record<string, string> = {
   termin_sprawozdania_do: "Sprawozdanie do",
 };
 
-const DATY: [keyof DanePierwszej, string][] = [
-  ["data_rozmowy_wstepnej", "Rozmowa wstępna"],
-  ["wyznaczony_termin_sprawozdania", "Wyznaczony termin sprawozdania (ostatni dzień)"],
-  ["termin_sprawozdania_od", "Początek terminu sprawozdania, gdy inny niż domyślny"],
-  ["data_zlozenia_sprawozdania", "Złożenie sprawozdania"],
-  ["sprawozdanie_okres_od", "Sprawozdanie za okres od"],
-  ["sprawozdanie_okres_do", "Sprawozdanie za okres do"],
-  ["data_rozmowy_oceniajacej", "Rozmowa oceniająca"],
-  ["data_sporzadzenia_oceny", "Sporządzenie oceny"],
-  ["data_zapoznania_z_ocena", "Zapoznanie ocenianego z oceną"],
-  ["data_konca_zatrudnienia", "Koniec umowy na czas określony"],
-  ["data_ustalenia_oceny_zastepstwa", "Ustalenie pierwszej oceny przy zastępstwie"],
-];
+const DATY = [
+  ["data_rozmowy_wstepnej", "Rozmowa wstępna", "wyjatki"],
+  ["wyznaczony_termin_sprawozdania", "Wyznaczony termin sprawozdania (ostatni dzień)", "raport"],
+  ["termin_sprawozdania_od", "Początek terminu sprawozdania, gdy inny niż domyślny", "wyjatki"],
+  ["data_zlozenia_sprawozdania", "Złożenie sprawozdania", "raport"],
+  ["sprawozdanie_okres_od", "Sprawozdanie za okres od", "raport"],
+  ["sprawozdanie_okres_do", "Sprawozdanie za okres do", "raport"],
+  ["data_rozmowy_oceniajacej", "Rozmowa oceniająca", "daty"],
+  ["data_sporzadzenia_oceny", "Sporządzenie oceny", "daty"],
+  ["data_zapoznania_z_ocena", "Zapoznanie ocenianego z oceną", "daty"],
+  ["data_konca_zatrudnienia", "Koniec umowy na czas określony", "wyjatki"],
+  ["data_ustalenia_oceny_zastepstwa", "Ustalenie pierwszej oceny przy zastępstwie", "wyjatki"],
+] as const;
+
+function grupaDaty(cel: string) {
+  return DATY.find(([k]) => k === cel)?.[2];
+}
 
 const SPRAWOZDANIE: [keyof SprawozdaniePierwszej, string][] = [
   ["zadania", "Zadania"],
@@ -96,15 +101,29 @@ function doZapisu(d: DanePierwszej): DanePierwszej {
   return { ...d, sprawozdanie: d.sprawozdanie_niezlozone || pusteSprawozdanie ? null : s };
 }
 
+function daneFormularza(stan: StanPierwszejOceny, edycja: boolean) {
+  const dane = { ...stan.dane, egzamin: stan.dane.egzamin ?? stan.egzamin };
+  const dataKierujacego = "dokonanie_oceny.kierujacy.data";
+  // We wzorze API powtarza tu datę sporządzenia. W szkicu liczy się data wpisana przez użytkownika.
+  if (edycja && !stan.formularz.zatwierdzony && !(dataKierujacego in dane.pola)) {
+    dane.pola = { ...dane.pola, [dataKierujacego]: null };
+  }
+  return dane;
+}
+
 function Formularz({
   stan,
   token,
   osoba,
   edycja,
   onZapisano,
+  przelozony,
+  onZmienOcene,
   onWstecz,
   onDalej,
 }: {
+  przelozony?: Pracownik;
+  onZmienOcene?: () => void;
   stan: StanPierwszejOceny;
   token: string;
   osoba: Pracownik;
@@ -113,9 +132,14 @@ function Formularz({
   onDalej: () => void;
   onZapisano: (s: StanPierwszejOceny) => void;
 }) {
-  const poczatkowe = { ...stan.dane, egzamin: stan.dane.egzamin ?? stan.egzamin };
-  const [d, setD] = useState<DanePierwszej>(poczatkowe);
+  const poczatkowe = daneFormularza(stan, edycja);
+  const [d, setD] = useState<DanePierwszej>(() => edycja && !stan.formularz.zatwierdzony ? {
+    ...poczatkowe,
+    data_sporzadzenia_oceny: poczatkowe.data_sporzadzenia_oceny ?? dzisiaj(),
+    pola: { ...poczatkowe.pola, ...podpowiedziPol(stan.formularz, przelozony) },
+  } : poczatkowe);
   const [braki, setBraki] = useState<BrakArkusza[]>(stan.formularz.braki);
+  const [sprawdzoneDane, setSprawdzoneDane] = useState(stan.dane);
   const [czekam, setCzekam] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
   const ustaw = (z: Partial<DanePierwszej>) => setD((p) => ({ ...p, ...z }));
@@ -133,7 +157,7 @@ function Formularz({
   }
   const terminyBraki: Brak[] = t.braki.map((tekst) => {
     const cel = tekst.includes("początku lub końca")
-      ? "sprawozdanie_okres_od"
+      ? (d.sprawozdanie_okres_od ? "sprawozdanie_okres_do" : "sprawozdanie_okres_od")
       : tekst.includes("końca zatrudnienia")
         ? "data_konca_zatrudnienia"
         : tekst.includes("zastępstwo")
@@ -143,17 +167,17 @@ function Formularz({
             : tekst.includes("wyznaczonej")
               ? "wyznaczony_termin_sprawozdania"
               : "data_zlozenia_sprawozdania";
-    return { tekst, cel, grupa: "dane/daty", tylkoTermin: true };
-  });
+    return { tekst: `Terminy: ${tekst}`, cel, grupa: grupaDaty(cel), tylkoTermin: true };
+  }).filter((b) => !(d[b.cel as keyof DanePierwszej] && !stan.dane[b.cel as keyof DanePierwszej]));
   const brakDaty = (cel: string, tekst: string, grupa: string): Brak => ({
     cel,
-    tekst,
+    tekst: `${grupa === "wyjatki" ? "Pozostałe daty i wyjątki" : grupa === "raport" ? "Sprawozdanie" : "Daty oceny"}: ${tekst}`,
     grupa,
     opis: "Podaj datę w formacie RRRR-MM-DD.",
   });
   const lokalne: Brak[] = [];
-  for (const [k, nazwa] of DATY) {
-    if (!poprawnaData(d[k] as string | null)) lokalne.push(brakDaty(k, nazwa, "dane/daty"));
+  for (const [k, nazwa, grupa] of DATY) {
+    if (!poprawnaData(d[k])) lokalne.push(brakDaty(k, nazwa, grupa));
   }
   if (prz) {
     for (const [k, nazwa] of [
@@ -164,26 +188,26 @@ function Formularz({
       ["nowy_termin_od", "Nowy początek terminu"],
     ] as const) {
       if (!poprawnaData(prz[k]) || (!prz[k] && (k === "nowy_termin" || k === "data_zawiadomienia"))) {
-        lokalne.push(brakDaty("prz-" + k, nazwa, "dane/przedluzenie"));
+        lokalne.push(brakDaty("prz-" + k, nazwa, "wyjatki"));
       }
     }
   }
   if (egz?.wynik === "nie_dotyczy" && !egz.przeslanka)
-    lokalne.push({ tekst: "Przesłanka dla egzaminu", cel: "przeslanka", grupa: "dane/egzamin" });
+    lokalne.push({ tekst: "Przesłanka dla egzaminu", cel: "przeslanka", grupa: "egzamin-sekcja" });
   if (!d.sprawozdanie_niezlozone && Object.values(sprawozdanie).some((v) => v.trim())) {
     for (const [k, nazwa] of SPRAWOZDANIE) {
       if (!sprawozdanie[k].trim())
         lokalne.push({
           tekst: `Sprawozdanie: ${nazwa.toLowerCase()}`,
           cel: "sprawozdanie-" + k,
-          grupa: "dane/sprawozdanie",
+          grupa: "raport",
         });
     }
   }
   const uzasadnienieWymagane = stan.uzasadnienie_wymagane || braki.some((b) => b.id === "uzasadnienie");
   if (uzasadnienieWymagane && !d.uzasadnienie?.trim()) lokalne.push({ tekst: "Uzasadnienie oceny", cel: "uzasadnienie" });
 
-  const celeDat: Record<string, string> = {
+  const celeDat: Record<string, (typeof DATY)[number][0]> = {
     "rozmowa_wstepna.data": "data_rozmowy_wstepnej",
     "termin_sprawozdania.od": "termin_sprawozdania_od",
     "termin_sprawozdania.do": "wyznaczony_termin_sprawozdania",
@@ -195,35 +219,74 @@ function Formularz({
     sprawozdanie_w_terminie: "data_zlozenia_sprawozdania",
     data_zlozenia_sprawozdania: "data_zlozenia_sprawozdania",
   };
+  function dataPola(id: string) {
+    if (id.startsWith("potwierdzenie_rozmowy") && id.endsWith(".data")) {
+      return id.includes("wstepnej") ? "data_rozmowy_wstepnej" : "data_rozmowy_oceniajacej";
+    }
+    return celeDat[id];
+  }
+  const polaWzoru = stan.formularz.sekcje.flatMap((s) => s.pola);
   const polaBraki = brakiPol(
     stan.formularz,
     d.pola,
-    braki.filter((b) => b.id !== "uzasadnienie"),
+    braki.filter((b) => {
+      if (b.id === "aktualne_decyzje") return false;
+      if (b.id === "sprawozdanie" && (d.sprawozdanie_niezlozone || Object.values(sprawozdanie).every((v) => v.trim()))) return false;
+      if (b.id === "sprawozdanie_okres" && (d.sprawozdanie_okres_od !== sprawdzoneDane.sprawozdanie_okres_od ||
+        d.sprawozdanie_okres_do !== sprawdzoneDane.sprawozdanie_okres_do)) return false;
+      const k = dataPola(b.id);
+      return !k || d[k] === sprawdzoneDane[k] || !d[k] || b.komunikat.startsWith("Uzupełnij pole");
+    }),
     (b) => {
-      if (b.id === "aktualne_decyzje") return { cel: "zapis", grupa: undefined };
+      if (b.id === "uzasadnienie") return { cel: "uzasadnienie", grupa: undefined };
       if (b.id === "sprawozdanie")
-        return { cel: d.sprawozdanie_niezlozone ? "sprawozdanie" : "sprawozdanie-zadania", grupa: "dane/sprawozdanie" };
-      if (b.id === "egzamin") return { cel: "egzamin", grupa: "dane/egzamin" };
-      const cel =
-        celeDat[b.id] ??
-        (b.id.endsWith(".data") && b.id.startsWith("potwierdzenie_rozmowy")
-          ? b.id.includes("wstepnej")
-            ? "data_rozmowy_wstepnej"
-            : "data_rozmowy_oceniajacej"
-          : null);
-      if (cel) return { cel, grupa: "dane/daty" };
+        return { cel: d.sprawozdanie_niezlozone ? "sprawozdanie" : "sprawozdanie-zadania", grupa: "raport" };
+      if (b.id === "egzamin") return { cel: "egzamin", grupa: "egzamin-sekcja" };
+      const cel = dataPola(b.id);
+      if (cel) return { cel, grupa: grupaDaty(cel) };
+    },
+    (p) => {
+      const k = dataPola(p.id);
+      if (k && p.id.endsWith(".data") && (d[k] !== poczatkowe[k] || !p.wartosc)) return d[k];
+      if (p.id === "uzasadnienie") return d.uzasadnienie;
+      if (p.id === "egzamin") return egz?.wynik;
+      if (p.id.endsWith(".imie_nazwisko_lub_pieczatka") && !p.wartosc) {
+        const osoba = p.id.includes(".kierujacy.") ? "kierujacy_komorka" : p.id.includes(".przelozony.") ? "bezposredni_przelozony" : "oceniany";
+        const czesci = ["imie", "nazwisko"].map((k) => {
+          const id = osoba + "." + k;
+          return id in d.pola ? d.pola[id] : polaWzoru.find((x) => x.id === id)?.wartosc;
+        });
+        if (czesci.every((v) => v?.trim())) return czesci.join(" ");
+      }
     },
   );
   const lista = [...lokalne, ...polaBraki, ...terminyBraki];
-  const ruszone = JSON.stringify(d) !== JSON.stringify(poczatkowe);
-  const edytowalne = stan.formularz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne);
+  const ruszone = JSON.stringify(d) !== JSON.stringify(poczatkowe) || braki.some((b) => b.id === "aktualne_decyzje");
+  const edytowalne = polaWzoru.filter((p) => p.edytowalne);
   const zlaDataPola = edytowalne.some(
     (p) => p.rodzaj === "data" && !poprawnaData(p.id in d.pola ? d.pola[p.id] : p.wartosc),
   );
+  function polaDat(grupa: "daty" | "raport" | "wyjatki") {
+    return (
+      <fieldset className="formularz" disabled={!edycja || czekam}>
+        <div className="siatka-dat">
+          {DATY.filter(([, , g]) => g === grupa).map(([k, nazwa]) => (
+            <PoleDaty key={k} id={k} nazwa={nazwa} wartosc={d[k]} onZmiana={(v) => ustaw({ [k]: v })} />
+          ))}
+        </div>
+      </fieldset>
+    );
+  }
   const blokadaZapisu = !edycja || czekam || lokalne.length > 0 || zlaDataPola;
   const blokadaZatwierdzenia = blokadaZapisu || polaBraki.length > 0;
   const pdf = !czekam && !ruszone && stan.formularz.pdf_dostepny && !lista.some((b) => !b.tylkoTermin);
   const zatwierdzony = stan.formularz.zatwierdzony && !ruszone;
+  const oceny = polaWzoru.filter((p) => p.widoczne && p.id.startsWith("ocena_czastkowa.") && p.wartosc);
+  const warunki = stan.warunki.map((w) => {
+    if (w.spelniony || !["pierwsza-limit-trojek", "pierwsza-minimum-sredniej"].includes(w.id)) return w;
+    const kryteria = w.id === "pierwsza-limit-trojek" ? oceny.filter((p) => Number(p.wartosc) === Math.min(...p.warianty.map(Number))) : oceny;
+    return { ...w, szczegoly: kryteria.map((p) => `${p.etykieta}: ${p.wartosc} pkt`).join(", ") };
+  });
   const takNie = (v: unknown) => (v == null ? "jeszcze nie ustalono" : v ? "tak" : "nie");
 
   async function zapisz(zatwierdz: boolean) {
@@ -231,14 +294,21 @@ function Formularz({
     setCzekam(true);
     setBlad(null);
     try {
-      const po = await zapiszPierwsza(token, stan.proces_id, doZapisu(d), zatwierdz);
-      setD({ ...po.dane, egzamin: po.dane.egzamin ?? po.egzamin });
+      const pola = Object.fromEntries(edytowalne.map((p) => [
+        p.id, p.id in d.pola ? d.pola[p.id] : p.rodzaj === "data" ? null : p.wartosc,
+      ]));
+      const po = await zapiszPierwsza(token, stan.proces_id, doZapisu({ ...d, pola }), zatwierdz);
+      setD(daneFormularza(po, edycja));
+      setSprawdzoneDane(po.dane);
       setBraki(po.formularz.braki);
       onZapisano(po);
     } catch (err) {
       const b = bladArkusza(err);
       setBlad(b.tekst);
-      if (b.braki) setBraki(b.braki);
+      if (b.braki) {
+        setSprawdzoneDane(d);
+        setBraki(b.braki);
+      }
     } finally {
       setCzekam(false);
     }
@@ -283,158 +353,150 @@ function Formularz({
               </p>
             ))}
           </TabelaTerminow>
-          <Sekcja id="dane" tytul="Daty i dane">
-            <Sekcja id="dane/daty" tytul="Daty oceny i sprawozdania">
-              <fieldset className="formularz" disabled={!edycja || czekam}>
-                <div className="siatka-dat">
-                  {DATY.map(([k, nazwa]) => (
-                    <PoleDaty
-                      key={k}
-                      id={k}
-                      nazwa={nazwa}
-                      wartosc={d[k] as string | null}
-                      onZmiana={(v) => ustaw({ [k]: v } as Partial<DanePierwszej>)}
-                    />
-                  ))}
-                </div>
-              </fieldset>
-            </Sekcja>
-            <Sekcja id="dane/sprawozdanie" tytul="Sprawozdanie">
-              <fieldset className="formularz" disabled={!edycja || czekam}>
-                <label className="zaznacz">
-                  <input
-                    id="sprawozdanie"
-                    type="checkbox"
-                    checked={d.sprawozdanie_niezlozone}
-                    onChange={(e) => ustaw({ sprawozdanie_niezlozone: e.target.checked })}
-                  />
-                  <span>Sprawozdanie nie zostało złożone</span>
-                </label>
-                {!d.sprawozdanie_niezlozone &&
-                  SPRAWOZDANIE.map(([k, nazwa]) => (
-                    <label key={k} className="etykieta">
-                      Sprawozdanie: {nazwa.toLowerCase()}
-                      <textarea
-                        id={"sprawozdanie-" + k}
-                        rows={2}
-                        value={sprawozdanie[k]}
-                        onChange={(e) => ustaw({ sprawozdanie: { ...sprawozdanie, [k]: e.target.value } })}
-                      />
-                    </label>
-                  ))}
-              </fieldset>
-            </Sekcja>
-            <Sekcja id="dane/egzamin" tytul="Egzamin">
-              <fieldset id="egzamin" tabIndex={-1} className="formularz" disabled={!edycja || czekam}>
-                <div className="etykieta">Egzamin kończący służbę przygotowawczą</div>
-                <Wybor
-                  etykieta="Egzamin"
-                  opcje={EGZAMIN.map((o) => ({ ...o }))}
-                  wartosc={egz?.wynik ?? null}
-                  zablokowane={!edycja || czekam}
-                  onWybierz={(w) => ustaw({ egzamin: w ? ({ wynik: w, przeslanka: null } as EgzaminPierwszej) : null })}
+          <section className="sekcja">
+            <h2>Daty oceny</h2>
+            {polaDat("daty")}
+          </section>
+          <Sekcja id="raport" tytul="Sprawozdanie">
+            {polaDat("raport")}
+            <fieldset className="formularz" disabled={!edycja || czekam}>
+              <label className="zaznacz">
+                <input
+                  id="sprawozdanie"
+                  type="checkbox"
+                  checked={d.sprawozdanie_niezlozone}
+                  onChange={(e) => ustaw({ sprawozdanie_niezlozone: e.target.checked })}
                 />
-                {egz?.wynik === "nie_dotyczy" && (
-                  <>
-                    <div id="przeslanka" tabIndex={-1} className="etykieta">
-                      Przesłanka z § 10 ust. 3 (wymagana)
-                    </div>
-                    <Wybor
-                      etykieta="Przesłanka egzaminu"
-                      opcje={(Object.keys(PRZESLANKI) as PrzeslankaEgzaminu[]).map((w) => ({
-                        wartosc: w,
-                        tekst: PRZESLANKI[w],
-                      }))}
-                      wartosc={egz.przeslanka}
-                      zablokowane={!edycja || czekam}
-                      onWybierz={(w) => ustaw({ egzamin: { wynik: "nie_dotyczy", przeslanka: w } })}
+                <span>Sprawozdanie nie zostało złożone</span>
+              </label>
+              {!d.sprawozdanie_niezlozone &&
+                SPRAWOZDANIE.map(([k, nazwa]) => (
+                  <label key={k} className="etykieta">
+                    Sprawozdanie: {nazwa.toLowerCase()}
+                    <textarea
+                      id={"sprawozdanie-" + k}
+                      rows={2}
+                      value={sprawozdanie[k]}
+                      onChange={(e) => ustaw({ sprawozdanie: { ...sprawozdanie, [k]: e.target.value } })}
                     />
-                    {!egz.przeslanka && <p className="blad">Wskaż przesłankę dla „nie dotyczy”.</p>}
-                  </>
-                )}
-              </fieldset>
-              {egz?.wynik === "nie_dotyczy" && egz.przeslanka && (
-                <Zrodla adnotacje={[stan.przeslanki_egzaminu[egz.przeslanka]]} />
-              )}
-            </Sekcja>
-            <Sekcja id="dane/przedluzenie" tytul="Przedłużenie terminu">
-              <fieldset className="formularz" disabled={!edycja || czekam}>
-                <label className="zaznacz">
-                  <input
-                    type="checkbox"
-                    checked={prz !== null}
-                    onChange={(e) =>
-                      ustaw({
-                        przedluzenie: e.target.checked
-                          ? {
-                              nowy_termin: "",
-                              data_zawiadomienia: "",
-                              przyczyna: "usprawiedliwiona_nieobecnosc",
-                              okres_od: null,
-                              okres_do: null,
-                              nowy_termin_od: null,
-                            }
-                          : null,
-                      })
-                    }
+                    <BladPola cel={"sprawozdanie-" + k} />
+                  </label>
+                ))}
+            </fieldset>
+          </Sekcja>
+          <Sekcja id="egzamin-sekcja" tytul="Egzamin">
+            <fieldset id="egzamin" tabIndex={-1} className="formularz" disabled={!edycja || czekam}>
+              <div className="etykieta">Egzamin kończący służbę przygotowawczą</div>
+              <Wybor
+                etykieta="Egzamin"
+                opcje={EGZAMIN.map((o) => ({ ...o }))}
+                wartosc={egz?.wynik ?? null}
+                zablokowane={!edycja || czekam}
+                onWybierz={(w) => ustaw({ egzamin: w ? ({ wynik: w, przeslanka: null } as EgzaminPierwszej) : null })}
+              />
+              <BladPola cel="egzamin" />
+              {egz?.wynik === "nie_dotyczy" && (
+                <>
+                  <div id="przeslanka" tabIndex={-1} className="etykieta">
+                    Przesłanka z § 10 ust. 3 (wymagana)
+                  </div>
+                  <Wybor
+                    etykieta="Przesłanka egzaminu"
+                    opcje={(Object.keys(PRZESLANKI) as PrzeslankaEgzaminu[]).map((w) => ({
+                      wartosc: w,
+                      tekst: PRZESLANKI[w],
+                    }))}
+                    wartosc={egz.przeslanka}
+                    zablokowane={!edycja || czekam}
+                    onWybierz={(w) => ustaw({ egzamin: { wynik: "nie_dotyczy", przeslanka: w } })}
                   />
-                  <span>Przedłużenie terminu sprawozdania (zawiadomienie § 5)</span>
-                </label>
-                {prz && (
-                  <div className="nowy-przyklad">
-                    <div className="siatka-dat">
-                      <PoleDaty
-                        id="prz-nowy_termin"
-                        nazwa="Nowy termin"
-                        wartosc={prz.nowy_termin || null}
-                        onZmiana={(v) => ustawPrz({ nowy_termin: v ?? "" })}
-                      />
-                      <PoleDaty
-                        id="prz-data_zawiadomienia"
-                        nazwa="Data zawiadomienia"
-                        wartosc={prz.data_zawiadomienia || null}
-                        onZmiana={(v) => ustawPrz({ data_zawiadomienia: v ?? "" })}
-                      />
-                      <PoleDaty
-                        id="prz-okres_od"
-                        nazwa="Nieobecność od"
-                        wartosc={prz.okres_od}
-                        onZmiana={(v) => ustawPrz({ okres_od: v })}
-                      />
-                      <PoleDaty
-                        id="prz-okres_do"
-                        nazwa="Nieobecność do"
-                        wartosc={prz.okres_do}
-                        onZmiana={(v) => ustawPrz({ okres_do: v })}
-                      />
-                      <PoleDaty
-                        id="prz-nowy_termin_od"
-                        nazwa="Nowy początek terminu"
-                        wartosc={prz.nowy_termin_od}
-                        onZmiana={(v) => ustawPrz({ nowy_termin_od: v })}
-                      />
-                    </div>
-                    <div className="etykieta">Przyczyna</div>
-                    <Wybor
-                      etykieta="Przyczyna przedłużenia"
-                      opcje={(Object.keys(PRZYCZYNY) as PrzedluzeniePierwszej["przyczyna"][]).map((w) => ({
-                        wartosc: w,
-                        tekst: PRZYCZYNY[w],
-                      }))}
-                      wartosc={prz.przyczyna}
-                      zablokowane={!edycja || czekam}
-                      onWybierz={(w) => w && ustawPrz({ przyczyna: w })}
+                  {!egz.przeslanka && <p className="blad">Wskaż przesłankę dla „nie dotyczy”.</p>}
+                </>
+              )}
+            </fieldset>
+            {egz?.wynik === "nie_dotyczy" && egz.przeslanka && (
+              <Zrodla adnotacje={[stan.przeslanki_egzaminu[egz.przeslanka]]} />
+            )}
+          </Sekcja>
+          <Sekcja id="wyjatki" tytul="Pozostałe daty i wyjątki">
+            {polaDat("wyjatki")}
+            <fieldset className="formularz" disabled={!edycja || czekam}>
+              <label className="zaznacz">
+                <input
+                  type="checkbox"
+                  checked={prz !== null}
+                  onChange={(e) =>
+                    ustaw({
+                      przedluzenie: e.target.checked
+                        ? {
+                            nowy_termin: "",
+                            data_zawiadomienia: "",
+                            przyczyna: "usprawiedliwiona_nieobecnosc",
+                            okres_od: null,
+                            okres_do: null,
+                            nowy_termin_od: null,
+                          }
+                        : null,
+                    })
+                  }
+                />
+                <span>Przedłużenie terminu sprawozdania (zawiadomienie § 5)</span>
+              </label>
+              {prz && (
+                <div className="nowy-przyklad">
+                  <div className="siatka-dat">
+                    <PoleDaty
+                      id="prz-nowy_termin"
+                      nazwa="Nowy termin"
+                      wartosc={prz.nowy_termin || null}
+                      onZmiana={(v) => ustawPrz({ nowy_termin: v ?? "" })}
+                    />
+                    <PoleDaty
+                      id="prz-data_zawiadomienia"
+                      nazwa="Data zawiadomienia"
+                      wartosc={prz.data_zawiadomienia || null}
+                      onZmiana={(v) => ustawPrz({ data_zawiadomienia: v ?? "" })}
+                    />
+                    <PoleDaty
+                      id="prz-okres_od"
+                      nazwa="Nieobecność od"
+                      wartosc={prz.okres_od}
+                      onZmiana={(v) => ustawPrz({ okres_od: v })}
+                    />
+                    <PoleDaty
+                      id="prz-okres_do"
+                      nazwa="Nieobecność do"
+                      wartosc={prz.okres_do}
+                      onZmiana={(v) => ustawPrz({ okres_do: v })}
+                    />
+                    <PoleDaty
+                      id="prz-nowy_termin_od"
+                      nazwa="Nowy początek terminu"
+                      wartosc={prz.nowy_termin_od}
+                      onZmiana={(v) => ustawPrz({ nowy_termin_od: v })}
                     />
                   </div>
-                )}
-              </fieldset>
-            </Sekcja>
+                  <div className="etykieta">Przyczyna</div>
+                  <Wybor
+                    etykieta="Przyczyna przedłużenia"
+                    opcje={(Object.keys(PRZYCZYNY) as PrzedluzeniePierwszej["przyczyna"][]).map((w) => ({
+                      wartosc: w,
+                      tekst: PRZYCZYNY[w],
+                    }))}
+                    wartosc={prz.przyczyna}
+                    zablokowane={!edycja || czekam}
+                    onWybierz={(w) => w && ustawPrz({ przyczyna: w })}
+                  />
+                </div>
+              )}
+            </fieldset>
           </Sekcja>
           <PolaWzoru
             formularz={stan.formularz}
             wartosci={d.pola}
             braki={lista}
             edycja={edycja && !czekam}
+            ustawWiele={(pola) => ustaw({ pola: { ...d.pola, ...pola } })}
             ustaw={(id, v) => ustaw({ pola: { ...d.pola, [id]: v } })}
           />
           <Sekcja id="obliczenie" tytul="Jak policzono wynik">
@@ -458,7 +520,7 @@ function Formularz({
       }
       bok={
         <>
-          <Werdykt wynik={stan.obliczenie} warunki={stan.warunki} />
+          <Werdykt wynik={stan.obliczenie} warunki={warunki} onZmienOcene={edycja ? onZmienOcene : undefined} />
           {!stan.obliczenie && (
             <p className="meta">Do wyliczenia wyniku potrzebne są oceny cząstkowe, dane sprawozdania i egzaminu.</p>
           )}
@@ -473,6 +535,7 @@ function Formularz({
               onChange={(e) => ustaw({ uzasadnienie: e.target.value || null })}
             />
           </label>
+          <BladPola cel="uzasadnienie" />
           <Zrodla adnotacje={[stan.podstawa_uzasadnienia]} />
           {stan.wnioski_dostepne && (
             <div>
@@ -481,10 +544,12 @@ function Formularz({
                 <textarea
                   rows={3}
                   disabled={!edycja || czekam}
+                  id="wnioski_rozwojowe"
                   value={d.wnioski_rozwojowe ?? ""}
                   onChange={(e) => ustaw({ wnioski_rozwojowe: e.target.value || null })}
                 />
               </label>
+              {edycja && <button type="button" className="link" onClick={onDalej}>Zobacz propozycje z kroków 3–5</button>}
               <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
             </div>
           )}
@@ -513,11 +578,6 @@ function Formularz({
               Pobierz zawiadomienie § 5 (PDF)
             </button>
           )}
-          {stan.wnioski_dostepne && (
-            <button type="button" className="link" onClick={onDalej}>
-              Dalej: wnioski rozwojowe
-            </button>
-          )}
         </>
       }
       glowna={
@@ -535,16 +595,23 @@ function Formularz({
   );
 }
 
-export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDalej }: Krok7Props) {
+export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDalej, onZmienOcene, zalogowanyId }: Krok7Props) {
+  const [przelozony, setPrzelozony] = useState<Pracownik>();
   const [stan, setStan] = useState<StanPierwszejOceny | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
   useEffect(() => {
     let aktywny = true;
     setStan(null);
     setBlad(null);
-    pobierzPierwsza(token, proces.id)
-      .then((s) => {
-        if (aktywny) setStan(s);
+    Promise.all([
+      pobierzPierwsza(token, proces.id),
+      moznaProwadzic ? pobierzPrzelozonego(token, osoba, zalogowanyId).catch(() => undefined) : undefined,
+    ])
+      .then(([s, kierownik]) => {
+        if (aktywny) {
+          setPrzelozony(kierownik);
+          setStan(s);
+        }
       })
       .catch((err) => {
         if (aktywny) setBlad(bladArkusza(err).tekst);
@@ -552,7 +619,7 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDal
     return () => {
       aktywny = false;
     };
-  }, [token, proces.id]);
+  }, [token, proces.id, moznaProwadzic, osoba, zalogowanyId]);
   return (
     <div className="oc-ekran k7">
       <Naglowek
@@ -569,6 +636,8 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onDal
           token={token}
           osoba={osoba}
           edycja={moznaProwadzic}
+          przelozony={przelozony}
+          onZmienOcene={onZmienOcene}
           onZapisano={setStan}
           onWstecz={onWstecz}
           onDalej={onDalej}

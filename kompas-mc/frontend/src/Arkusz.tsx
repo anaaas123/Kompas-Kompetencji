@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   BladApi,
   pobierzArkusz,
+  pobierzPracownikow,
+  type Pracownik,
   pobierzArkuszPdf,
   pobierzWynik,
   pobierzZawiadomienie,
@@ -16,6 +18,7 @@ import {
 } from "./api";
 import { Zwijane } from "./Zwijane";
 import {
+  BladPola,
   BokOkresowej,
   DaneOkresowej,
   DATY_OKRESOWE,
@@ -117,27 +120,75 @@ export function Pole({
 type Formularz = Pick<ArkuszOkresowy, "sekcje" | "przypisy" | "braki">;
 type Wartosci = Record<string, string | null>;
 
+export function dzisiaj() {
+  const d = new Date();
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+}
+
+export async function pobierzPrzelozonego(token: string, osoba: Pracownik, zalogowanyId?: string | null) {
+  const osoby = await pobierzPracownikow(token);
+  return osoby.find((p) => p.osoba_id === osoba.przelozony_id) ?? osoby.find((p) => p.osoba_id === zalogowanyId);
+}
+
+function edytowalnePola(formularz: Formularz) {
+  return formularz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne);
+}
+
+export function podpowiedziPol(formularz: Formularz, przelozony?: Pracownik) {
+  const zmiany: Wartosci = {};
+  if (!przelozony) return zmiany;
+  const dane: Wartosci = {
+    imie: przelozony.imie, nazwisko: przelozony.nazwisko, stanowisko: przelozony.stanowisko,
+    komorka_organizacyjna: przelozony.komorka,
+  };
+  for (const p of edytowalnePola(formularz)) {
+    if (p.wartosc?.trim()) continue;
+    if (/^(bezposredni_przelozony|oceniajacy\.czesc_I{1,2})\./.test(p.id)) {
+      const wartosc = dane[p.id.split(".").pop()!];
+      if (wartosc) zmiany[p.id] = wartosc;
+    } else if (p.id === "wniosek_o_stopien.oceniajacy.imie_nazwisko_lub_pieczatka") {
+      zmiany[p.id] = [przelozony.imie, przelozony.nazwisko].filter(Boolean).join(" ");
+    }
+  }
+  return zmiany;
+}
+
+function nazwaSekcji(p: PoleArkusza, sekcja: string) {
+  if (p.id.startsWith("kierujacy_komorka.")) return "Kierujący komórką";
+  if (p.id.startsWith("bezposredni_przelozony.")) return "Bezpośredni przełożony";
+  if (p.id.startsWith("oceniajacy.czesc_")) return `${sekcja} · oceniający`;
+  if (p.id.startsWith("oceniany.")) return "Oceniany";
+  return sekcja;
+}
+
 export function brakiPol(
   formularz: Formularz,
   pola: Wartosci,
   zSerwera: BrakArkusza[],
   powiazanie: (b: BrakArkusza) => Partial<Brak> | undefined,
+  wartoscProcesu: (p: PoleArkusza) => string | null | undefined,
 ) {
   const lista: Brak[] = [];
   for (const [i, s] of formularz.sekcje.entries()) {
     if (!s.widoczna) continue;
     for (const p of s.pola.filter((p) => p.widoczne)) {
-      const cel = { cel: "pole-" + p.id, grupa: "pola/" + i };
-      const wartosc = p.edytowalne && p.id in pola ? pola[p.id] : p.wartosc;
+      const cel = p.edytowalne && p.id.endsWith(".miejscowosc")
+        ? { cel: "miejscowosc" }
+        : { cel: "pole-" + p.id, grupa: p.id === "wnioski_iprz" ? undefined : "pola/" + i };
+      const tekst = cel.cel === "miejscowosc" ? "Arkusz: miejscowość" : `${nazwaSekcji(p, s.tytul)}: ${p.etykieta.charAt(0).toLocaleLowerCase("pl") + p.etykieta.slice(1)}`;
+      const aktualna = p.edytowalne ? pola[p.id] : wartoscProcesu(p);
+      const wartosc = aktualna === undefined ? p.wartosc : aktualna;
       const bledy = zSerwera.filter((b) => b.id === p.id);
+      const wymagane = p.wymagane || bledy.some((b) => b.komunikat.startsWith("Uzupełnij pole"));
+      const brak = { id: p.id, etykieta: p.etykieta, komunikat: "Uzupełnij pole." };
+      const miejsce = { ...cel, tekst, ...(p.edytowalne ? {} : powiazanie(brak)) };
       if (p.edytowalne && p.rodzaj === "data" && !poprawnaData(wartosc)) {
-        lista.push({ ...cel, tekst: p.etykieta, opis: "Wpisz istniejącą datę w formacie RRRR-MM-DD." });
-      } else if (p.edytowalne && p.wymagane && !wartosc?.trim() && !bledy.length) {
-        lista.push({ ...cel, tekst: p.etykieta });
+        lista.push({ ...miejsce, opis: "Wpisz istniejącą datę w formacie RRRR-MM-DD." });
+      } else if (wymagane && !wartosc?.trim()) {
+        lista.push({ ...miejsce, opis: "Uzupełnij pole." });
       }
-      for (const b of bledy) {
-        if (p.edytowalne && wartosc !== p.wartosc && wartosc?.trim() && b.komunikat.startsWith("Uzupełnij pole")) continue;
-        lista.push({ ...cel, tekst: b.etykieta, opis: b.komunikat, ...(p.edytowalne ? {} : powiazanie(b)) });
+      for (const b of bledy.filter((b) => !b.komunikat.startsWith("Uzupełnij pole"))) {
+        lista.push({ ...miejsce, opis: b.komunikat });
       }
     }
   }
@@ -202,18 +253,49 @@ function PolaSekcji({ pola, wartosci, braki, edycja, ustaw }: EdycjaPol & { pola
   );
 }
 
-export function PolaWzoru({ formularz, ...edycja }: EdycjaPol & { formularz: Formularz }) {
+export function PolaWzoru({ formularz, ustawWiele, ...edycja }: EdycjaPol & {
+  formularz: Formularz;
+  ustawWiele: (pola: Wartosci) => void;
+}) {
+  const miejsca = edytowalnePola(formularz).filter((p) => p.id.endsWith(".miejscowosc"));
+  const wartosc = (p: PoleArkusza) => p.id in edycja.wartosci ? edycja.wartosci[p.id] : p.wartosc;
+  const wspolna = miejsca[0] && wartosc(miejsca[0]);
+  const rozne = miejsca.some((p) => wartosc(p) !== wspolna);
   return (
     <>
+      {miejsca.length > 0 && (
+        <div className="sekcja k7-miejsca">
+          <label className="etykieta">
+            Miejscowość
+            <input id="miejscowosc" disabled={!edycja.edycja} value={rozne ? "" : wspolna ?? ""}
+              placeholder={rozne ? "Różne miejscowości w arkuszu" : undefined}
+              onChange={(e) => ustawWiele(Object.fromEntries(miejsca.map((p) => [p.id, e.target.value || null])))}
+            />
+          </label>
+          <BladPola cel="miejscowosc" />
+          <Sekcja id="miejsca" tytul="Miejscowości w poszczególnych polach">
+            {formularz.sekcje.map((s) => s.pola.filter((p) => miejsca.includes(p)).map((p) => {
+              const role: Record<string, string> = {
+                oceniany: "oceniany", oceniajacy: "oceniający", przelozony: "przełożony", kierujacy: "kierujący komórką",
+              };
+              const rola = role[p.id.split(".")[1]];
+              return (
+                <Pole key={p.id} p={{ ...p, etykieta: [s.tytul, rola].filter(Boolean).join(" · ") }}
+                  wartosc={wartosc(p)} edycja={edycja.edycja} onZmiana={(v) => edycja.ustaw(p.id, v)} />
+              );
+            }))}
+          </Sekcja>
+        </div>
+      )}
       <Sekcja id="pola" tytul="Pola arkusza">
-        {formularz.sekcje.map(
-          (s, i) =>
-            s.widoczna && (
-              <Sekcja key={s.tytul} id={"pola/" + i} tytul={s.tytul}>
-                <PolaSekcji pola={s.pola.filter((p) => p.widoczne)} {...edycja} />
-              </Sekcja>
-            ),
-        )}
+        {formularz.sekcje.map((s, i) => {
+          const pola = s.pola.filter((p) => p.widoczne && p.id !== "wnioski_iprz" && p.id !== "wnioski_rozwojowe" && !miejsca.includes(p));
+          return s.widoczna && pola.length > 0 && (
+            <Sekcja key={s.tytul + i} id={"pola/" + i} tytul={s.tytul}>
+              <PolaSekcji pola={pola} {...edycja} />
+            </Sekcja>
+          );
+        })}
       </Sekcja>
       <Sekcja id="przypisy" tytul="Przypisy wzoru">
         <ol className="slad">
@@ -228,7 +310,7 @@ export function PolaWzoru({ formularz, ...edycja }: EdycjaPol & { formularz: For
   );
 }
 
-const DATY_Z_WYNIKU: Record<string, string> = {
+const DATY_Z_WYNIKU: Record<string, (typeof DATY_OKRESOWE)[number][0] | "poprzednia_ocena_poziom"> = {
   "potwierdzenie_kryteriow.oceniajacy.data": "data_ustalenia_kryteriow",
   "potwierdzenie_kryteriow.oceniany.data": "data_zapoznania_z_kryteriami",
   "okres_oceny.od": "data_zapoznania_z_kryteriami",
@@ -238,39 +320,54 @@ const DATY_Z_WYNIKU: Record<string, string> = {
   "poprzednia_ocena.poziom": "poprzednia_ocena_poziom",
 };
 
-export function Okresowa({
+export function Arkusz({
   token,
   osoba,
   proces,
   moznaProwadzic,
   onWstecz,
   onDalej,
-  widok,
-}: Krok7Props & { widok: "wynik" | "arkusz" }) {
+  onZmienOcene,
+  zalogowanyId,
+}: Krok7Props) {
   const [arkusz, setArkusz] = useState<ArkuszOkresowy | null>(null);
   const [wynik, setWynik] = useState<WynikOkresowy | null>(null);
   const [f, setF] = useState<DaneWyniku | null>(null);
+  const [sprawdzonePola, setSprawdzonePola] = useState<Wartosci>({});
   const [zmiany, setZmiany] = useState<Wartosci>({});
   const [blad, setBlad] = useState<string | null>(null);
   const [bladWynikuApi, setBladWynikuApi] = useState<string | null>(null);
   const [czekam, setCzekam] = useState(false);
+  const [przelozony, setPrzelozony] = useState<Pracownik>();
   const [odswiez, setOdswiez] = useState(false);
 
   useEffect(() => {
     let aktywny = true;
-    Promise.allSettled([pobierzWynik(token, proces.id), pobierzArkusz(token, proces.id)]).then(([w, a]) => {
+    Promise.allSettled([
+      pobierzWynik(token, proces.id),
+      pobierzArkusz(token, proces.id),
+      moznaProwadzic ? pobierzPrzelozonego(token, osoba, zalogowanyId) : undefined,
+    ]).then(([w, a, kierownik]) => {
       if (!aktywny) return;
+      const zatwierdzony = a.status === "fulfilled" && a.value.zatwierdzony;
       if (w.status === "fulfilled") {
         setWynik(w.value);
-        setF(w.value.dane);
+        const dane = w.value.dane;
+        setF(moznaProwadzic && !zatwierdzony && !dane.data_sporzadzenia_oceny
+          ? { ...dane, data_sporzadzenia_oceny: dzisiaj() } : dane);
       } else setBladWynikuApi(bladWyniku(w.reason));
-      if (a.status === "fulfilled") setArkusz(a.value);
-      else setBlad(bladArkusza(a.reason).tekst);
+      if (a.status === "fulfilled") {
+        setArkusz(a.value);
+        if (kierownik.status === "fulfilled") {
+          setPrzelozony(kierownik.value);
+          if (!zatwierdzony) setZmiany(podpowiedziPol(a.value, kierownik.value));
+        }
+      } else setBlad(bladArkusza(a.reason).tekst);
     });
     return () => {
       aktywny = false;
     };
-  }, [token, proces.id]);
+  }, [token, proces.id, osoba, zalogowanyId, moznaProwadzic]);
 
   async function wykonaj(akcja: () => Promise<void>) {
     if (czekam) return;
@@ -290,9 +387,9 @@ export function Okresowa({
   const naglowek = (
     <Naglowek
       osoba={osoba}
-      tytul={widok === "wynik" ? "Podsumowanie oceny" : `Arkusz ${proces.arkusz}`}
+      tytul="Podsumowanie oceny"
       opis={`Ocena okresowa · arkusz ${proces.arkusz}`}
-      wstecz={widok === "wynik" ? "Wróć do rozmowy" : "Wróć do wyniku i terminów"}
+      wstecz="Wróć do rozmowy"
       onWstecz={onWstecz}
     />
   );
@@ -304,8 +401,14 @@ export function Okresowa({
       </div>
     );
 
-  const formularz = arkusz ?? { sekcje: [], braki: [], przypisy: {} };
-  const edytowalne = formularz.sekcje.flatMap((s) => s.pola).filter((p) => p.edytowalne);
+  let formularz: Formularz = arkusz ?? { sekcje: [], braki: [], przypisy: {} };
+  if (wynik?.czesc_iii.dolaczana && f && !f.dolacz_wniosek_o_stopien) {
+    const sekcje = formularz.sekcje.filter((s) => !s.pola.some((p) => p.id === "wniosek_o_stopien.stopien"));
+    const ids = new Set(sekcje.flatMap((s) => s.pola.map((p) => p.id)));
+    formularz = { ...formularz, sekcje, braki: formularz.braki.filter((b) => ids.has(b.id)) };
+  }
+  const edytowalne = edytowalnePola(formularz);
+  const wnioski = formularz.sekcje.flatMap((s) => s.pola).find((p) => p.id === "wnioski_iprz" && p.widoczne);
   const pola = Object.fromEntries(edytowalne.map((p) => [p.id, p.id in zmiany ? zmiany[p.id] : p.wartosc]));
   const ruszonePola = edytowalne.some((p) => pola[p.id] !== p.wartosc);
   const ruszonyWynik = !!wynik && (!wynik.zapisany || JSON.stringify(f) !== JSON.stringify(wynik.dane));
@@ -319,7 +422,7 @@ export function Okresowa({
   const brakiWyniku: Brak[] = [];
   const dodajDate = (cel: string, tekst: string, wartosc?: string | null, wymagana = false) => {
     if (!poprawnaData(wartosc) || (wymagana && !wartosc))
-      brakiWyniku.push({ cel, tekst, grupa: "dane", opis: "Podaj datę w formacie RRRR-MM-DD." });
+      brakiWyniku.push({ cel, tekst: `Daty oceny: ${tekst}`, grupa: "dane", opis: "Podaj datę w formacie RRRR-MM-DD." });
   };
   if (f && wynik) {
     if (wynik.uzasadnienie_wymagane && !f.uzasadnienie?.trim())
@@ -331,18 +434,30 @@ export function Okresowa({
       dodajDate("data_zawiadomienia", "Data zawiadomienia", f.zmiana_terminu.data_zawiadomienia, true);
     }
   }
+  // Po poprawieniu dat ich kolejność i obliczony termin ponownie sprawdzi API przy zapisie.
+  const zmienioneDaty = f && wynik && (
+    DATY_OKRESOWE.some(([k]) => f[k] !== wynik.dane[k]) ||
+    f.data_zapoznania_z_poprzednia_ocena !== wynik.dane.data_zapoznania_z_poprzednia_ocena ||
+    JSON.stringify(f.zmiana_terminu) !== JSON.stringify(wynik.dane.zmiana_terminu)
+  );
+  const zmianaDatArkusza = edytowalne.some((p) => p.rodzaj === "data" &&
+    pola[p.id] !== (p.id in sprawdzonePola ? sprawdzonePola[p.id] : p.wartosc));
+  const brakiSerwera = formularz.braki.filter((b) => {
+    if (b.id === "wynik_okresowy") return false;
+    if (b.id === "okres_oceny.do" || b.id === "rozmowa_oceniajaca.data")
+      return b.komunikat.startsWith("Uzupełnij pole") || (!zmienioneDaty && !zmianaDatArkusza);
+    return true;
+  });
   const braki = [
     ...brakiWyniku,
-    ...brakiPol(formularz, pola, formularz.braki, (b) => {
-      if (b.id === "wynik_okresowy")
-        return { cel: "zapis-wyniku", tekst: "Zapis aktualnego wyniku i terminów", opis: undefined };
+    ...brakiPol(formularz, pola, brakiSerwera, (b) => {
       if (!daneWyniku) return;
       if (b.id === "uzasadnienie") return { cel: "uzasadnienie", grupa: undefined };
       if (DATY_Z_WYNIKU[b.id]) return { cel: DATY_Z_WYNIKU[b.id], grupa: "dane" };
-    }),
+    }, (p) => p.id === "uzasadnienie" ? f?.uzasadnienie : f?.[DATY_Z_WYNIKU[p.id]])
+      .filter((b) => !(zmienioneDaty && b.cel === "pole-termin_sporzadzenia_oceny")),
   ];
-  if (ruszonyWynik && !braki.some((b) => b.cel === "zapis-wyniku"))
-    braki.push({ cel: "zapis-wyniku", tekst: "Zapis aktualnego wyniku i terminów" });
+  if (!wynik) braki.push({ cel: "brak-wyniku", tekst: "Oceny cząstkowe: ustalenie wyniku" });
   for (const tekst of wynik?.terminy.braki ?? []) {
     const pole = tekst.includes("zapoznania z kryteriami")
       ? "data_zapoznania_z_kryteriami"
@@ -351,12 +466,13 @@ export function Okresowa({
         : tekst.includes("poprzednią oceną negatywną")
           ? "data_zapoznania_z_poprzednia_ocena"
           : null;
-    braki.push({ tekst, cel: pole ?? "terminy", grupa: pole ? "dane" : "terminy", tylkoTermin: true });
+    if (pole && f?.[pole]) continue;
+    braki.push({ tekst: `Terminy: ${tekst}`, cel: pole ?? "terminy", grupa: pole ? "dane" : "terminy", tylkoTermin: true });
   }
   if (!arkusz || odswiez) braki.push({ cel: "odswiez-arkusz", tekst: "Wczytanie arkusza" });
   const brak = braki.some((b) => !b.tylkoTermin);
   const zlaData = edytowalne.some((p) => p.rodzaj === "data" && !poprawnaData(pola[p.id]));
-  const pdf = !!arkusz?.pdf_dostepny && !brak && !ruszonePola && !czekam;
+  const pdf = !!arkusz?.pdf_dostepny && !brak && !ruszonePola && !ruszonyWynik && !czekam;
   const zatwierdzony = !!arkusz?.zatwierdzony && !ruszonePola && !ruszonyWynik && !odswiez;
   const pobierz = () =>
     pdf &&
@@ -364,9 +480,40 @@ export function Okresowa({
       zapiszPlik(await pobierzArkuszPdf(token, proces.id), `arkusz-${proces.arkusz}-${osoba.nazwisko}.pdf`),
     );
   function zapisz(zatwierdz: boolean) {
-    if (!arkusz || !moznaProwadzic || zlaData || odswiez || (zatwierdz && brak)) return;
+    if (!arkusz || !moznaProwadzic || zlaData || brakiWyniku.length || odswiez || (zatwierdz && brak)) return;
     return wykonaj(async () => {
-      setArkusz(await zapiszArkusz(token, proces.id, pola, zatwierdz));
+      let aktualny = arkusz;
+      if (ruszonyWynik && daneWyniku) {
+        const w = await zapiszWynik(token, proces.id, {
+          ...daneWyniku.f,
+          dolacz_wniosek_o_stopien: daneWyniku.wynik.czesc_iii.dostepna && daneWyniku.f.dolacz_wniosek_o_stopien,
+        });
+        setWynik(w);
+        setF(w.dane);
+        setOdswiez(true);
+        aktualny = await pobierzArkusz(token, proces.id);
+        setArkusz(aktualny);
+        setOdswiez(false);
+      }
+      // Po zapisie wyniku część III może mieć inny zestaw pól edytowalnych.
+      const aktualneZmiany = { ...zmiany };
+      if (aktualny !== arkusz) {
+        const nowePodpowiedzi = podpowiedziPol(aktualny, przelozony);
+        const miejsca = edytowalne.filter((p) => p.id.endsWith(".miejscowosc"));
+        const wspolna = miejsca.length && pola[miejsca[0].id];
+        for (const p of edytowalnePola(aktualny)) {
+          if (p.id in pola || p.wartosc) continue;
+          if (p.id.endsWith(".miejscowosc") && wspolna && miejsca.every((m) => pola[m.id] === wspolna)) {
+            aktualneZmiany[p.id] = wspolna;
+          } else if (nowePodpowiedzi[p.id]) aktualneZmiany[p.id] = nowePodpowiedzi[p.id];
+        }
+      }
+      const komplet = Object.fromEntries(edytowalnePola(aktualny).map((p) =>
+        [p.id, p.id in aktualneZmiany ? aktualneZmiany[p.id] : p.wartosc]));
+      setZmiany(aktualneZmiany);
+      setSprawdzonePola(komplet);
+      setArkusz(await zapiszArkusz(token, proces.id, komplet, zatwierdz));
+      setSprawdzonePola({});
       setZmiany({});
     });
   }
@@ -378,17 +525,18 @@ export function Okresowa({
         key={JSON.stringify(formularz.braki)}
         braki={braki}
         blad={blad}
-        podpis={arkusz?.komunikat_podpis ?? ""}
+        podpis={arkusz?.komunikat_podpis ?? "PDF i „Zatwierdź” nie są podpisem."}
         onWstecz={onWstecz}
         dzieci={
           <>
             {daneWyniku && <DaneOkresowej {...daneWyniku} />}
             {arkusz && (
               <PolaWzoru
-                formularz={arkusz}
+                formularz={formularz}
                 wartosci={pola}
                 braki={braki}
                 edycja={moznaProwadzic && !czekam}
+                ustawWiele={(v) => setZmiany((p) => ({ ...p, ...v }))}
                 ustaw={(id, v) => setZmiany((p) => ({ ...p, [id]: v }))}
               />
             )}
@@ -397,14 +545,23 @@ export function Okresowa({
         bok={
           <>
             {daneWyniku ? (
-              <BokOkresowej {...daneWyniku} />
+              <BokOkresowej {...daneWyniku} onZmienOcene={moznaProwadzic ? onZmienOcene : undefined} />
             ) : (
               <>
                 <Werdykt wynik={null} warunki={[]} />
-                <p id="zapis-wyniku" tabIndex={-1}>
+                <p id="brak-wyniku" tabIndex={-1}>
                   {bladWynikuApi}
+                  {onZmienOcene && <button className="link" type="button" onClick={onZmienOcene}>Wróć do ocen cząstkowych</button>}
                 </p>
               </>
+            )}
+            {wnioski && (
+              <div id="pole-wnioski_iprz" tabIndex={-1}>
+                <Pole p={wnioski} wartosc={pola.wnioski_iprz} edycja={wnioski.edytowalne && moznaProwadzic && !czekam}
+                  onZmiana={(v) => setZmiany((p) => ({ ...p, wnioski_iprz: v }))} />
+                <BladPola cel="pole-wnioski_iprz" />
+                {moznaProwadzic && <button className="link" type="button" onClick={onDalej}>Zobacz propozycje z kroków 3–5</button>}
+              </div>
             )}
             {zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
           </>
@@ -420,6 +577,7 @@ export function Okresowa({
                 onClick={() =>
                   wykonaj(async () => {
                     setArkusz(await pobierzArkusz(token, proces.id));
+                    setSprawdzonePola({});
                     setOdswiez(false);
                   })
                 }
@@ -427,41 +585,11 @@ export function Okresowa({
                 Wczytaj arkusz ponownie
               </button>
             )}
-            {daneWyniku && (
-              <div id="zapis-wyniku" tabIndex={-1}>
-                {moznaProwadzic ? (
-                  <button
-                    type="button"
-                    className="jasny"
-                    disabled={czekam || brakiWyniku.length > 0}
-                    onClick={() =>
-                      wykonaj(async () => {
-                        const w = await zapiszWynik(token, proces.id, {
-                          ...daneWyniku.f,
-                          dolacz_wniosek_o_stopien:
-                            daneWyniku.wynik.czesc_iii.dostepna && daneWyniku.f.dolacz_wniosek_o_stopien,
-                        });
-                        setWynik(w);
-                        setF(w.dane);
-                        setOdswiez(true);
-                        setArkusz(await pobierzArkusz(token, proces.id));
-                        setOdswiez(false);
-                      })
-                    }
-                  >
-                    Zapisz wynik i terminy
-                  </button>
-                ) : (
-                  <span className="meta">Wynik i terminy zapisuje przełożony.</span>
-                )}
-                {wynik?.zapisany && !ruszonyWynik && <span className="meta"> Wynik zapisany.</span>}
-              </div>
-            )}
             {moznaProwadzic && (
               <button
                 type="button"
                 className="jasny"
-                disabled={!arkusz || czekam || zlaData || odswiez}
+                disabled={!arkusz || czekam || zlaData || brakiWyniku.length > 0 || odswiez}
                 onClick={() => zapisz(false)}
               >
                 Zapisz szkic
@@ -511,10 +639,7 @@ export function Okresowa({
                 {ezd.sha256_pdf.slice(0, 12)}…
               </p>
             )}
-            <button type="button" className="link" onClick={onDalej}>
-              {widok === "wynik" ? "Dalej: arkusz oceny" : "Dalej: wnioski rozwojowe"}
-            </button>
-            {ruszonePola && <span className="meta">Masz niezapisane zmiany w arkuszu.</span>}
+            {(ruszonePola || ruszonyWynik) && moznaProwadzic && <span className="meta">Masz niezapisane zmiany w arkuszu.</span>}
           </>
         }
         glowna={
@@ -531,8 +656,4 @@ export function Okresowa({
       />
     </div>
   );
-}
-
-export function Arkusz(props: Krok7Props) {
-  return <Okresowa key={props.proces.id} {...props} widok="arkusz" />;
 }

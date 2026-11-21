@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { Ikona } from "./Ikona";
 import { SzkieletListy, WierszListy } from "./Lista";
 import { Zwijane } from "./Zwijane";
-import { Okresowa } from "./Arkusz";
+export { Arkusz as Wynik } from "./Arkusz";
 import "./krok7.css";
 import {
   BladApi,
@@ -55,6 +55,7 @@ export function PoleDaty({
   wartosc: string | null;
   onZmiana: (v: string | null) => void;
 }) {
+  const brak = useContext(Rozwiniecia).braki.find((b) => b.cel === id);
   return (
     <label className="etykieta">
       {nazwa}
@@ -63,9 +64,10 @@ export function PoleDaty({
         inputMode="numeric"
         placeholder="RRRR-MM-DD"
         value={wartosc ?? ""}
-        aria-invalid={!poprawnaData(wartosc)}
+        aria-invalid={!!brak || !poprawnaData(wartosc)}
         onChange={(e) => onZmiana(e.target.value.trim() || null)}
       />
+      {brak && <span className="blad">{brak.opis ?? "Uzupełnij datę."}</span>}
     </label>
   );
 }
@@ -111,6 +113,8 @@ export interface Krok7Props {
   moznaProwadzic: boolean;
   onWstecz: () => void;
   onDalej: () => void;
+  onZmienOcene?: () => void;
+  zalogowanyId?: string | null;
 }
 
 export function Naglowek({
@@ -159,7 +163,14 @@ export interface Brak {
   tylkoTermin?: boolean;
 }
 
-const Rozwiniecia = createContext({ otwarte: new Set<string>(), przelacz: (_id: string) => {} });
+
+
+export function BladPola({ cel }: { cel: string }) {
+  const brak = useContext(Rozwiniecia).braki.find((b) => b.cel === cel);
+  return brak ? <span className="blad">{brak.opis ?? "Uzupełnij pole."}</span> : null;
+}
+
+const Rozwiniecia = createContext({ braki: [] as Brak[], otwarte: new Set<string>(), przelacz: (_id: string) => {} });
 
 export function Sekcja({ id, tytul, children }: { id: string; tytul: string; children: ReactNode }) {
   const { otwarte, przelacz } = useContext(Rozwiniecia);
@@ -192,7 +203,7 @@ function grupyBraku(b: Brak) {
 }
 
 export function Podsumowanie({
-  braki,
+  braki: wszystkieBraki,
   dzieci,
   bok,
   akcje,
@@ -210,11 +221,16 @@ export function Podsumowanie({
   blad: string | null;
   podpis: string;
 }) {
-  const [otwarte, setOtwarte] = useState(() => new Set(braki.flatMap(grupyBraku)));
+  const cele = new Set<string>();
+  const braki = wszystkieBraki.filter((b) => {
+    const klucz = b.cel === "pola" || b.cel === "terminy" ? b.tekst : b.cel;
+    if (cele.has(klucz)) return false;
+    cele.add(klucz);
+    return true;
+  });
+  const [otwarte, setOtwarte] = useState(() => new Set(braki.flatMap(grupyBraku).filter((id) => id !== "wyjatki")));
   const [wszystkie, setWszystkie] = useState(false);
-  const wymagane = braki.filter((b) => !b.tylkoTermin);
-  const pierwszy = wymagane[0] ?? braki[0];
-  const ile = wymagane.length || braki.length;
+  const pierwszy = braki[0];
   const przelacz = (id: string) =>
     setOtwarte((stare) => {
       const nowe = new Set(stare);
@@ -234,12 +250,11 @@ export function Podsumowanie({
       key={b.cel + i}
       maly
       tytul={b.tekst}
-      opis={b.opis === `Uzupełnij pole „${b.tekst}”.` ? undefined : b.opis}
       onClick={() => pokaz(b)}
     />
   );
   return (
-    <Rozwiniecia.Provider value={{ otwarte, przelacz }}>
+    <Rozwiniecia.Provider value={{ otwarte, przelacz, braki }}>
       {braki.length > 0 && (
         <section className="sekcja k7-braki">
           <h2>Co jeszcze trzeba</h2>
@@ -275,10 +290,9 @@ export function Podsumowanie({
             </span>
           )}
           <span role="status">
-            {pierwszy &&
-              `Brakuje: ${pierwszy.tekst.replace(/^Brak /, "")}${pierwszy.tylkoTermin ? " (do wyliczenia terminu)" : ""}${ile > 1 ? ` (+${ile - 1})` : ""}`}
+            {pierwszy && `Brakuje: ${braki.length} · ${pierwszy.tekst}`}
           </span>
-          <span className="meta">{podpis}</span>
+          <span className="meta">{podpis} Podpisy złóż odręcznie na wydruku.</span>
         </div>
         {glowna}
       </div>
@@ -289,9 +303,11 @@ export function Podsumowanie({
 export function Werdykt({
   wynik,
   warunki,
+  onZmienOcene,
 }: {
   wynik: WynikOkresowy["obliczenie"] | null;
-  warunki: { opis: string; spelniony: boolean; zrodlo: SourceRef }[];
+  warunki: { opis: string; spelniony: boolean; zrodlo: SourceRef; szczegoly?: string; slad?: string }[];
+  onZmienOcene?: () => void;
 }) {
   return (
     <>
@@ -319,7 +335,12 @@ export function Werdykt({
                 </span>
                 <div>
                   {w.opis}
+                  {w.szczegoly && <p>{w.szczegoly}</p>}
+                  {w.slad && <details><summary>Ślad obliczenia</summary>{w.slad}</details>}
                   <Zrodla adnotacje={[w.zrodlo]} />
+                  {!w.spelniony && onZmienOcene && (
+                    <button type="button" className="link" onClick={onZmienOcene}>Zmień ocenę</button>
+                  )}
                 </div>
               </li>
             ))}
@@ -389,23 +410,31 @@ interface FormularzOkresowej {
   blokada: boolean;
 }
 
-export function BokOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) {
+export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene }: FormularzOkresowej & {
+  onZmienOcene?: () => void;
+}) {
   const o = wynik.obliczenie;
-  const zrodlo = o.regula_rozstrzygajaca.zrodlo;
-  const podstawaProgu =
-    o.slad.find((s) => s.regula.id === "negatywna-za-poziom") ?? o.slad.find((s) => s.regula.id.startsWith("poziom-"));
-  const podstawaPunktow = o.slad.find((s) => s.regula.id === "negatywna-za-ocene-czastkowa");
-  const warunki = [
-    { opis: "Średnia powyżej 4 pkt", spelniony: Number(o.srednia) > 4, zrodlo: podstawaProgu?.regula.zrodlo ?? zrodlo },
-    {
-      opis: "Każde kryterium powyżej 1 pkt",
-      spelniony: wynik.oceny_czastkowe.every((k) => k.punkty > 1),
-      zrodlo: podstawaPunktow?.regula.zrodlo ?? zrodlo,
-    },
-  ];
+  const minimum = Math.min(...wynik.oceny_czastkowe.map((k) => k.punkty));
+  const wypiszPunkty = (oceny: WynikOkresowy["oceny_czastkowe"]) => oceny.map((k) => `${k.nazwa}: ${k.punkty} pkt`).join(", ");
+  const warunki = o.slad.flatMap(({ regula, opis }) => {
+    const spelniony = regula.id !== o.regula_rozstrzygajaca.id || o.wynik === "pozytywna";
+    if (regula.id === "negatywna-za-ocene-czastkowa") {
+      return [{
+        opis: spelniony ? "Żadne kryterium nie otrzymało najniższej oceny." : "Co najmniej jedno kryterium otrzymało najniższą ocenę.",
+        spelniony, zrodlo: regula.zrodlo,
+        szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe.filter((k) => k.punkty === minimum)),
+        slad: opis,
+      }];
+    }
+    if (regula.id !== "negatywna-za-poziom" && regula.id !== "pozytywna") return [];
+    return [{
+      opis: regula.id === "pozytywna" ? "Warunki pozytywnej oceny są spełnione." : `Ogólny poziom: ${o.poziom}.`,
+      spelniony, zrodlo: regula.zrodlo, szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe), slad: opis,
+    }];
+  });
   return (
     <>
-      <Werdykt wynik={o} warunki={warunki} />
+      <Werdykt wynik={o} warunki={warunki} onZmienOcene={onZmienOcene} />
       <label className="etykieta">
         Uzasadnienie {wynik.uzasadnienie_wymagane ? "(wymagane)" : "(opcjonalnie)"}
         <textarea
@@ -417,6 +446,7 @@ export function BokOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) {
           onChange={(e) => ustaw({ uzasadnienie: e.target.value })}
         />
       </label>
+      <BladPola cel="uzasadnienie" />
       {wynik.podstawa_uzasadnienia && <Zrodla adnotacje={[wynik.podstawa_uzasadnienia]} />}
       {wynik.czesc_iii.dostepna && (
         <div>
@@ -459,11 +489,6 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
           </p>
         )}
         {wynik.terminy.zachowaj_kryteria && <p>Kryteria z poprzedniej oceny zostają.</p>}
-        {wynik.terminy.braki.map((b) => (
-          <p className="meta" key={b}>
-            {b}
-          </p>
-        ))}
       </TabelaTerminow>
       <Sekcja id="dane" tytul="Daty i dane">
         <fieldset className="formularz" disabled={blokada}>
@@ -489,6 +514,7 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
                 value={f.poprzednia_ocena_poziom ?? ""}
                 onChange={(e) => ustaw({ poprzednia_ocena_poziom: e.target.value || null })}
               />
+              <BladPola cel="poprzednia_ocena_poziom" />
             </label>
           )}
           <label className="zaznacz">
@@ -553,8 +579,4 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada }: FormularzOkresowej) 
       </Sekcja>
     </>
   );
-}
-
-export function Wynik(props: Krok7Props) {
-  return <Okresowa key={props.proces.id} {...props} widok="wynik" />;
 }
