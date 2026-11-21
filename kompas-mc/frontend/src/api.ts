@@ -660,6 +660,23 @@ export const zarejestrujEzd = (token: string, procesId: number) =>
     odpowiedz<RejestracjaEzd>(r),
   );
 
+/** Etap cyklu oceny osoby (#23): następna czynność i termin liczy backend z reguł obu ścieżek. */
+export interface EtapOsoby {
+  osoba_id: string;
+  sciezka: Sciezka | null;
+  etap: "kryteria" | "okres" | "ocena" | "brak_danych";
+  czynnosc: string;
+  termin: { nazwa: string; data: string; adnotacje: SourceRef[] } | null;
+  dni_do_terminu: number | null;
+  po_terminie: boolean;
+  proces_id: number | null;
+  kryteria_ustalone: string | null;
+  braki: string[];
+}
+
+export const pobierzCykl = (token: string) =>
+  fetch("/api/cykl", { headers: autoryzacja(token) }).then((r) => json<EtapOsoby[]>(r));
+
 /* Panel HR: procesy, zagrożone terminy, przypomnienia (#38, kontrakt w issue #38). Bez treści ocen i notatek. */
 
 export interface TerminHr {
