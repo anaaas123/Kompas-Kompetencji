@@ -347,6 +347,8 @@ export interface OcenaWskaznika {
   poziom: number | null;
   brak_podstaw: boolean;
   przyklady: Przyklad[];
+  /** Uwagi z rozmowy przy wskaźniku (zamiast pełnego przykładu). */
+  uwagi?: string | null;
 }
 
 export interface WskaznikOceny {

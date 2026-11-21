@@ -16,6 +16,7 @@ import {
   type SourceRef,
 } from "./api";
 import { PoprzedniaOcena, zdanieOOsobie } from "./PoprzedniaOcena";
+import { Zwijane } from "./Zwijane";
 import "./krok2.css";
 import "./ocena.css";
 
@@ -215,7 +216,7 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
       <button type="button" className="link k1-rozwin" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
         {otwarte ? "Ukryj przepisy" : "Dlaczego? Przepisy i przesłanki"}
       </button>
-      {otwarte && (
+      <Zwijane otwarte={otwarte}>
         <div className="k1-szczegoly">
           <Przeslanki przeslanki={spelnione} />
           {okresowa && a.arkusz && <Zrodla adnotacje={a.adnotacje} />}
@@ -224,7 +225,9 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
               <button type="button" className="link k1-rozwin" aria-expanded={pozostale} onClick={() => setPozostale((v) => !v)}>
                 {pozostale ? "Ukryj przesłanki, które nie dotyczą" : `Nie dotyczy tej osoby (${nieDotyczy.length})`}
               </button>
-              {pozostale && <Przeslanki przeslanki={nieDotyczy} />}
+              <Zwijane otwarte={pozostale}>
+                <Przeslanki przeslanki={nieDotyczy} />
+              </Zwijane>
             </>
           )}
           {uwagi.map((u) => (
@@ -235,7 +238,7 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
             </p>
           ))}
         </div>
-      )}
+      </Zwijane>
     </div>
   );
 }
@@ -284,12 +287,12 @@ function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 |
           <button type="button" className="link k1-rozwin" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
             {otwarte ? "Ukryj podstawę" : "Skąd te kryteria?"}
           </button>
-          {otwarte && (
+          <Zwijane otwarte={otwarte}>
             <div className="k1-szczegoly">
               <Zrodla adnotacje={[...krok2.podstawa_obowiazkowych, ...krok2.podstawa_dodatkowych]} />
               {osp && <Zrodla adnotacje={[osp.kompetencje_miekkie.adnotacja]} />}
             </div>
-          )}
+          </Zwijane>
         </>
       )}
     </div>
@@ -327,7 +330,7 @@ function OpisStanowiska({ analiza }: { analiza: AnalizaKroku1 }) {
       <p>{osp.cel.tekst}</p>
       <p className="etykieta">Zadania dominujące</p>
       {zadania(osp.zadania_dominujace)}
-      {caly && (
+      <Zwijane otwarte={caly}>
         <div className="k1-szczegoly">
           <Zrodla adnotacje={[osp.cel.adnotacja]} />
           {osp.zadania_pozostale.length > 0 && (
@@ -345,7 +348,7 @@ function OpisStanowiska({ analiza }: { analiza: AnalizaKroku1 }) {
           <p className="etykieta">Podlegli pracownicy</p>
           <p>{osp.podlegli.zaznaczone}</p>
         </div>
-      )}
+      </Zwijane>
       <button type="button" className="link k1-rozwin" aria-expanded={caly} onClick={() => setCaly((v) => !v)}>
         {caly ? "Zwiń opis stanowiska" : "Cały opis stanowiska"}
       </button>

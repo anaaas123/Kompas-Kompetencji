@@ -12,6 +12,7 @@ from kompas_mc.ocena import (
     OcenaWskaznika,
     Przyklad,
     ZapisDecyzji,
+    ostrzezenia_wskaznika,
     scal_decyzje,
     sugestia,
 )
@@ -167,10 +168,10 @@ def test_pelny_przebieg_okresowej(klient, naglowek):
     assert k["decyzja"] is None
     assert klient.get(f"/api/procesy/{proces['id']}", headers=h).json()["krok"] >= 3
 
-    # krok 5: odejście od sugestii bez uzasadnienia → 422; z uzasadnieniem → OK
+    # krok 5: odejście od sugestii zapisuje się także bez uzasadnienia (opcjonalne, Karol 21.11)
     kid = k["kompetencja_id"]
     r = klient.put(f"{url}/decyzje", headers=h, json={"decyzje": {kid: {"punkty": 5}}})
-    assert r.status_code == 422 and "uzasadnienie" in r.json()["detail"]["bledy"][0]
+    assert r.status_code == 200 and r.json()["kryteria"][0]["decyzja"]["zgodna_z_sugestia"] is False
     r = klient.put(f"{url}/decyzje", headers=h, json={"decyzje": {kid: {"punkty": 5, "uzasadnienie": "Jeden przykład."}}})
     assert r.status_code == 200
     d = r.json()["kryteria"][0]["decyzja"]
@@ -267,3 +268,10 @@ def test_decyzja_przy_niewystarczajacych_danych_bez_uzasadnienia(konf):
     assert wynik["k"].zgodna_z_sugestia is None
     with pytest.raises(BladOceny):
         scal_decyzje({}, ZapisDecyzji(decyzje={"zzz": {"punkty": 3}}), stan, konf, "x", datetime.now(UTC))
+
+
+def test_uwagi_zastepuja_przyklad_w_ostrzezeniu(konf):
+    """Uwagi z rozmowy przy wskaźniku zdejmują ostrzeżenie o poziomie innym niż oczekiwany bez przykładu."""
+    assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7), konf)
+    assert not ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="Wyjaśniła akt UODO prostym językiem."), konf)
+    assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="   "), konf)

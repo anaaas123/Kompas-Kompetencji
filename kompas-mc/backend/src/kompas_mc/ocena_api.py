@@ -146,7 +146,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
     ) -> StanOceny:
         """Krok 5: ocena cząstkowa kryterium wybrana przez przełożonego. Punkty ze skali ścieżki;
-        odejście od sugestii wymaga uzasadnienia. ``null`` cofa decyzję."""
+        uzasadnienie odejścia od sugestii jest opcjonalne. ``null`` cofa decyzję."""
         proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
         if proces.status != "W_TOKU":
             raise HTTPException(409, "Proces nie jest w toku")

@@ -95,7 +95,7 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 
 - `GET /api/procesy/{id}/ocena` zwraca wskaźniki wybrane w kroku 2 z 5 opisami zachowań, oceny i przykłady oraz sugestię poziomu każdego kryterium z etykietą metodyki. Zwraca też decyzję przełożonego i dane w formacie `/api/rozwoj/propozycje`.
 - `PUT /api/procesy/{id}/ocena/wskazniki` (krok 3) zapisuje poziom 1/3/5/7/9 albo „brak podstaw do oceny” oraz przykłady w układzie sytuacja – działanie – rezultat (z powtarzalnością, złożonością i uprawnieniami). Poziom inny niż 5 bez przykładu daje ostrzeżenie.
-- `PUT /api/procesy/{id}/ocena/decyzje` (krok 5) zapisuje ocenę cząstkową. Punkty muszą być ze skali ścieżki: 1–9 według § 11 rozp. 2016 albo 3/5/7 według § 9 rozp. 2015. Odejście od sugestii wymaga uzasadnienia.
+- `PUT /api/procesy/{id}/ocena/decyzje` (krok 5) zapisuje ocenę cząstkową. Punkty muszą być ze skali ścieżki: 1–9 według § 11 rozp. 2016 albo 3/5/7 według § 9 rozp. 2015. Uzasadnienie odejścia od sugestii jest opcjonalne; `zgodna_z_sugestia` zapisuje, czy ocena się różni.
 - Metodyka sugestii (`konfiguracja/ocena.yaml`, `DECYZJA_PROJEKTOWA`):
   - mediana ocenionych wskaźników;
   - „brak podstaw” nie wchodzi do mediany;

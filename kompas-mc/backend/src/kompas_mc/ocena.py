@@ -2,7 +2,7 @@
 
 Czyste funkcje. Metodyka sugestii (mediana, remis, „niewystarczające dane”, mapowanie 5→3)
 jest DECYZJĄ_PROJEKTOWĄ z ``konfiguracja/ocena.yaml``. Sugestia nigdy nie wpisuje oceny
-cząstkowej; decyzję podejmuje przełożony, a odejście od sugestii wymaga uzasadnienia.
+cząstkowej; decyzję podejmuje przełożony, uzasadnienie odejścia od sugestii jest opcjonalne (Karol 21.11).
 """
 
 from __future__ import annotations
@@ -97,6 +97,8 @@ class OcenaWskaznika(BaseModel):
     poziom: Literal[1, 3, 5, 7, 9] | None = None
     brak_podstaw: bool = False
     przyklady: list[Przyklad] = Field(default_factory=list)
+    uwagi: str | None = Field(default=None, max_length=2000)
+    """Uwagi przełożonego z rozmowy przy wskaźniku (zamiast pełnego przykładu)."""
 
     @model_validator(mode="after")
     def _wykluczanie(self) -> OcenaWskaznika:
@@ -302,7 +304,7 @@ def zgodna(punkty: int, s: Sugestia) -> bool | None:
 def ostrzezenia_wskaznika(o: OcenaWskaznika | None, konf: KonfiguracjaOceny) -> list[str]:
     if o is None or o.poziom is None:
         return []
-    if o.poziom != konf.poziom_oczekiwan and not o.przyklady:
+    if o.poziom != konf.poziom_oczekiwan and not o.przyklady and not (o.uwagi or "").strip():
         return [konf.przyklady.ostrzezenie_bez_przykladu]
     return []
 
@@ -429,11 +431,6 @@ def scal_decyzje(
             continue
         uzasadnienie = (d.uzasadnienie or "").strip() or None
         z = zgodna(d.punkty, k.sugestia)
-        if z is False and uzasadnienie is None:
-            bledy.append(
-                f"{k.nazwa}: {d.punkty} pkt różni się od sugestii ({k.sugestia.opis}) – podaj uzasadnienie."
-            )
-            continue
         wynik[k_id] = Decyzja(
             punkty=d.punkty, uzasadnienie=uzasadnienie, zgodna_z_sugestia=z, zapisal=zapisal, zapisano=zapisano
         )

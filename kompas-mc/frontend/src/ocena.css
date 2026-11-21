@@ -34,24 +34,28 @@
 .poprzednia-pkt { text-align: right; font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .kategoria.zasada { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
 
-/* Kroki 3–5: jeden ekran na wskaźnik albo kryterium. */
-.oc-ekran { display: flex; flex-direction: column; gap: var(--o-16); }
-.oc-ekran > p { margin: 0; }
+/* Kroki 3–5: jedna kolumna, oś postępu u góry, jeden wskaźnik na ekran; ocena kryterium pod ostatnim wskaźnikiem. */
+.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); max-width: 800px; }
+.oc-ekran, .oc-kryterium { display: flex; flex-direction: column; gap: var(--o-16); }
+.oc-ekran > p, .oc-kryterium > p { margin: 0; }
+.oc-kryterium { padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
 .oc-tytul { font-size: var(--t-section-r); line-height: var(--t-section-l); }
 .oc-pytanie { display: flex; flex-direction: column; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-info-bg); color: var(--k-info-text); }
 .oc-pytanie p { margin: 0; }
 .oc-pytanie .etykieta, .oc-pytanie .meta { color: inherit; }
+label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-4); }
 
 .oc-odpowiedzi { display: flex; flex-direction: column; gap: var(--o-8); }
 .oc-odpowiedzi button.oc-odpowiedz {
   display: flex; align-items: flex-start; gap: var(--o-12); width: 100%; min-height: 64px; padding: var(--o-12) var(--o-16);
   border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
   text-align: left; white-space: normal; font-weight: var(--f-regular);
+  transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
 }
 .oc-odpowiedzi button.oc-odpowiedz[aria-checked="true"] { border-color: var(--k-link); }
-.oc-odpowiedzi button.oc-odpowiedz:active { background: var(--k-wiersz-pressed); }
+.oc-odpowiedzi button.oc-odpowiedz:active { background: var(--k-wiersz-pressed); transform: scale(0.99); }
 .oc-odpowiedzi button.oc-odpowiedz:disabled { color: var(--k-text); cursor: default; }
-.oc-znacznik { flex: none; width: 20px; height: 20px; margin-top: var(--o-2); border: 2px solid var(--k-line-control); border-radius: 999px; }
+.oc-znacznik { flex: none; width: 20px; height: 20px; margin-top: var(--o-2); border: 2px solid var(--k-line-control); border-radius: 999px; transition: border-color var(--ruch-szybki) var(--ruch-krzywa), border-width var(--ruch-szybki) var(--ruch-krzywa); }
 .oc-odpowiedz[aria-checked="true"] .oc-znacznik { border: 6px solid var(--k-link); }
 .oc-tresc { display: flex; flex-direction: column; gap: var(--o-4); min-width: 0; }
 .oc-etykieta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8); font-weight: var(--f-semibold); }
@@ -61,38 +65,50 @@
 .oc-podstawa { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
 .oc-podstawa li { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
 .oc-poziom { flex: none; font-weight: var(--f-semibold); white-space: nowrap; }
-.oc-sugestia { display: flex; flex-direction: column; gap: var(--o-4); }
-.oc-sugestia p { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8); }
+@media (max-width: 760px) { .oc-podstawa li { flex-direction: column; align-items: flex-start; gap: var(--o-4); } }
+.oc-sugestia { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--o-8); }
 .oc-sugestia strong { font-size: var(--t-value-r); line-height: var(--t-value-l); }
-.oc-decyzja { display: flex; flex-direction: column; gap: var(--o-8); padding-top: var(--o-16); border-top: 1px solid var(--k-line); }
-.oc-decyzja .sukces { margin: 0; }
-.oc-decyzja label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
 
 .oc-nawigacja { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
 .oc-nawigacja button.link { min-height: 44px; }
 
-/* Plan w kolumnie bocznej */
-.oc-plan ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
-.oc-plan button.oc-plan-wiersz, .oc-plan-wskazniki button {
-  display: flex; align-items: center; gap: var(--o-8); width: 100%; min-height: 44px; padding: var(--o-8);
+/* Oś postępu: kryteria z kropkami wskaźników i podsumowanie. */
+.oc-os ol { margin: 0; padding: 0 0 var(--o-4); list-style: none; display: flex; gap: var(--o-8); overflow-x: auto; }
+.oc-os li { flex: 1 1 0; min-width: 132px; display: flex; flex-direction: column; gap: var(--o-8); padding: var(--o-12); border-radius: var(--r-wiersz); background: var(--k-wiersz); box-shadow: inset 0 -2px 0 transparent; transition: background-color var(--ruch-szybki) var(--ruch-krzywa), box-shadow var(--ruch-szybki) var(--ruch-krzywa); }
+.oc-os li.biezace { background: var(--k-info-bg); box-shadow: inset 0 -2px 0 var(--k-link); }
+.oc-os li > button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-2); width: 100%; min-height: 44px; padding: 0;
   border: 0; border-radius: var(--r-sm); background: none; color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
 }
-.oc-plan button.oc-plan-wiersz[aria-current="step"] { font-weight: var(--f-semibold); }
-.oc-plan .oc-plan-wskazniki button[aria-current="step"] { background: var(--k-surface); color: var(--k-link); font-weight: var(--f-semibold); }
-.oc-plan button.oc-plan-wiersz:active, .oc-plan .oc-plan-wskazniki button:active { background: var(--k-wiersz-pressed); }
-.oc-plan-wskazniki { padding-left: var(--o-24); }
-.oc-plan-wskazniki button { min-height: 36px; font-size: var(--t-small-r); line-height: var(--t-small-l); }
-.oc-plan-nazwa { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.oc-plan .meta { flex: none; margin: 0; font-variant-numeric: tabular-nums; }
-.oc-kropka { flex: none; width: 16px; height: 16px; border: 2px solid var(--k-line-control); border-radius: 999px; }
-.oc-kropka.gotowe { border-color: var(--k-success-pelny); background: var(--k-success-pelny); }
+.oc-os li > button .meta { margin: 0; font-variant-numeric: tabular-nums; }
+.oc-os-nazwa { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--f-semibold); }
+.oc-os li.biezace .oc-os-nazwa { color: var(--k-link); }
+.oc-os-kropki { display: flex; flex-wrap: wrap; gap: var(--o-2); }
+.oc-os-kropki button.oc-os-kropka { display: grid; place-items: center; width: 24px; min-height: 24px; padding: 0; border: 0; border-radius: 999px; background: none; }
+.oc-os-kropka::before { content: ""; width: 10px; height: 10px; border: 2px solid var(--k-line-control); border-radius: 999px; transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa); }
+.oc-os-kropka.pelna::before { border-color: var(--k-link); background: var(--k-link); }
+.oc-os-kropka[aria-current="step"]::before { box-shadow: 0 0 0 2px var(--k-surface), 0 0 0 4px var(--k-link); }
 
 @media (hover: hover) and (pointer: fine) {
   .oc-odpowiedzi button.oc-odpowiedz:not(:disabled):hover { background: var(--k-wiersz-hover); }
-  .oc-plan button.oc-plan-wiersz:not(:disabled):hover, .oc-plan .oc-plan-wskazniki button:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-os li > button:not(:disabled):hover { background: none; color: var(--k-link); }
+  .oc-os-kropki button.oc-os-kropka:not(:disabled):hover { background: var(--k-wiersz-hover); }
 }
-.oc-odpowiedzi button.oc-odpowiedz:focus-visible, .oc-plan button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .oc-odpowiedzi button.oc-odpowiedz, .oc-plan button { transition: none; } }
+.oc-odpowiedzi button.oc-odpowiedz:focus-visible, .oc-os button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+
+/* Ruch: wejście ekranu i bloku, zwijane wejście i wyjście; tylko opacity i transform. */
+@keyframes oc-wejscie { from { opacity: 0; transform: translateY(var(--o-8)); } }
+@keyframes oc-rozwin { from { opacity: 0; transform: translateY(calc(-1 * var(--o-4))); } }
+@keyframes oc-zwin { to { opacity: 0; transform: translateY(calc(-1 * var(--o-4))); } }
+.oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna { animation: oc-wejscie 280ms cubic-bezier(0.2, 0.8, 0, 1) both; }
+.oc-kryterium { animation-delay: 40ms; }
+.zwijane { animation: oc-rozwin 200ms cubic-bezier(0.2, 0.8, 0, 1) both; }
+.zwijane.zamyka { animation: oc-zwin 160ms ease forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna, .zwijane, .zwijane.zamyka { animation: none; }
+  .oc-odpowiedzi button.oc-odpowiedz, .oc-znacznik, .oc-os li, .oc-os-kropka::before { transition: none; }
+  .oc-odpowiedzi button.oc-odpowiedz:active { transform: none; }
+}
 
 /* Krok 6: pytania w zwijanych grupach */
 label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }

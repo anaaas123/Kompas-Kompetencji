@@ -4,6 +4,7 @@ import { AgendaRozbieznosci } from "./Samoocena";
 import { NAZWA_SCIEZKI, Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
 import { Ikona } from "./Ikona";
+import { Zwijane } from "./Zwijane";
 import "./krok2.css";
 
 const TAK_NIE = [
@@ -322,7 +323,7 @@ function GrupaPytan({
           <Ikona nazwa={otwarte ? "gora" : "dalej"} rozmiar={20} />
         </button>
       </div>
-      {otwarte && (
+      <Zwijane otwarte={otwarte}>
         <div className="k2-cialo">
           {lista.map((q) => (
             <label key={q.id} className="etykieta rozmowa-pytanie">
@@ -337,7 +338,7 @@ function GrupaPytan({
           ))}
           <Zrodla adnotacje={zrodla} />
         </div>
-      )}
+      </Zwijane>
     </div>
   );
 }
