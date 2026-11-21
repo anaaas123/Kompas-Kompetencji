@@ -2,18 +2,21 @@
 
 Przebieg ``odpowiedz(pytanie, sciezka)``:
 
+0. Pytanie wskazujące ustawę (``wzorzec_pytania_o_ustawe``) ⇒ „brak informacji” z komunikatem
+   ``brak_ustawy``: tekstu ustawy nie ma w bazie, więc nie podkładamy cytatu z rozporządzenia.
 1. Słownik z konfiguracji dopisuje do pytania słowa z przepisów („zwolnienie lekarskie”
    → „usprawiedliwiona nieobecność”, „kiedy” → „termin”).
 2. Przygotowany zestaw pytań i odpowiedzi (``faq.yaml``, pkt 5 treści zadania): gdy pytanie
    jest dość podobne (``prog_faq``) do pozycji dla tej ścieżki, ``tresc`` = odpowiedź napisana
-   przez człowieka, a pierwszy cytat = fragment z cytatem tej pozycji (sprawdzanym w CI
-   przez ``kompas-waliduj``). Dalsze cytaty z rankingu.
+   przez człowieka, a pierwszy cytat = fragment z cytatem tej pozycji (sprawdzanym przy
+   starcie i przez ``kompas-waliduj``). Dalsze cytaty z rankingu.
 3. Pojęcia pytania, których nie ma ani w korpusie, ani w FAQ ⇒ „brak informacji” z ich
    listą (``nieznane_pojecia``).
 4. Ranking BM25 na rdzeniach ``kompas_core`` skróconych do ``dlugosc_rdzenia`` znaków, tylko
    w dokumentach ścieżki, z wagą dokumentu (przepis przed objaśnieniem). Wynik najlepszego
-   fragmentu poniżej ``minimalny_wynik`` ⇒ „brak informacji”.
-5. Wybrane fragmenty idą przez łańcuch ``LlmProvider`` (domyślnie ekstrakcyjny); core odrzuca
+   fragmentu poniżej ``minimalny_wynik`` albo udział pojęć pytania w tym fragmencie poniżej
+   ``minimalne_pokrycie`` ⇒ „brak informacji”.
+5. Wybrane fragmenty idą przez łańcuch ``LlmProvider`` z ``asystent.yaml``; core odrzuca
    cytaty bez pokrycia w korpusie i loguje wywołanie.
 
 Każdy cytat ma wyróżnione zdanie (dosłowny podciąg fragmentu) i flagę, gdy objaśnienie
@@ -86,6 +89,7 @@ class KonfiguracjaAsystenta:
     llm: dict[str, Any]
     dlugosc_rdzenia: int = 5
     minimalny_wynik: float = 0.0
+    minimalne_pokrycie: float = 0.0
     prog_faq: float = 1.0
     udzial_nieznanych: float = 0.0
     slowa_pomijane: str = ""
@@ -93,6 +97,7 @@ class KonfiguracjaAsystenta:
     wagi_kategorii: dict[str, float] | None = None
     wagi_dokumentow: dict[str, float] | None = None
     wzorzec_ustawy: str = r"(?!)"
+    wzorzec_pytania_o_ustawe: str = r"(?!)"
     komunikaty: dict[str, str] | None = None
     faq: list[dict] | None = None
 
@@ -110,6 +115,7 @@ class KonfiguracjaAsystenta:
             llm=d["llm"],
             dlugosc_rdzenia=int(d.get("dlugosc_rdzenia", 5)),
             minimalny_wynik=float(d.get("minimalny_wynik", 0.0)),
+            minimalne_pokrycie=float(d.get("minimalne_pokrycie", 0.0)),
             prog_faq=float(d.get("prog_faq", 1.0)),
             udzial_nieznanych=float(d.get("udzial_nieznanych", 0.0)),
             slowa_pomijane=str(d.get("slowa_pomijane", "")),
@@ -117,6 +123,7 @@ class KonfiguracjaAsystenta:
             wagi_kategorii=d.get("wagi_kategorii") or {},
             wagi_dokumentow=d.get("wagi_dokumentow") or {},
             wzorzec_ustawy=d.get("wzorzec_ustawy", r"(?!)"),
+            wzorzec_pytania_o_ustawe=d.get("wzorzec_pytania_o_ustawe", r"(?!)"),
             komunikaty=d.get("komunikaty") or {},
             faq=faq,
         )
@@ -149,6 +156,7 @@ class Asystent:
         self.dziennik = dziennik
         self.dostawcy = dostawcy if dostawcy is not None else z_konfiguracji(konfiguracja.llm)
         self._wzorzec_ustawy = re.compile(konfiguracja.wzorzec_ustawy, re.IGNORECASE)
+        self._pytanie_o_ustawe = re.compile(konfiguracja.wzorzec_pytania_o_ustawe, re.IGNORECASE)
         self._pomijane = set(self._tokeny(konfiguracja.slowa_pomijane))
 
         # Indeks BM25 na rdzeniach skróconych (core nie ma porównania po prefiksie).
@@ -174,6 +182,8 @@ class Asystent:
         brak = OdpowiedzAsystenta(
             pytanie=pytanie, sciezka=sciezka, znaleziono=False, komunikat=self.konf.komunikat_brak
         )
+        if self._pytanie_o_ustawe.search(pytanie):
+            return brak.model_copy(update={"uwagi": [self._kom("brak_ustawy")]})
         rozwiniete, pokryte = self._rozwin(pytanie)
         zapytanie = self._tresc(rozwiniete)
         if not zapytanie:
@@ -188,7 +198,11 @@ class Asystent:
                 return brak.model_copy(update={"nieznane_pojecia": nieznane, "uwagi": [kom]})
 
         ranking = self._ranking(zapytanie, dozwolone)
-        if faq is None and (not ranking or ranking[0][0] < self.konf.minimalny_wynik):
+        if faq is None and (
+            not ranking
+            or ranking[0][0] < self.konf.minimalny_wynik
+            or self._pokrycie(zapytanie, ranking[0][1].tekst) < self.konf.minimalne_pokrycie
+        ):
             return brak
 
         wybrane: list[Fragment] = [faq.fragment] if faq else []
@@ -226,7 +240,7 @@ class Asystent:
                 teksty.setdefault(c.fragment_id, c.cytat)
         if faq is not None and faq.fragment.id not in teksty:
             # Dostawca pominął fragment FAQ (np. brak wspólnych słów); jego cytat jest
-            # sprawdzany w CI (kompas-waliduj), więc pokazujemy fragment w całości.
+            # sprawdzany przy starcie i przez kompas-waliduj, więc pokazujemy fragment w całości.
             teksty = {faq.fragment.id: faq.fragment.tekst, **teksty}
         cytaty = [
             self._cytat(po_id[fid], tekst, zapytanie, faq if faq and fid == faq.fragment.id else None)

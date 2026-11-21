@@ -249,3 +249,14 @@ def test_dostawca_z_konfiguracji_wersji(tmp_path):
         z_konfiguracji(mc)
     with pytest.raises(ValueError, match="nieznany"):
         z_konfiguracji({"dostawcy": [{"typ": "gpt"}]})
+
+
+class DziennikNiezapisywalny:
+    def zapisz(self, wpis):
+        raise OSError("brak miejsca na dysku")
+
+
+def test_blad_zapisu_dziennika_nie_przerywa_odpowiedzi(caplog):
+    wynik = wywolaj(zapytanie(), [Ekstrakcyjny()], DziennikNiezapisywalny(), ZEGAR)
+    assert wynik.dostawca == "ekstrakcyjny" and wynik.odpowiedz.cytaty
+    assert "nie zapisano wpisu dziennika" in caplog.text

@@ -1,9 +1,11 @@
 # Asystent formalny (RAG na lokalnym korpusie).
 #
 # Przebieg (szczegóły: backend/src/kompas_mc/asystent.py):
+#   0. pytanie wskazujące ustawę (`wzorzec_pytania_o_ustawe`) ⇒ „brak informacji” z komunikatem `brak_ustawy`,
 #   1. przygotowany zestaw pytań i odpowiedzi (faq.yaml) w ramach ścieżki,
 #   2. pojęcia pytania nieobecne w korpusie i w FAQ ⇒ „brak informacji” z ich nazwą,
-#   3. ranking BM25 na rdzeniach skróconych do `dlugosc_rdzenia`, z wagą dokumentu,
+#   3. ranking BM25 na rdzeniach skróconych do `dlugosc_rdzenia`, z wagą dokumentu;
+#      poza FAQ najlepszy fragment musi mieć `minimalny_wynik` i `minimalne_pokrycie`,
 #   4. fragmenty idą przez łańcuch LlmProvider (walidacja cytatów w core).
 
 wersja: "asystent-mc-2"
@@ -13,6 +15,9 @@ faq: faq.yaml           # względem tego pliku
 
 dlugosc_rdzenia: 5      # „warunki”/„warunkiem” → ten sam prefiks (stemmer core daje różne rdzenie)
 minimalny_wynik: 4.0    # wynik najlepszego fragmentu (po wagach), poniżej ⇒ „brak informacji”
+# Udział pojęć pytania (po słowniku) obecnych w najlepszym fragmencie; tylko poza FAQ, poniżej ⇒ „brak”.
+# Pomiar 22.11: parafrazy z bazy poza FAQ 0,50–0,86; „Jak zgłosić wypadek przy pracy?” 0,33.
+minimalne_pokrycie: 0.5
 prog_faq: 0.35          # podobieństwo pytania do pozycji FAQ (kosinus ważony idf, 0–1)
 udzial_nieznanych: 0.0  # 0.0 = każde pojęcie spoza korpusu i FAQ blokuje odpowiedź
 
@@ -67,9 +72,13 @@ slownik:
 
 # Fragment objaśnienia, który powołuje przepis ustawy (ustawy nie ma w „materialy mc”).
 wzorzec_ustawy: 'art\.\s*\d+[a-z]*(?:\s*ust\.\s*\d+)?\s*(?:ustawy|u\.s\.c)'
+# Pytanie o ustawę: odmowa przed wyszukiwaniem. Całe formy rzeczownika (nie „ustaw”, bo to też
+# „ustawić”) i skrót u.s.c.
+wzorzec_pytania_o_ustawe: '\bustaw(?:a|y|ie|ę|ą)\b|\bu\.\s*s\.\s*c\b'
 
 komunikaty:
   nieznane_pojecia: 'Tych pojęć nie ma w bazie wiedzy: {pojecia}.'
+  brak_ustawy: Tekstu ustawy o służbie cywilnej nie ma w bazie wiedzy, więc asystent nie cytuje jej przepisów – sprawdź w ustawie.
   ustawa: Fragment poradnika lub arkusza powołuje ustawę o służbie cywilnej, której tekstu nie ma w bazie wiedzy – zweryfikuj w ustawie.
   sugestia: Asystent wskazuje fragmenty źródeł; nie podejmuje decyzji o ocenie.
   faq: Odpowiedź z przygotowanego zestawu pytań i odpowiedzi; podstawą jest cytowany fragment źródła.
@@ -91,9 +100,11 @@ llm:
 reguly:
   - id: asystent.brak-informacji
     opis: >-
-      Gdy pytanie nie pasuje do przygotowanego zestawu pytań i zawiera pojęcie, którego nie ma
-      w korpusie ani w FAQ, albo najlepszy fragment ma wynik poniżej `minimalny_wynik`,
-      asystent odpowiada komunikatem `komunikat_brak` i nazywa brakujące pojęcia.
+      Gdy pytanie wskazuje ustawę, asystent odpowiada komunikatem `komunikat_brak` i uwagą
+      `brak_ustawy`. Gdy pytanie nie pasuje do przygotowanego zestawu pytań i zawiera pojęcie,
+      którego nie ma w korpusie ani w FAQ, albo najlepszy fragment ma wynik poniżej
+      `minimalny_wynik` lub pokrycie pytania poniżej `minimalne_pokrycie`, asystent odpowiada
+      komunikatem `komunikat_brak` i nazywa brakujące pojęcia.
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: >-

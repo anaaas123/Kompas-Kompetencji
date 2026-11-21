@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import urllib.request
@@ -18,6 +19,8 @@ from ..zrodla.korpus import Korpus
 from ..zrodla.model import StatusEkstrakcji, WynikEkstrakcji
 from ..zrodla.walidator import cytat_w_tekscie
 from .model import Odpowiedz, Tryb, WpisLogu, WynikLlm, Zapytanie
+
+_log = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -335,7 +338,8 @@ def wywolaj(
     zegar: Callable[[], datetime] = datetime.now,
 ) -> WynikLlm:
     """Pyta dostawców po kolei; pierwsza poprawna odpowiedź wygrywa. Każda próba
-    trafia do dziennika. Gdy nikt nie odpowie poprawnie: ``BrakOdpowiedzi``.
+    trafia do dziennika; błąd zapisu dziennika idzie do ``logging`` i nie przerywa
+    odpowiedzi. Gdy nikt nie odpowie poprawnie: ``BrakOdpowiedzi``.
     Na końcu listy warto mieć ``Ekstrakcyjny``, który działa zawsze."""
     proby: list[WpisLogu] = []
     for d in dostawcy:
@@ -360,7 +364,10 @@ def wywolaj(
             bledy=bledy,
             odpowiedz=odpowiedz,
         )
-        dziennik.zapisz(wpis)
+        try:
+            dziennik.zapisz(wpis)
+        except Exception:  # noqa: BLE001 - dziennik nie może przerwać odpowiedzi
+            _log.exception("nie zapisano wpisu dziennika LLM (%s)", d.nazwa)
         proby.append(wpis)
         if not bledy:
             return WynikLlm(

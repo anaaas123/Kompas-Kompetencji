@@ -41,19 +41,26 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
   `curl -sS https://api.scaleway.ai/v1/models -H "Authorization: Bearer $SCALEWAY_API_KEY"`.
 - Każda próba, wybrany model, tryb i przyczyna fallbacku trafiają do
   `backend/dane/llm.jsonl`.
-- Gdy najlepszy fragment nie zawiera co najmniej 60% słów pytania, odpowiedź brzmi „brak wystarczających informacji w bazie wiedzy”.
+- Odpowiedź „brak wystarczających informacji w bazie wiedzy” (bez cytatów) pada, gdy:
+  1. pytanie wskazuje ustawę („ustawa”, „ustawy”, „ustawie”, „ustawę”, „ustawą”, „u.s.c.”;
+     `wzorzec_pytania_o_ustawe`), której tekstu nie ma w bazie; uwaga `brak_ustawy` to mówi;
+  2. pytanie nie pasuje do FAQ (`prog_faq`), a zawiera pojęcie spoza korpusu i FAQ
+     (`nieznane_pojecia` w odpowiedzi);
+  3. pytanie nie pasuje do FAQ, a najlepszy fragment ma wynik BM25 poniżej `minimalny_wynik` (4,0)
+     albo zawiera mniej niż `minimalne_pokrycie` (0,5) pojęć pytania.
 - Ścieżka zawęża źródła do dokumentów danej ścieżki i wspólnych (model kompetencji, OSP).
 - Odpowiedź modelu z cytatem bez pokrycia jest odrzucana i uruchamia fallback.
 
 ### Pomiar jakości asystenta
 
 Pomiar używa niezmienianych zestawów `pytania-kontrolne.yaml` oraz
-`pytania-parafrazy.yaml`. Tryb DeepSeek wymaga lokalnego klucza i nie jest
-uruchamiany w testach CI; poniższa tabela nie przypisuje mu wyniku bez pomiaru.
+`pytania-parafrazy.yaml` (`uv run pytest tests/test_asystent_formalny.py -s`).
+Pełny zestaw testów działa offline, więc tryb DeepSeek (wymaga lokalnego klucza)
+nie jest w nim uruchamiany; poniższa tabela nie przypisuje mu wyniku bez pomiaru.
 
 | Tryb | Pytania kontrolne: dokument i cytat | Parafrazy: dokument i cytat | Odmowy spoza bazy |
 |---|---:|---:|---:|
-| Ekstrakcyjny | 22/22 | 16/22 | 6/6 kontrolnych, 4/5 parafraz |
+| Ekstrakcyjny | 22/22 | 16/22 | 6/6 kontrolnych, 5/5 parafraz |
 | DeepSeek `deepseek-v4-flash` | do pomiaru z kluczem | do pomiaru z kluczem | do pomiaru z kluczem |
 
 `GET /api/zrodla` pokazuje dokumenty korpusu, duplikat „Rozporządzenie … (4).pdf” (fragment rozporządzenia z 2016 r., nie osobne źródło) i pliki pominięte.
@@ -149,9 +156,26 @@ uv run kompas-waliduj --manifest ../konfiguracja/korpus.yaml ../konfiguracja/*.y
 ```
 
 Walidator sprawdza każdy element konfiguracji z kluczem `adnotacje`: czy ma
-adnotację i czy cytat występuje dosłownie w korpusie. CI
-(`.github/workflows/mc.yml`) uruchamia go przy każdym pull requeście do `main`.
+adnotację i czy cytat występuje dosłownie w korpusie; przy błędzie kończy się
+kodem 1. Repo nie ma CI: testy i walidator uruchamia się ręcznie.
 
-## Dokładanie źródła
+## Dodanie lub podmiana dokumentu w bazie wiedzy
 
-Dopisz dokument do `konfiguracja/korpus.yaml` (`doc_id`, `plik`, `sciezka`, `kategoria`, `podzial`). Test `test_kazdy_plik_z_materialow_mc_jest_uwzgledniony` pilnuje, żeby każdy plik z `materialy mc/` był źródłem, duplikatem albo świadomie pominięty.
+Bazy wiedzy nie tworzy model: przy każdym starcie API kod czyta pliki z manifestu
+(PDF z warstwą tekstową, DOCX, XLSX; skan bez tekstu dostaje status `BRAK_TEKSTU`).
+
+1. Plik do `materialy mc/`.
+2. Wpis w `konfiguracja/korpus.yaml`: `doc_id`, `doc_version` (np. rok albo data aktu),
+   `nazwa`, `plik`, `sciezka`, `kategoria`, `podzial` (opis pól w nagłówku pliku). Przy podmianie
+   zmień `doc_version`.
+3. Restart API (`uv run kompas-mc`). Gdy cytatu z `faq.yaml` nie ma w nowym tekście,
+   API nie wstaje i podaje identyfikator pozycji FAQ.
+4. Walidator: `uv run kompas-waliduj --manifest ../konfiguracja/korpus.yaml ../konfiguracja/*.yaml`,
+   wynik 0 błędów.
+5. Testy asystenta: `uv run pytest tests/test_asystent_formalny.py -s`; zestaw kontrolny
+   22/22, parafrazy i odmowy nie gorzej niż w tabeli wyżej. Nowe słownictwo zmienia
+   progi (`minimalny_wynik`, `minimalne_pokrycie`, `prog_faq`), więc mierzy się je od nowa.
+6. Panel Źródła (konto `hr`): dokument na liście ze statusem ekstrakcji `OK`.
+
+Test `test_kazdy_plik_z_materialow_jest_uwzgledniony` (`tests/test_izolacja.py`) pilnuje,
+żeby każdy plik z `materialy mc/` był źródłem, duplikatem albo świadomie pominięty.

@@ -219,6 +219,30 @@ def test_nieznane_pojecie_jest_nazwane(asystent):
     assert any("mobbing" in u for u in odp.uwagi)
 
 
+@pytest.mark.parametrize("pytanie", [
+    "Co mówi art. 81 ustawy o służbie cywilnej?",
+    "Jaki termin sprzeciwu podaje u.s.c.?",
+])
+def test_pytanie_o_ustawe_daje_brak_ustawy(asystent, pytanie):
+    odp = asystent.odpowiedz(pytanie, "okresowa")
+    assert odp.znaleziono is False and odp.cytaty == []
+    assert odp.uwagi == [asystent.konf.komunikaty["brak_ustawy"]]
+    assert "ustawy" in odp.uwagi[0]
+
+
+def test_slowo_ustawic_nie_jest_pytaniem_o_ustawe(asystent):
+    assert not asystent._pytanie_o_ustawe.search("Jak ustawić termin rozmowy?")
+    odp = asystent.odpowiedz("Kiedy przeprowadza się rozmowę wstępną?", "pierwsza")
+    assert odp.znaleziono and odp.cytaty[0].lokalizator == "§ 3"
+    assert odp.cytaty[0].doc_id == "rozp-2015-pierwsza"
+
+
+def test_slabe_pokrycie_pytania_poza_faq_daje_brak(asystent):
+    # Słowa są w korpusie („na wypadek braku porozumienia”), więc tylko pokrycie to łapie.
+    odp = asystent.odpowiedz("Jak zgłosić wypadek przy pracy?")
+    assert odp.znaleziono is False and odp.cytaty == [] and odp.nieznane_pojecia == []
+
+
 # --- przygotowany zestaw pytań i odpowiedzi ---------------------------------------------
 
 
