@@ -72,6 +72,17 @@ export interface Pracownik {
   data_zatrudnienia: string;
   rodzaj_umowy: "nieokreslony" | "okreslony";
   ostatnia_ocena_okresowa: { data: string; wynik: "pozytywna" | "negatywna" } | null;
+  data_konca_zatrudnienia?: string | null;
+  zmiana_oceniajacego?: { data: string; poprzedni_przelozony: string } | null;
+  pierwsza_ocena?: {
+    egzamin_sluzba_przygotowawcza: "zaliczony" | "nie_dotyczy" | "brak";
+    rozmowa_wstepna: string | null;
+    uzgodnienie_zastepstwa: string | null;
+  } | null;
+  absolwent_ksap?: boolean;
+  wniosek_o_mianowanie?: boolean | null;
+  zastepstwo?: boolean;
+  nieobecnosci?: { od: string; do: string; rodzaj: string }[];
 }
 
 const autoryzacja = (token: string) => ({ authorization: `Bearer ${token}` });
@@ -204,6 +215,35 @@ export const pobierzKrok1 = (token: string, osobaId: string) =>
 
 export const pobierzProcesy = (token: string) =>
   fetch("/api/procesy", { headers: autoryzacja(token) }).then((r) => json<ProcesOceny[]>(r));
+
+/** Najbliższy termin procesu (te same wiersze co panel HR, bez treści ocen). */
+export interface TerminProcesu {
+  proces_id: number;
+  osoba_id: string;
+  osoba: string;
+  sciezka: Sciezka;
+  krok: number;
+  status: string;
+  najblizszy_termin: { nazwa: string; data: string; adnotacje: SourceRef[] } | null;
+  dni_do_terminu: number | null;
+  zagrozony: boolean;
+}
+
+export const pobierzTerminy = (token: string) =>
+  fetch("/api/terminy", { headers: autoryzacja(token) }).then((r) => json<TerminProcesu[]>(r));
+
+export interface Notatka {
+  id: number;
+  osoba_id: string;
+  autor: string;
+  tresc: string;
+  czas: string;
+}
+
+export const pobierzNotatki = (token: string, osobaId: string) =>
+  fetch(`/api/pracownicy/${encodeURIComponent(osobaId)}/notatki`, { headers: autoryzacja(token) }).then((r) =>
+    json<Notatka[]>(r),
+  );
 
 export async function rozpocznijProces(
   token: string,

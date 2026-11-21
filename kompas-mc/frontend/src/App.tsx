@@ -11,6 +11,8 @@ import type { Pracownik, ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
 import { Pulpit } from "./Pulpit";
+import { Zespol } from "./Zespol";
+import { KartaPracownika } from "./KartaPracownika";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
@@ -22,6 +24,8 @@ export default function App() {
   const [widok, setWidok] = useState<Widok>("pulpit");
   const [asystent, setAsystent] = useState(false);
   const [pytanie, setPytanie] = useState<{ id: number; tekst: string } | null>(null);
+  // Karta pracownika otwiera się przed krokiem 1; „Następny krok” na karcie ustawia ocenianego.
+  const [karta, setKarta] = useState<Pracownik | null>(null);
   const [oceniany, setOceniany] = useState<Pracownik | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
   const [etap, setEtap] = useState<Etap>("krok2");
@@ -40,6 +44,7 @@ export default function App() {
     setSesja(null);
     setWidok("pulpit");
     setAsystent(false);
+    setKarta(null);
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
@@ -48,6 +53,7 @@ export default function App() {
   // Wybór pozycji menu zamyka otwartą ocenę i wraca do listy.
   const przejdz = useCallback((w: Widok) => {
     setWidok(w);
+    setKarta(null);
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
@@ -145,11 +151,28 @@ export default function App() {
           onWstecz={() => setEtap("wynik")}
         />
       )}
-      {!oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
-      {!oceniany && widok === "pulpit" && (
-        <Pulpit sesja={sesja} onWybierz={setOceniany} onZapytaj={zapytajAsystenta} onWyloguj={wyloguj} />
+      {karta && !oceniany && (
+        <KartaPracownika
+          sesja={sesja}
+          osoba={karta}
+          onWroc={() => setKarta(null)}
+          onOcen={() => setOceniany(karta)}
+          onZapytaj={zapytajAsystenta}
+          onWyloguj={wyloguj}
+        />
       )}
-      {!oceniany && widok === "pracownicy" && <Pracownicy sesja={sesja} onWyloguj={wyloguj} onWybierz={setOceniany} />}
+      {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
+      {!karta && !oceniany && widok === "pulpit" && (
+        <Pulpit
+          sesja={sesja}
+          onWybierz={setKarta}
+          onZapytaj={zapytajAsystenta}
+          onWyloguj={wyloguj}
+          onZespol={() => przejdz("zespol")}
+        />
+      )}
+      {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onWybierz={setKarta} />}
+      {!karta && !oceniany && widok === "pracownicy" && <Pracownicy sesja={sesja} onWyloguj={wyloguj} onWybierz={setKarta} />}
     </Powloka>
   );
 }

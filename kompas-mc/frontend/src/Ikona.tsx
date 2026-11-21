@@ -10,6 +10,9 @@ const SCIEZKI = {
   szukaj: "M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm9 16-4-4",
   pytanie: "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17.2v.3",
   gora: "M12 19V5M6 11l6-6 6 6",
+  wstecz: "m15 6-6 6 6 6",
+  dokument: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 16.5h4",
+  ok: "m5 12.5 4.5 4.5L19 7",
 } as const;
 
 export type NazwaIkony = keyof typeof SCIEZKI;
