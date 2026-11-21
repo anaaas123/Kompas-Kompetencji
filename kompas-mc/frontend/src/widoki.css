@@ -1,15 +1,5 @@
 /* Pulpit, Zespół i karta pracownika: tylko tokeny --k-*, --t-*, --o-*, --r-* (ciemny tryb działa sam). */
 
-/* Pulpit: jedna wyśrodkowana kolumna, pole zapytania przyklejone do samego dołu ekranu. */
-.pulpit-srodek {
-  max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--o-32);
-  min-height: calc(100vh - var(--o-32) - var(--o-64)); padding-top: var(--o-16);
-}
-.pasek-dol {
-  position: sticky; bottom: 0; z-index: 50; margin-top: auto; margin-bottom: calc(-1 * var(--o-64));
-  padding: var(--o-16) 0 var(--o-24); background: var(--k-canvas);
-}
-
 /* Kafel z liczbą: etykieta cicho, liczba dominuje, pod nią podstawa. */
 .kafle { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--o-12); }
 .kafel {
@@ -52,11 +42,6 @@ button.kafel:active { background: var(--k-wiersz-pressed); }
 .postep span { flex: 1; height: var(--o-6); border-radius: 999px; background: var(--k-neutral-bg); }
 .postep span.zrobiony { background: var(--k-success-pelny); }
 .postep span.biezacy { background: var(--k-action); }
-
-@media (max-width: 760px) {
-  .pulpit-srodek { min-height: calc(100vh - var(--o-16) - var(--o-32) - var(--o-64) - var(--o-8)); }
-  .pasek-dol { bottom: calc(var(--o-64) + var(--o-8)); margin-bottom: calc(-1 * var(--o-32)); }
-}
 
 @media (hover: hover) and (pointer: fine) {
   button.kafel:not(:disabled):hover { background: var(--k-wiersz-hover); }
