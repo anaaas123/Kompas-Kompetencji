@@ -25,3 +25,17 @@ regula:
         Materiały MC nie opisują celów rozwojowych poza wnioskami do IPRZ. Spec #2: cele należą
         do pracownika, akceptuje je przełożony, a asystent tylko proponuje.
       zatwierdził: Hubert Nowak
+
+# Podpowiedzi celów z LLM i RAG (#12). Łańcuch dostawców jak w asystencie formalnym
+# (asystent.yaml), bez dostawcy ekstrakcyjnego, który nie układa celów. Gdy LLM zawiedzie
+# albo żaden cel nie przejdzie walidacji, API zwraca podpowiedzi regułowe.
+llm:
+  wersja: cele-smart-1
+  maks_celow: 3
+  # Strony poradników o wnioskach rozwojowych i IPRZ dołączane do każdego zapytania
+  # (obok fragmentów modelu kompetencji dla ocenionych wskaźników).
+  zrodla:
+    - poradnik-okresowa#s29        # 6.2.5.4 Wnioski do IPRZ
+    - poradnik-okresowa#s41        # przykład arkusza: wnioski do IPRZ
+    - poradnik-okresowa#s44        # przykład arkusza: wnioski do IPRZ
+    - poradnik-pierwsza@2016#s33   # 6.5.4 wnioski dotyczące rozwoju zawodowego
