@@ -37,7 +37,7 @@
 .kategoria.zasada { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
 
 /* Kroki 3–5: jedna kolumna, oś postępu u góry, jeden wskaźnik na ekran; ocena kryterium pod ostatnim wskaźnikiem. */
-.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); max-width: 1040px; }
+.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); }
 .oc-ekran, .oc-kryterium { display: flex; flex-direction: column; gap: var(--o-24); }
 .oc-ekran > p, .oc-kryterium > p { margin: 0; }
 .oc-kryterium { gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
@@ -89,7 +89,7 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .oc-licznik { margin: 0 0 0 auto; font-variant-numeric: tabular-nums; }
 
 /* Postęp (wzór formularzy administracji): „Kryterium X z N”, cienki pasek odcinków, plan po rozwinięciu. */
-.oc-os { display: flex; flex-direction: column; gap: var(--o-8); max-width: 1040px; }
+.oc-os { display: flex; flex-direction: column; gap: var(--o-8); }
 .oc-os-glowa { display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-16); }
 .oc-os-krok { margin: 0; font-weight: var(--f-semibold); }
 .oc-os-krok .meta { font-weight: var(--f-regular); }
@@ -158,3 +158,6 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 /* Krok 6: pytania w zwijanych grupach */
 label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }
 label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var(--c-field); }
+
+/* Pełna szerokość kolumny (Karol 23:29: „wykorzystujcie szerokość”), proza najwyżej 75 znaków w linii. */
+.oc-zadania, .oc-pytanie p, .k1-streszczenie, .k1-blok > p, .k1-szczegoly p, .k1-zadania, .oc-kryterium > p { max-width: 75ch; }
