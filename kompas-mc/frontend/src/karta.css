@@ -39,7 +39,7 @@ button.etap:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2
 .braki-karty ul { margin: 0; padding: 0 var(--o-16) var(--o-12) var(--o-32); font-size: var(--t-small-r); line-height: var(--t-small-l); }
 
 /* Samoocena (#83): rozbieżności do omówienia jedną wyraźną linią w tonie uwagi; bez rozbieżności – zwykły tekst. */
-.linia-samooceny { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); color: var(--k-text-secondary); }
+.linia-samooceny { display: block; margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); color: var(--k-text-secondary); }
 .linia-samooceny.do-omowienia { padding: var(--o-8) var(--o-12); border-radius: var(--r-wiersz); background: var(--k-attention-bg); color: var(--k-attention-text); }
 .linia-samooceny strong { color: inherit; }
 
