@@ -247,6 +247,14 @@ def test_oceniany_widzi_pierwsza_ocene_dopiero_po_sporzadzeniu(api_pierwszej):
     assert klient.get(url, headers=oceniany).status_code == 403
     assert klient.get(f"{url}/arkusz.pdf", headers=oceniany).status_code == 403
     assert klient.get(url, headers=h).status_code == 200
+    # Przekazanie samooceny (okresowa ją ma) nie może odsłonić punktów pierwszej oceny inną drogą (/ocena, wynik).
+    samo = klient.get(f"{proces}/samoocena", headers=oceniany)
+    if samo.status_code == 200:
+        wskazniki = {w["wskaznik_id"]: {"poziom": 5} for w in samo.json()["wskazniki"]}
+        klient.put(f"{proces}/samoocena", headers=oceniany, json={"wskazniki": wskazniki})
+        klient.post(f"{proces}/samoocena/przekaz", headers=oceniany)
+    assert klient.get(f"{proces}/ocena", headers=oceniany).status_code == 403
+    assert klient.get(url, headers=oceniany).status_code == 403
 
 
 def test_zakonczenie_pierwszej_oceny(api_pierwszej):
