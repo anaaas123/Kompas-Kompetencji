@@ -12,7 +12,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tresc { min-width: 0; padding: var(--o-32) var(--o-48) var(--o-64); }
 /* Szeroki ekran (#69): do 1680 px treść zajmuje całą szerokość; długość wiersza ogranicza sam tekst, nie kolumna. */
 .kolumna { max-width: 1680px; margin: 0 auto; container-type: inline-size; }
-main.logowanie { max-width: 560px; margin: 0 auto; padding: var(--o-64) var(--o-24); }
+/* Logowanie: karta na środku ekranu w pionie i poziomie (1024–1920). */
+main.logowanie { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--o-32) var(--o-24); background: var(--k-canvas); }
 .ikona { flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
 .menu { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-24) var(--o-16); border-right: 1px solid var(--k-line); background: var(--k-surface); }
@@ -58,10 +59,19 @@ button.ikona-przycisk:active { background: var(--k-wiersz-pressed); }
 @keyframes szkielet { from { opacity: 1; } to { opacity: 0.5; } }
 
 /* Logowanie: wydra wita, formularz w jednej kolumnie */
-.logowanie-karta { display: flex; flex-direction: column; align-items: center; gap: var(--o-16); text-align: center; }
+.logowanie-karta { display: flex; flex-direction: column; gap: var(--o-24); width: 100%; max-width: 440px; padding: var(--o-32); border-radius: var(--r-card); background: var(--k-surface); border: 1px solid var(--k-line-subtle); }
+.logowanie-glowa { display: flex; flex-direction: column; align-items: center; gap: var(--o-8); text-align: center; }
+.logowanie-glowa h1 { margin: 0; }
 .logowanie-karta h1 { font-size: var(--t-title-r); line-height: var(--t-title-l); }
+.logowanie-formularz label.etykieta { display: flex; flex-direction: column; gap: var(--o-8); }
+.logowanie-formularz .blad { margin: 0; }
+.logowanie-demo { display: flex; flex-direction: column; gap: var(--o-8); padding-top: var(--o-16); border-top: 1px solid var(--k-line-subtle); }
+.logowanie-demo p { margin: 0; }
+.logowanie-demo ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-4) var(--o-16); }
+.logowanie-demo li { display: flex; align-items: baseline; gap: var(--o-8); min-height: 44px; }
+.logowanie-demo button.link { min-height: 44px; }
 .logowanie-karta .opis { margin: 0; }
-.logowanie-formularz { display: flex; flex-direction: column; gap: var(--o-12); width: 100%; max-width: 400px; }
+.logowanie-formularz { display: flex; flex-direction: column; gap: var(--o-16); width: 100%; }
 .logowanie-formularz button { width: 100%; }
 
 
@@ -292,3 +302,5 @@ html.motyw-przejscie, html.motyw-przejscie * {
   .tylko-komputer h1 { margin: 0; font-size: var(--t-title-r); line-height: var(--t-title-l); }
   .tylko-komputer p { margin: 0; color: var(--k-text-secondary); }
 }
+/* Tytuł ekranów HR złożonych z kilku sekcji (Procesy i terminy, Źródła i braki). */
+.tytul-widoku { margin: 0 0 var(--o-16); }

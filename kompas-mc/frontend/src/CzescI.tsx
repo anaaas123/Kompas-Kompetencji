@@ -35,7 +35,10 @@ export function ZakonczenieCzesciI({
   onPracownik: () => void;
 }) {
   const naKoncuOkresu = cykl?.etap === "ocena";
-  const [dataZapoznania, setData] = useState<string | null>(wybor.zapoznanie ?? new Date().toLocaleDateString("sv-SE"));
+  // Na początku okresu rozmowa jest dziś; na końcu okresu data pochodzi z podpisanej części I i wyznacza
+  // początek okresu w arkuszu („od”), więc pole startuje puste, zamiast podsuwać dzisiejszą datę.
+  const [wpisana, setData] = useState<string | null>(wybor.zapoznanie ?? null);
+  const dataZapoznania = wpisana ?? (naKoncuOkresu ? null : new Date().toLocaleDateString("sv-SE"));
   const [czekam, setCzekam] = useState(false);
   const [drukuje, setDrukuje] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
@@ -105,7 +108,11 @@ export function ZakonczenieCzesciI({
         </p>
       ) : (
         moznaProwadzic && (
-          <PoleDaty nazwa="Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)" wartosc={dataZapoznania} onZmiana={setData} />
+          <PoleDaty
+            nazwa={naKoncuOkresu ? "Data zapoznania z kryteriami z podpisanej części I (§ 6 ust. 2)" : "Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)"}
+            wartosc={dataZapoznania}
+            onZmiana={setData}
+          />
         )
       )}
       {blad && <p className="blad">{blad}</p>}
