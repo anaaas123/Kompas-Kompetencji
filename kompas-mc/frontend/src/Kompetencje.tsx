@@ -101,11 +101,15 @@ export function MapaKompetencji({
   mapa,
   ludzie,
   onWybierz,
+  czesc,
 }: {
   mapa: Mapa;
   /** Osoby w wybranej komórce (zakres Zespołu); mapa pokazuje tylko je. */
   ludzie: Pracownik[];
   onWybierz?: (p: Pracownik) => void;
+  /** Pulpit (zgłoszenie 110): „wnioski” = do rozwoju i mocna strona w prawej kolumnie, „szczegoly” = średnie i tabela pod spodem;
+   *  bez = całość (Zespół). */
+  czesc?: "wnioski" | "szczegoly";
 }) {
   const poId = new Map(ludzie.map((p) => [p.osoba_id, p]));
   const osoby = mapa.osoby.filter((o) => poId.has(o.osoba_id));
@@ -115,12 +119,13 @@ export function MapaKompetencji({
   const pokazRozbieznosci = osoby.some((o) => o.rozbieznosci !== null);
 
   return (
-    <section className="mapa-kompetencji">
-      <h2>Kompetencje zespołu</h2>
+    <section className={`mapa-kompetencji${czesc ? ` mapa-${czesc}` : ""}`}>
+      <h2>{czesc === "szczegoly" ? "Kompetencje zespołu: kryteria i osoby" : "Kompetencje zespołu"}</h2>
       {osoby.length === 0 ? (
         <p className="meta zero">Nikt w tej komórce nie ma jeszcze oceny z punktami za kryteria.</p>
       ) : (
         <>
+          {czesc !== "szczegoly" && (
           <div className="wnioski-mapy">
             {slabe && (
               <p className="wniosek do-rozwoju">
@@ -137,7 +142,10 @@ export function MapaKompetencji({
               </p>
             )}
           </div>
-          <ProfilKompetencji mapa={mapa} osoby={osoby} kryteria={kryteria} />
+          )}
+          {czesc !== "wnioski" && <ProfilKompetencji mapa={mapa} osoby={osoby} kryteria={kryteria} />}
+          {czesc !== "wnioski" && (
+          <>
           <div className="tabela-mapy" role="region" aria-label="Mapa kompetencji: osoby i kryteria" tabIndex={0}>
             <table>
               <thead>
@@ -194,6 +202,8 @@ export function MapaKompetencji({
               {bez > 0 && ` Bez oceny z punktami: ${osobyTxt(bez)}.`}
             </span>
           </p>
+          </>
+          )}
         </>
       )}
     </section>
