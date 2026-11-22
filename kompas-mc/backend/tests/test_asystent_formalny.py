@@ -191,6 +191,27 @@ def test_z_kluczem_poprawna_odpowiedz_deepseek_ma_tryb_na_zywo(
     assert odp.dostawca == "openai_zgodny"
 
 
+def test_zmyslona_liczba_w_tresci_modelu_nie_przechodzi(korpus_mc, ustawienia, tmp_path, monkeypatch):
+    """Helix G3 (3): prawdziwy cytat, ale treść z liczbą spoza fragmentów → odrzucenie i tryb bez modelu."""
+    monkeypatch.setenv("SCALEWAY_API_KEY", "testowy-klucz")
+
+    def zmyslacz(url, dane, naglowki, timeout):
+        tresc = dane["messages"][1]["content"]
+        fragment_id, fragment = re.search(r"\[([^]]+)]\n(.+?)(?:\n\n\[|\n\nPYTANIE:)", tresc, re.DOTALL).groups()
+        return {"choices": [{"message": {"content": __import__("json").dumps({
+            "cytaty": [{"fragment_id": fragment_id, "cytat": fragment}], "wybor": [],
+            "tresc": "Termin na sprzeciw wynosi 99 dni.",
+        })}}]}
+
+    monkeypatch.setattr(modul_dostawcy, "_post_json", zmyslacz)
+    asystent = Asystent(
+        korpus_mc, KonfiguracjaAsystenta.z_pliku(KONF / "asystent.yaml"), DziennikJsonl(tmp_path / "llm.jsonl"),
+    )
+    odp = asystent.odpowiedz("Ile dni ma pracownik na sprzeciw od oceny okresowej?", "okresowa")
+    assert "99" not in (odp.tresc or "")
+    assert odp.dostawca != "openai_zgodny"
+
+
 # --- jakość odpowiedzi -----------------------------------------------------------------
 
 

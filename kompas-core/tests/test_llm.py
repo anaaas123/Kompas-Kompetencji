@@ -82,6 +82,9 @@ def test_poprawna_odpowiedz_na_zywo_z_lamaniem_wiersza_jest_przyjeta():
     (Odpowiedz(cytaty=[Cytat(fragment_id="rozp#1", cytat="Ocena jest negatywna")], wybor=["k99"]),
      "spoza katalogu"),
     (Odpowiedz(cytaty=[]), "brak cytatów"),
+    # Helix G3 (3): prawdziwy cytat, zmyślona liczba w treści.
+    (Odpowiedz(cytaty=[Cytat(fragment_id="ustawa#1", cytat="Odwołanie wnosi się w terminie 7 dni")],
+               tresc="Termin na sprzeciw wynosi 99 dni."), "liczby w treści bez pokrycia"),
 ])
 def test_sprawdz_odpowiedz(odp, blad):
     assert any(blad in b for b in sprawdz_odpowiedz(zapytanie(katalog=["k1"]), odp))
@@ -260,3 +263,10 @@ def test_blad_zapisu_dziennika_nie_przerywa_odpowiedzi(caplog):
     wynik = wywolaj(zapytanie(), [Ekstrakcyjny()], DziennikNiezapisywalny(), ZEGAR)
     assert wynik.dostawca == "ekstrakcyjny" and wynik.odpowiedz.cytaty
     assert "nie zapisano wpisu dziennika" in caplog.text
+
+
+def test_liczby_z_fragmentu_i_numery_listy_przechodza():
+    """Liczby z cytowanego fragmentu i z pytania są dozwolone; numer punktu listy nie jest twierdzeniem."""
+    odp = Odpowiedz(cytaty=[Cytat(fragment_id="ustawa#1", cytat="Odwołanie wnosi się w terminie 7 dni")],
+                    tresc="1. Odwołanie wnosi się w ciągu 7 dni.\n2. Liczy się od zapoznania z oceną (art. 83).")
+    assert sprawdz_odpowiedz(zapytanie(pytanie="art. 83 odwołanie"), odp) == []
