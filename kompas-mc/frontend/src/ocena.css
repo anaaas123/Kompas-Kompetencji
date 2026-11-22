@@ -1,0 +1,182 @@
+/* Ocena przełożonego (#46): krok 1 „zanim ocenisz” i kroki 3–5 prowadzone pytaniami. Wiersze jak w mObywatelu
+   (--k-wiersz, promień 8), układ dwóch kolumn i kolumna boczna z krok2.css. style.css ładuje się po tym pliku,
+   więc reguły dla przycisków mają selektor mocniejszy niż globalne `button`. */
+
+/* Krok 1 */
+.k1-glowna { gap: var(--o-32); }
+.k1-streszczenie { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); }
+.k1-blok { display: flex; flex-direction: column; gap: var(--o-8); }
+.k1-blok > p { margin: 0; }
+.k1-decyzja { display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.k1-decyzja p { margin: 0; }
+.k1-tytul { margin: 0; font-size: var(--t-section-r); line-height: var(--t-section-l); font-weight: var(--f-semibold); }
+.k1-blok button.link.k1-rozwin, .oc-ekran button.link.oc-brak { align-self: flex-start; min-height: 44px; white-space: normal; text-align: left; }
+.k1-szczegoly { display: flex; flex-direction: column; gap: var(--o-8); padding-left: var(--o-16); border-left: 2px solid var(--k-line); }
+.k1-szczegoly .przeslanki { margin: 0; }
+.k1-szczegoly > p { margin: 0; }
+.k1-wiersze { margin: 0; display: flex; flex-direction: column; gap: var(--o-4); }
+.k1-wiersze > div { display: flex; flex-direction: column; gap: var(--o-4); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.k1-wiersze dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
+.k1-wiersze dd { margin: 0; display: flex; flex-wrap: wrap; gap: var(--o-4) var(--o-12); }
+.k1-zadania { margin: 0; padding-left: var(--o-24); display: flex; flex-direction: column; gap: var(--o-8); }
+.k1-zadania.skrocone .k1-zadanie { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.k1-start { display: flex; flex-direction: column; gap: var(--o-12); margin: 0; }
+.k1-start .meta { margin: 0; }
+.k1-start .wybor { display: flex; flex-direction: column; border-radius: var(--r-wiersz); }
+.k1-start .wybor button { width: 100%; min-height: 44px; border-radius: var(--r-sm); white-space: normal; text-align: left; }
+.k1-start label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
+
+/* Poprzednia ocena: punkty za kryteria jako pięć segmentów skali 1–9. */
+.poprzednia-glowa { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--o-8); }
+.poprzednia { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.poprzednia li { display: grid; grid-template-columns: minmax(0, 1fr) auto 56px; align-items: center; gap: var(--o-16); min-height: 44px; padding: var(--o-8) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.skala-pasek { display: flex; gap: var(--o-2); }
+.skala-pasek span { width: 20px; height: 8px; border-radius: var(--r-xs); background: var(--k-chart-track); }
+.skala-pasek span.pelny { background: var(--k-link); }
+.poprzednia-pkt { text-align: right; font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kategoria.zasada { border-color: transparent; background: var(--k-attention-bg); color: var(--k-attention-text); }
+
+/* Kroki 3–5: jedna kolumna, oś postępu u góry, jeden wskaźnik na ekran; ocena kryterium pod ostatnim wskaźnikiem. */
+.oc-kolumna { display: flex; flex-direction: column; gap: var(--o-24); }
+.oc-ekran, .oc-kryterium { display: flex; flex-direction: column; gap: var(--o-24); }
+.oc-ekran > p, .oc-kryterium > p { margin: 0; }
+.oc-kryterium { gap: var(--o-16); padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-glowa { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-glowa p { margin: 0; }
+.oc-tytul { font-size: var(--t-section-r); line-height: var(--t-section-l); }
+.oc-zadania { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+
+/* Ramka „Przypomnij sobie sytuację” (makieta v2): ikona, tytuł, pytanie do rozmowy. */
+.oc-pytanie { display: flex; align-items: flex-start; gap: var(--o-12); padding: var(--o-16) var(--o-20); border-radius: var(--r-wiersz); background: var(--k-info-bg); color: var(--k-text); }
+.oc-pytanie > .ikona { margin-top: var(--o-2); color: var(--k-link); }
+.oc-pytanie > div { display: flex; flex-direction: column; gap: var(--o-4); min-width: 0; }
+.oc-pytanie p { margin: 0; }
+.oc-pytanie-tytul { font-weight: var(--f-semibold); }
+label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8); }
+
+/* Pięć równych kafli poziomów z opisem pod etykietą; wybrany: ramka i znacznik. */
+.oc-obserwacja { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-obserwacja > .etykieta { margin: 0; }
+.oc-kafle { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--o-8); }
+.oc-kafle button.oc-kafel {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-8); min-height: 0; height: 100%; padding: var(--o-16) var(--o-12);
+  border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  text-align: left; white-space: normal; font-weight: var(--f-regular);
+  transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
+}
+.oc-kafle button.oc-kafel[aria-checked="true"] { border-color: var(--k-link); background: var(--k-surface); }
+.oc-kafle button.oc-kafel:active { background: var(--k-wiersz-pressed); transform: scale(var(--ruch-wcisniecie-skala)); }
+.oc-kafle button.oc-kafel:disabled { color: var(--k-text); cursor: default; }
+.oc-kafel-etykieta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-4) var(--o-8); font-weight: var(--f-semibold); }
+.oc-kafel[aria-checked="true"] .oc-kafel-etykieta { color: var(--k-link); }
+.oc-kafel-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.oc-pod-kaflami { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); }
+.oc-pod-kaflami .meta { margin: 0; }
+@media (max-width: 760px) {
+  .oc-kafle { grid-template-columns: minmax(0, 1fr); }
+}
+
+.oc-podstawa { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-podstawa li { display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-12) var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.oc-poziom { flex: none; font-weight: var(--f-semibold); white-space: nowrap; }
+@media (max-width: 760px) { .oc-podstawa li { flex-direction: column; align-items: flex-start; gap: var(--o-4); } }
+.oc-sugestia { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--o-8); }
+.oc-sugestia strong { font-size: var(--t-value-r); line-height: var(--t-value-l); }
+
+.oc-nawigacja { position: sticky; bottom: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: var(--o-16); padding: var(--o-16) 0; border-top: 1px solid var(--k-line); background: var(--k-canvas); }
+@media (max-width: 760px) { .oc-nawigacja { bottom: calc(var(--o-64) + var(--o-8)); } }
+.oc-nawigacja button.link { min-height: 44px; }
+.oc-licznik { margin: 0 0 0 auto; font-variant-numeric: tabular-nums; }
+
+/* Postęp (wzór formularzy administracji): „Kryterium X z N”, cienki pasek odcinków, plan po rozwinięciu. */
+.oc-os { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-os-glowa { display: flex; justify-content: space-between; align-items: baseline; gap: var(--o-16); }
+.oc-os-krok { margin: 0; font-weight: var(--f-semibold); }
+.oc-os-krok .meta { font-weight: var(--f-regular); }
+.oc-os-glowa button.link { min-height: 44px; white-space: nowrap; }
+.oc-os-pasek { display: flex; gap: var(--o-8); }
+.oc-os-grupa { display: flex; gap: var(--o-2); flex-basis: 0; }
+.oc-os-odcinek { flex: 1; height: 6px; border-radius: 999px; background: var(--k-chart-track); transition: background-color var(--ruch-szybki) var(--ruch-krzywa); }
+.oc-os-odcinek.pelny { background: var(--k-link); }
+.oc-os-odcinek.biezacy { box-shadow: 0 0 0 2px var(--k-canvas), 0 0 0 3px var(--k-link); }
+.oc-os-lista { margin: var(--o-8) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--o-4); }
+.oc-os-lista button {
+  display: flex; align-items: center; gap: var(--o-12); width: 100%; min-height: 48px; padding: var(--o-8) var(--o-12);
+  border: 0; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text); text-align: left; white-space: normal; font-weight: var(--f-regular);
+}
+.oc-os-lista button[aria-current="step"] { color: var(--k-link); font-weight: var(--f-semibold); }
+.oc-os-lista button:active { background: var(--k-wiersz-pressed); }
+.oc-os-lista .meta { margin: 0 0 0 auto; flex: none; font-variant-numeric: tabular-nums; }
+.oc-os-nr { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--k-line-control); border-radius: 999px; font-size: var(--t-small-r); line-height: var(--t-small-l); font-variant-numeric: tabular-nums; }
+.oc-os-nr.gotowe { border-color: var(--k-success-pelny); background: var(--k-success-pelny); color: var(--k-canvas); }
+.oc-os-nazwa { min-width: 0; }
+.oc-tytul:focus, .oc-tytul:focus-visible { outline: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .oc-kafle button.oc-kafel:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-kafle button.oc-kafel[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
+  .oc-os-lista button:not(:disabled):hover { background: var(--k-wiersz-hover); }
+}
+.oc-kafle button.oc-kafel:focus-visible, .oc-os-lista button:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+
+/* Ruch: wejście ekranu i bloku, zwijane wejście i wyjście; tylko opacity i transform. */
+@keyframes oc-wejscie { from { opacity: 0; transform: translateY(var(--o-8)); } }
+@keyframes oc-rozwin { from { opacity: 0; transform: translateY(calc(-1 * var(--o-4))); } }
+@keyframes oc-zwin { to { opacity: 0; transform: translateY(calc(-1 * var(--o-4))); } }
+.oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna { animation: oc-wejscie 280ms cubic-bezier(0.2, 0.8, 0, 1) both; }
+.oc-kryterium { animation-delay: 40ms; }
+.zwijane { animation: oc-rozwin 200ms cubic-bezier(0.2, 0.8, 0, 1) both; }
+.zwijane.zamyka { animation: oc-zwin 160ms ease forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .oc-ekran, .oc-kryterium, .k1-glowna, .k2-boczna, .zwijane, .zwijane.zamyka { animation: none; }
+  .oc-kafle button.oc-kafel, .oc-os-odcinek { transition: none; }
+  .oc-kafle button.oc-kafel:active { transform: none; }
+}
+
+/* Punkty kryterium: równe kafle z liczbą, znaczeniem i znacznikiem sugestii (sugestia nic nie zaznacza). */
+.oc-punkty { display: grid; grid-template-columns: repeat(var(--kolumny, 5), minmax(0, 1fr)); gap: var(--o-8); }
+.oc-punkty button.oc-punkt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-4); min-height: 64px; height: 100%; padding: var(--o-12);
+  border: 2px solid transparent; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  text-align: left; white-space: normal; font-weight: var(--f-regular);
+  transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
+}
+.oc-punkty button.oc-punkt[aria-checked="true"] { border-color: var(--k-link); background: var(--k-surface); }
+.oc-punkty button.oc-punkt:active { background: var(--k-wiersz-pressed); transform: scale(var(--ruch-wcisniecie-skala)); }
+.oc-punkty button.oc-punkt:disabled { color: var(--k-text); cursor: default; }
+.oc-punkt-liczba { display: flex; align-items: center; gap: var(--o-4); font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; }
+.oc-punkt[aria-checked="true"] .oc-punkt-liczba { color: var(--k-link); }
+.oc-punkt-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+@media (hover: hover) and (pointer: fine) {
+  .oc-punkty button.oc-punkt:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .oc-punkty button.oc-punkt[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
+}
+.oc-punkty button.oc-punkt:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+@media (max-width: 760px) { .oc-punkty { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .oc-punkty button.oc-punkt { transition: none; } .oc-punkty button.oc-punkt:active { transform: none; } }
+
+/* Krok 6: pytania w zwijanych grupach */
+label.etykieta.rozmowa-pytanie { display: flex; flex-direction: column; gap: var(--o-4); }
+label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var(--c-field); }
+
+/* Pełna szerokość kolumny (Karol 23:29: „wykorzystujcie szerokość”), proza najwyżej 75 znaków w linii. */
+.oc-zadania, .oc-pytanie p, .k1-streszczenie, .k1-blok > p, .k1-szczegoly p, .k1-zadania, .oc-kryterium > p { max-width: 75ch; }
+
+/* Pytania do rozmowy: dopytania przy wskaźniku i pytania tematu (§ 10), każde do 3 linii. */
+.oc-pytania { margin: 0; padding-left: var(--o-16); display: flex; flex-direction: column; gap: var(--o-8); max-width: 75ch; }
+.oc-lista-zadan { display: flex; flex-direction: column; gap: var(--o-8); }
+.oc-lista-zadan .etykieta { margin: 0; }
+.oc-pytania li { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+
+/* Formalne zakończenia: część I (data zapoznania z kryteriami) i rozmowa oceniająca (data rozmowy). */
+.oc-zakonczenie, .czesc-i { display: flex; flex-direction: column; gap: var(--o-12); }
+.oc-zakonczenie { padding-top: var(--o-24); border-top: 1px solid var(--k-line); }
+.oc-zakonczenie h3, .czesc-i h2, .czesc-i > p, .czesc-i > div > p { margin: 0; }
+/* Zakończenie części I jest wysokie: na końcu kroku 2 zwykły blok, nie pasek przyklejony do dołu (telefon 390). */
+.k2-pasek:has(.czesc-i) { position: static; }
+.czesc-i h2 { scroll-margin-top: var(--o-24); }
+.czesc-i h2:focus { outline: none; }
+
+/* Podpowiedź szkicu informacji zwrotnej: widoczna, ale nie zapisana, dopóki przełożony jej nie wstawi. */
+.oc-szkic { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.oc-szkic p { margin: 0; }

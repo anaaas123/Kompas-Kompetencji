@@ -29,7 +29,7 @@ def test_zwykly_cykl_i_sprzeciw_od_zapoznania(terminy_config):
     )
     wynik = oblicz_terminy(qnt.pracownik("P-101"), dane, konf)
 
-    assert wynik.termin_kryteriow.data == date(2025, 1, 1)
+    assert wynik.termin_kryteriow.data == date(2025, 1, 2)  # 1.01 to Nowy Rok (dni_wolne), termin przesuwa się
     assert wynik.termin_kryteriow.slad[0].regula.zrodlo.lokalizator == "§ 7 pkt 1"
     assert wynik.termin_bazowy.data == date(2026, 12, 2)
     assert wynik.termin_sprzeciwu.data == date(2026, 11, 20)
@@ -51,7 +51,10 @@ def test_pierwsza_okresowa_i_przesuniecie_z_niedzieli_i_skatalogowanego_swieta(t
 
 def test_negatywna_ma_7_dni_na_kryteria_i_powtorke_od_zapoznania(terminy_config):
     qnt, konf = terminy_config
-    osoba = qnt.pracownik("P-102")
+    z_akt = qnt.pracownik("P-102")
+    osoba = z_akt.model_copy(update={
+        "ostatnia_ocena_okresowa": z_akt.ostatnia_ocena_okresowa.model_copy(update={"data_zapoznania": None}),
+    })
 
     niepelny = oblicz_terminy(osoba, DaneTerminow(), konf)
     assert niepelny.termin_kryteriow.data == date(2026, 11, 23)
@@ -63,6 +66,13 @@ def test_negatywna_ma_7_dni_na_kryteria_i_powtorke_od_zapoznania(terminy_config)
     wynik = oblicz_terminy(osoba, dane, konf)
     assert wynik.termin_bazowy.data == date(2027, 5, 20)
     assert not wynik.braki
+
+    # Bez daty w formularzu: data zapoznania z arkusza w aktach osobowych (kartoteka QNT, demo 18.11.2026).
+    assert z_akt.ostatnia_ocena_okresowa.data_zapoznania == date(2026, 11, 18)
+    z_kartoteki = oblicz_terminy(z_akt, DaneTerminow(), konf)
+    assert z_kartoteki.termin_bazowy.data == date(2027, 5, 19) and not z_kartoteki.braki
+    # Formularz kroku 7 ma pierwszeństwo przed kartoteką.
+    assert oblicz_terminy(z_akt, dane, konf).termin_bazowy.data == date(2027, 5, 20)
 
 
 def test_zmiana_stanowiska_przed_uplywem_pol_roku(terminy_config):

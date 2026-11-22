@@ -2,38 +2,76 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   BladApi,
   pobierzKrok1,
+  pobierzKrok2,
   pobierzProcesy,
+  pobierzZrodla,
   rozpocznijProces,
   type AnalizaKroku1,
   type Brak,
-  type Pole,
+  type Krok2,
   type Pracownik,
   type ProcesOceny,
   type Przeslanka,
   type Sciezka,
   type SourceRef,
 } from "./api";
+import { PoprzedniaOcena, zdanieOOsobie } from "./PoprzedniaOcena";
+import { Zwijane } from "./Zwijane";
+import { data } from "./zespol-dane";
+import "./krok2.css";
+import "./ocena.css";
 
 export const NAZWA_SCIEZKI: Record<Sciezka, string> = { pierwsza: "pierwsza ocena", okresowa: "ocena okresowa" };
 
+/** Nazwy kryteriów przychodzą z modelu wielkimi literami; na ekranie zdaniowo. */
+export const nazwaKryterium = (n: string) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+
+/** Kategorie źródeł po ludzku: przepis, materiał (poradnik, model, OSP), zasada aplikacji. */
+const KATEGORIE: Record<string, { tekst: string; klasa: string }> = {
+  PRZEPIS: { tekst: "Przepis", klasa: "przepis" },
+  "OBJAŚNIENIE_MATERIAŁU": { tekst: "Materiał", klasa: "" },
+  DECYZJA_PROJEKTOWA: { tekst: "Zasada aplikacji", klasa: "zasada" },
+  "BRAK_ŹRÓDŁA": { tekst: "Brak źródła", klasa: "typ-brak" },
+};
+
+// Nazwy dokumentów z manifestu korpusu (/api/zrodla); pobierane raz na sesję.
+let nazwyDokumentow: Promise<Record<string, string>> | null = null;
+function useNazwyDokumentow(): Record<string, string> {
+  const [nazwy, setNazwy] = useState<Record<string, string>>({});
+  useEffect(() => {
+    nazwyDokumentow ??= pobierzZrodla()
+      .then((z) => Object.fromEntries(z.dokumenty.map((d) => [d.doc_id, d.nazwa])))
+      .catch(() => ({}));
+    let zyje = true;
+    nazwyDokumentow.then((n) => zyje && setNazwy(n));
+    return () => {
+      zyje = false;
+    };
+  }, []);
+  return nazwy;
+}
+
 export function Zrodla({ adnotacje }: { adnotacje: SourceRef[] }) {
+  const nazwy = useNazwyDokumentow();
   return (
     <div className="zrodla">
       {adnotacje.map((a, i) => (
-        <Zrodlo key={i} a={a} />
+        <Zrodlo key={i} a={a} nazwy={nazwy} />
       ))}
     </div>
   );
 }
 
-function Zrodlo({ a }: { a: SourceRef }) {
+function Zrodlo({ a, nazwy }: { a: SourceRef; nazwy: Record<string, string> }) {
   const [otwarte, setOtwarte] = useState(false);
   const cytat = a["cytat_dosłowny"];
   const strona = a.strona && a.lokalizator !== `s. ${a.strona}` ? `s. ${a.strona}` : null;
-  const miejsce = [a.doc_id, a.lokalizator, strona].filter(Boolean).join(" · ");
+  const dokument = a.doc_id ? (nazwy[a.doc_id] ?? a.doc_id) : null;
+  const miejsce = [dokument, a.lokalizator, strona].filter(Boolean).join(", ");
+  const kategoria = KATEGORIE[a.kategoria] ?? { tekst: a.kategoria, klasa: "" };
   return (
     <div className="zrodlo">
-      <span className={`kategoria ${a.kategoria === "PRZEPIS" ? "przepis" : ""}`}>{a.kategoria}</span>
+      <span className={`kategoria ${kategoria.klasa}`}>{kategoria.tekst}</span>
       {miejsce}
       {cytat && (
         <button type="button" className="link" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
@@ -60,109 +98,33 @@ function Braki({ braki }: { braki: Brak[] }) {
   );
 }
 
-const STATUS_PRZESLANKI = (s: boolean | null) =>
-  s === true ? ["pozytywna", "spełniona"] : s === false ? ["neutralna", "niespełniona"] : ["uwaga", "brak danych"];
-
 function Przeslanki({ przeslanki }: { przeslanki: Przeslanka[] }) {
   return (
     <ul className="przeslanki">
-      {przeslanki.map((p) => {
-        const [klasa, napis] = STATUS_PRZESLANKI(p.spelniona);
-        return (
-          <li key={p.id}>
-            <div className="wiersz-przeslanki">
-              <span className={`status ${klasa}`}>{napis}</span>
-              <span>{p.opis}</span>
-              <span className="meta">{NAZWA_SCIEZKI[p.sciezka]}</span>
-            </div>
-            {p.uwaga && <p className="meta">{p.uwaga}</p>}
-            <Zrodla adnotacje={p.adnotacje} />
-          </li>
-        );
-      })}
+      {przeslanki.map((p) => (
+        <li key={p.id}>
+          <div className="wiersz-przeslanki">
+            {p.spelniona === null && <span className="status uwaga">brak danych</span>}
+            <span>{p.opis}</span>
+          </div>
+          <Zrodla adnotacje={p.adnotacje} />
+        </li>
+      ))}
     </ul>
   );
 }
 
-function PoleOsp({ etykieta, pole }: { etykieta: string; pole: Pole | null }) {
-  if (!pole) return null;
-  return (
-    <div className="pole-osp">
-      <div className="etykieta">{etykieta}</div>
-      <p>{pole.tekst}</p>
-      <Zrodla adnotacje={[pole.adnotacja]} />
-    </div>
-  );
-}
-
-function OpisStanowiska({ analiza }: { analiza: AnalizaKroku1 }) {
-  const osp = analiza.osp;
-  if (!osp) {
-    return (
-      <section>
-        <h2>Opis stanowiska pracy</h2>
-        <p className="brak">Brak OSP tej osoby w materiałach MC. Ścieżka i arkusz wynikają z danych kadrowych (QNT).</p>
-      </section>
-    );
-  }
-  const zadania = (lista: (Pole & { nr: number })[]) => (
-    <ol className="zadania">
-      {lista.map((z) => (
-        <li key={z.nr} value={z.nr}>
-          {z.tekst}
-          <Zrodla adnotacje={[z.adnotacja]} />
-        </li>
-      ))}
-    </ol>
-  );
-  return (
-    <section>
-      <h2>Opis stanowiska pracy</h2>
-      <p className="opis">
-        {osp.nazwa} · {osp.komorka.join(" / ")}
-      </p>
-      <PoleOsp etykieta="Cel istnienia stanowiska" pole={osp.cel} />
-      <div className="pole-osp">
-        <div className="etykieta">Zadania dominujące</div>
-        {zadania(osp.zadania_dominujace)}
-      </div>
-      {osp.zadania_pozostale.length > 0 && (
-        <div className="pole-osp">
-          <div className="etykieta">Pozostałe zadania</div>
-          {zadania(osp.zadania_pozostale)}
-        </div>
-      )}
-      <div className="pole-osp">
-        <div className="etykieta">Liczba podległych pracowników</div>
-        <p>{osp.podlegli.zaznaczone}</p>
-        <Zrodla adnotacje={[osp.podlegli.adnotacja]} />
-      </div>
-      <PoleOsp etykieta="Złożoność i kreatywność" pole={osp.zlozonosc.opis} />
-      <PoleOsp etykieta="Samodzielność i inicjatywa" pole={osp.samodzielnosc.opis} />
-      <div className="pole-osp">
-        <div className="etykieta">Kompetencje miękkie</div>
-        <div className="etykiety">
-          {osp.kompetencje_miekkie.lista.map((k) => (
-            <span key={k} className="znacznik">
-              {k}
-            </span>
-          ))}
-        </div>
-        <Zrodla adnotacje={[osp.kompetencje_miekkie.adnotacja]} />
-      </div>
-    </section>
-  );
-}
-
+/** Powód z API (tekst, `komunikat` albo lista z walidacji); stałe teksty tylko, gdy API go nie poda (#76). */
 export function opisBledu(err: unknown): string {
   if (!(err instanceof BladApi)) return "Brak połączenia z API.";
-  if (err.status === 409) return "Proces oceny tej osoby już trwa.";
-  if (err.status === 403) return "Nie masz uprawnień do rozpoczęcia oceny tej osoby.";
-  if (err.status === 422) {
-    const d = err.detail;
-    if (Array.isArray(d)) return d.map((b) => (typeof b === "string" ? b : (b?.komunikat ?? b?.msg ?? JSON.stringify(b)))).join(" ");
-    return typeof d === "string" ? d : "Dane nie pozwalają rozpocząć oceny.";
-  }
+  if (err.status === 403) return "Nie masz uprawnień do tej czynności.";
+  const d = err.detail as unknown;
+  if (typeof d === "string" && d) return d;
+  if (Array.isArray(d)) return d.map((b) => (typeof b === "string" ? b : (b?.komunikat ?? b?.msg ?? JSON.stringify(b)))).join(" ");
+  const komunikat = (d as { komunikat?: unknown } | null)?.komunikat;
+  if (typeof komunikat === "string" && komunikat) return komunikat;
+  if (err.status === 409) return "Tej czynności nie można teraz wykonać.";
+  if (err.status === 422) return "Dane nie pozwalają wykonać tej czynności.";
   return `Błąd API ${err.status}.`;
 }
 
@@ -206,44 +168,196 @@ function Rozpoczecie({
   }
 
   return (
-    <section>
-      <h2>Rozpoczęcie oceny</h2>
-      <p className="opis">Decyzję podejmuje przełożony. Rozpoczęcie zapisuje się w dzienniku zmian.</p>
-      <form onSubmit={wyslij}>
-        <div className="wybor" role="group" aria-label="Ścieżka oceny">
-          {(["pierwsza", "okresowa"] as Sciezka[]).map((s) => (
-            <button key={s} type="button" aria-pressed={sciezka === s} onClick={() => setSciezka(s)}>
-              {NAZWA_SCIEZKI[s]}
-              {s === proponowana && " (propozycja)"}
-            </button>
+    <form className="k1-start" onSubmit={wyslij}>
+      <p className="meta">Decyzję podejmujesz Ty. Rozpoczęcie zapisuje się w dzienniku zmian.</p>
+      <div className="wybor" role="group" aria-label="Ścieżka oceny">
+        {(["pierwsza", "okresowa"] as Sciezka[]).map((s) => (
+          <button key={s} type="button" aria-pressed={sciezka === s} onClick={() => setSciezka(s)}>
+            {NAZWA_SCIEZKI[s]}
+            {s === proponowana && " (propozycja)"}
+          </button>
+        ))}
+      </div>
+      {brakArkusza && <p className="brak">Nie ustalono arkusza B ani C. Uzupełnij dane kadrowe.</p>}
+      {sciezka && inna && (
+        <label className="etykieta">
+          {proponowana ? "Dlaczego inna ścieżka niż proponowana" : "Uzasadnienie wyboru ścieżki"} (wymagane)
+          <textarea value={uzasadnienie} onChange={(e) => setUzasadnienie(e.target.value)} rows={2} />
+        </label>
+      )}
+      <button disabled={czekam || !gotowe}>{czekam ? "Rozpoczynam…" : "Rozpocznij ocenę"}</button>
+      {blad && <p className="blad">{blad}</p>}
+    </form>
+  );
+}
+
+/** Ścieżka i arkusz jednym zdaniem; przesłanki i przepisy po rozwinięciu. */
+function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
+  const [otwarte, setOtwarte] = useState(false);
+  const [pozostale, setPozostale] = useState(false);
+  const s = analiza.sciezka;
+  const a = analiza.arkusz_okresowy;
+  const okresowa = s.proponowana === "okresowa";
+  const spelnione = s.przeslanki.filter((p) => p.spelniona !== false);
+  const nieDotyczy = s.przeslanki.filter((p) => p.spelniona === false);
+  const uwagi = [...new Set(s.przeslanki.map((p) => p.uwaga).filter(Boolean))];
+  const tytul = s.proponowana
+    ? `${NAZWA_SCIEZKI[s.proponowana].charAt(0).toUpperCase()}${NAZWA_SCIEZKI[s.proponowana].slice(1)}${okresowa && a.arkusz ? ` · arkusz ${a.arkusz}` : ""}`
+    : "Ścieżki nie można ustalić";
+
+  return (
+    <div className="k1-blok">
+      <h2>Jak oceniamy</h2>
+      <div className="k1-decyzja">
+        <p className="k1-tytul">{tytul}</p>
+        <p className="meta">Propozycja systemu z danych kadrowych i opisu stanowiska. Potwierdzasz ją, rozpoczynając ocenę.</p>
+      </div>
+      <Braki braki={[...s.braki, ...(okresowa ? a.braki : [])]} />
+      {analiza.arkusz_a.dotyczy && <p className="brak">{analiza.arkusz_a.komunikat}</p>}
+      <button type="button" className="link k1-rozwin" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
+        {otwarte ? "Ukryj przepisy" : "Dlaczego? Przepisy i przesłanki"}
+      </button>
+      <Zwijane otwarte={otwarte}>
+        <div className="k1-szczegoly">
+          {okresowa && a.arkusz && <p>{a.uzasadnienie}</p>}
+          <Przeslanki przeslanki={spelnione} />
+          {okresowa && a.arkusz && <Zrodla adnotacje={a.adnotacje} />}
+          {nieDotyczy.length > 0 && (
+            <>
+              <button type="button" className="link k1-rozwin" aria-expanded={pozostale} onClick={() => setPozostale((v) => !v)}>
+                {pozostale ? "Ukryj przesłanki, które nie dotyczą" : `Nie dotyczy tej osoby (${nieDotyczy.length})`}
+              </button>
+              <Zwijane otwarte={pozostale}>
+                <Przeslanki przeslanki={nieDotyczy} />
+              </Zwijane>
+            </>
+          )}
+          {uwagi.map((u) => (
+            <p key={u} className="meta">
+              {u === "brak tekstu ustawy w bazie"
+                ? "Ustawy o służbie cywilnej nie ma w materiałach; artykuły podajemy za poradnikiem."
+                : u}
+            </p>
           ))}
         </div>
-        {brakArkusza && (
-          <p className="brak">Nie ustalono arkusza B ani C, więc oceny okresowej nie można rozpocząć. Uzupełnij dane kadrowe.</p>
+      </Zwijane>
+    </div>
+  );
+}
+
+/** Musi, wskazane w OSP, proponowane: z arkusza, z opisu stanowiska i z dopasowania do zadań. */
+function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 | null }) {
+  const [otwarte, setOtwarte] = useState(false);
+  const osp = analiza.osp;
+  const obowiazkowe = krok2?.kryteria.filter((k) => k.rodzaj === "OBOWIAZKOWE") ?? [];
+  const proponowane = krok2?.kryteria.filter((k) => k.rodzaj === "DODATKOWE_PROPONOWANE") ?? [];
+  // Z opisu stanowiska pokazujemy tylko to, czego nie ma już wśród obowiązkowych (bez powtórzeń).
+  const obowiazkoweNazwy = new Set(obowiazkowe.map((k) => k.nazwa.toLowerCase()));
+  const zOsp = (osp?.kompetencje_miekkie.lista ?? []).filter((k) => !obowiazkoweNazwy.has(k.toLowerCase()));
+  if (!osp && !krok2) return null;
+  const arkusz = krok2 ? (krok2.arkusz === "PIERWSZA" ? "arkusz pierwszej oceny" : `arkusz ${krok2.arkusz}`) : null;
+  return (
+    <div className="k1-blok">
+      <h2>Co oceniamy na tym stanowisku</h2>
+      <dl className="k1-wiersze">
+        {obowiazkowe.length > 0 && (
+          <div>
+            <dt>Obowiązkowe · {arkusz}</dt>
+            <dd>{obowiazkowe.map((k) => nazwaKryterium(k.nazwa)).join(" · ")}</dd>
+          </div>
         )}
-        {sciezka && inna && (
-          <>
-            <p className="etykieta">
-              {proponowana ? "Uzasadnienie wyboru innej ścieżki niż proponowana" : "Uzasadnienie wyboru ścieżki"} (wymagane)
-            </p>
-            <textarea
-              value={uzasadnienie}
-              onChange={(e) => setUzasadnienie(e.target.value)}
-              rows={2}
-              aria-label="Uzasadnienie wyboru ścieżki"
-            />
-          </>
+        {zOsp.length > 0 && (
+          <div>
+            <dt>{obowiazkowe.length ? "Z opisu stanowiska, poza obowiązkowymi" : "Wskazane w opisie stanowiska"}</dt>
+            <dd>{zOsp.map((k) => nazwaKryterium(k)).join(" · ")}</dd>
+          </div>
         )}
-        <div className="wiersz">
-          <span className="meta">
-            {sciezka === "okresowa" && analiza.arkusz_okresowy.arkusz && `Arkusz ${analiza.arkusz_okresowy.arkusz}`}
-            {sciezka === "pierwsza" && "Arkusz pierwszej oceny (zał. 2 rozp. 2015)"}
-          </span>
-          <button disabled={czekam || !gotowe}>{czekam ? "Rozpoczynam…" : "Rozpocznij ocenę"}</button>
+        {proponowane.length > 0 && (
+          <div>
+            <dt>Proponowane dodatkowo · wybierzesz w kroku 2</dt>
+            <dd>
+              {proponowane.map((k) => (
+                <span key={k.kompetencja_id} className="k1-propozycja">
+                  {nazwaKryterium(k.nazwa)}
+                  {k.propozycja?.powody.length ? <span className="meta"> ({k.propozycja.powody.join(", ")})</span> : null}
+                </span>
+              ))}
+            </dd>
+          </div>
+        )}
+      </dl>
+      {!krok2 && <p className="meta">Kryteria z arkusza pokażą się po rozpoczęciu oceny.</p>}
+      {krok2 && (
+        <>
+          <button type="button" className="link k1-rozwin" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
+            {otwarte ? "Ukryj podstawę" : "Skąd te kryteria?"}
+          </button>
+          <Zwijane otwarte={otwarte}>
+            <div className="k1-szczegoly">
+              <Zrodla adnotacje={[...krok2.podstawa_obowiazkowych, ...krok2.podstawa_dodatkowych]} />
+              {osp && <Zrodla adnotacje={[osp.kompetencje_miekkie.adnotacja]} />}
+            </div>
+          </Zwijane>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** OSP: cel i zadania dominujące skrócone do dwóch linii; całość po rozwinięciu. */
+function OpisStanowiska({ analiza }: { analiza: AnalizaKroku1 }) {
+  const [caly, setCaly] = useState(false);
+  const osp = analiza.osp;
+  if (!osp) {
+    return (
+      <div className="k1-blok">
+        <h2>Opis stanowiska</h2>
+        <p className="meta">Brak OSP tej osoby w materiałach. Ścieżka i arkusz wynikają z danych kadrowych (QNT).</p>
+      </div>
+    );
+  }
+  const zadania = (lista: typeof osp.zadania_dominujace) => (
+    <ol className={`k1-zadania ${caly ? "" : "skrocone"}`}>
+      {lista.map((z) => (
+        <li key={z.nr} value={z.nr}>
+          <span className="k1-zadanie">{z.tekst}</span>
+          {caly && <Zrodla adnotacje={[z.adnotacja]} />}
+        </li>
+      ))}
+    </ol>
+  );
+  return (
+    <div className="k1-blok">
+      <h2>Opis stanowiska</h2>
+      <p className="meta">
+        {osp.nazwa} · {osp.komorka.join(" / ")}
+      </p>
+      <p>{osp.cel.tekst}</p>
+      <p className="etykieta">Zadania dominujące</p>
+      {zadania(osp.zadania_dominujace)}
+      <Zwijane otwarte={caly}>
+        <div className="k1-szczegoly">
+          <Zrodla adnotacje={[osp.cel.adnotacja]} />
+          {osp.zadania_pozostale.length > 0 && (
+            <>
+              <p className="etykieta">Pozostałe zadania</p>
+              {zadania(osp.zadania_pozostale)}
+            </>
+          )}
+          <p className="etykieta">Złożoność i kreatywność</p>
+          <p>{osp.zlozonosc.opis.tekst}</p>
+          <Zrodla adnotacje={[osp.zlozonosc.opis.adnotacja]} />
+          <p className="etykieta">Samodzielność i inicjatywa</p>
+          <p>{osp.samodzielnosc.opis.tekst}</p>
+          <Zrodla adnotacje={[osp.samodzielnosc.opis.adnotacja]} />
+          <p className="etykieta">Podlegli pracownicy</p>
+          <p>{osp.podlegli.zaznaczone}</p>
         </div>
-      </form>
-      {blad && <p className="blad">{blad}</p>}
-    </section>
+      </Zwijane>
+      <button type="button" className="link k1-rozwin" aria-expanded={caly} onClick={() => setCaly((v) => !v)}>
+        {caly ? "Zwiń opis stanowiska" : "Cały opis stanowiska"}
+      </button>
+    </div>
   );
 }
 
@@ -262,6 +376,7 @@ export function Krok1({
 }) {
   const [analiza, setAnaliza] = useState<AnalizaKroku1 | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
+  const [krok2, setKrok2] = useState<Krok2 | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
 
   useEffect(() => {
@@ -275,82 +390,77 @@ export function Krok1({
       );
   }, [token, osoba.osoba_id]);
 
-  const arkusz = analiza?.arkusz_okresowy;
+  // Kryteria arkusza („co oceniamy”) zna dopiero proces; bez niego sekcja pokazuje sam OSP.
+  useEffect(() => {
+    if (!proces) return;
+    pobierzKrok2(token, proces.id)
+      .then(setKrok2)
+      .catch(() => setKrok2(null));
+  }, [token, proces]);
+
+  const wydzial = osoba.komorka.split(" / ").pop();
 
   return (
-    <>
-      <section>
-        <div className="wiersz">
-          <div>
-            <div className="etykieta">Krok 1 z 8 · Analiza opisu stanowiska</div>
-            <h2>
-              {osoba.imie} {osoba.nazwisko}
-            </h2>
-            <p className="opis">{osoba.stanowisko}</p>
-          </div>
-          <button type="button" className="link" onClick={onWroc}>
-            Wróć do listy
-          </button>
-        </div>
-        {blad && <p className="blad">{blad}</p>}
-        {!blad && !analiza && <p className="meta">Wczytuję analizę…</p>}
-        {proces && (
-          <p className="sukces">
-            Proces oceny w toku: {NAZWA_SCIEZKI[proces.sciezka]}, arkusz{" "}
-            {proces.arkusz === "PIERWSZA" ? "pierwszej oceny" : proces.arkusz}, krok {proces.krok}. Rozpoczął{" "}
-            {proces.rozpoczal}.
-          </p>
-        )}
-        {proces && (
-          <div className="wiersz">
-            <span className="meta">Następny krok: kryteria i wskaźniki</span>
-            <button type="button" onClick={() => onDalej(proces)}>
-              Dalej: krok 2
-            </button>
-          </div>
-        )}
-      </section>
+    <div className="k2">
+      <div className="k2-naglowek">
+        <button type="button" className="link" onClick={onWroc}>
+          Wróć
+        </button>
+        <p className="meta">Rozpoczęcie oceny · zanim ocenisz</p>
+        <h1>
+          {osoba.imie} {osoba.nazwisko}
+        </h1>
+        <p className="opis">
+          {osoba.stanowisko} · {wydzial}
+        </p>
+      </div>
+      {blad && <p className="blad">{blad}</p>}
+      {!blad && !analiza && <p className="meta">Wczytuję analizę…</p>}
 
       {analiza && (
-        <>
-          <section>
-            <h2>Ścieżka oceny</h2>
-            <p className="wartosc">
-              {analiza.sciezka.proponowana ? NAZWA_SCIEZKI[analiza.sciezka.proponowana] : "nie można ustalić"}
-            </p>
-            <Braki braki={analiza.sciezka.braki} />
-            <Przeslanki przeslanki={analiza.sciezka.przeslanki} />
-          </section>
+        <div className="dwie">
+          <div className="sekcja k1-glowna">
+            <p className="k1-streszczenie">{zdanieOOsobie(osoba)}</p>
+            <PoprzedniaOcena token={token} osoba={osoba} />
+            <Decyzja analiza={analiza} />
+            <CoOceniamy analiza={analiza} krok2={krok2} />
+            <OpisStanowiska analiza={analiza} />
+            {analiza.uwagi.length > 0 && (
+              <div className="k1-blok">
+                <h2>Uwagi i rozbieżności</h2>
+                {analiza.uwagi.map((u) => (
+                  <div key={u.id}>
+                    <p>{u.komunikat}</p>
+                    <Zrodla adnotacje={u.adnotacje} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {arkusz && (analiza.sciezka.proponowana !== "pierwsza" || arkusz.arkusz) && (
-            <section>
-              <h2>Arkusz oceny okresowej</h2>
-              <p className="wartosc">{arkusz.arkusz ? `Arkusz ${arkusz.arkusz}` : "nie można ustalić"}</p>
-              <p>{arkusz.uzasadnienie}</p>
-              <p className="meta">Źródło danych: {arkusz.zrodlo}</p>
-              <Braki braki={arkusz.braki} />
-              <Zrodla adnotacje={arkusz.adnotacje} />
-              {analiza.arkusz_a.dotyczy && <p className="brak">{analiza.arkusz_a.komunikat}</p>}
-            </section>
-          )}
-
-          <OpisStanowiska analiza={analiza} />
-
-          {!proces && moznaProwadzic && <Rozpoczecie token={token} analiza={analiza} onRozpoczeto={setProces} />}
-
-          {analiza.uwagi.length > 0 && (
-            <section>
-              <h2>Uwagi i rozbieżności</h2>
-              {analiza.uwagi.map((u) => (
-                <div key={u.id} className="pole-osp">
-                  <p>{u.komunikat}</p>
-                  <Zrodla adnotacje={u.adnotacje} />
-                </div>
-              ))}
-            </section>
-          )}
-        </>
+          <aside className="sekcja k2-boczna">
+            <div className="k2-podsumowanie">
+              <h2>Następny krok</h2>
+              {proces ? (
+                <>
+                  <p className="k1-tytul">Kryteria i wskaźniki</p>
+                  <p className="meta">
+                    {NAZWA_SCIEZKI[proces.sciezka].charAt(0).toUpperCase() + NAZWA_SCIEZKI[proces.sciezka].slice(1)} w toku od{" "}
+                    {data(proces.rozpoczeto)}.
+                  </p>
+                  <button type="button" className="k2-zatwierdz" onClick={() => onDalej(proces)}>
+                    Dalej: krok 2
+                  </button>
+                </>
+              ) : moznaProwadzic ? (
+                <Rozpoczecie token={token} analiza={analiza} onRozpoczeto={setProces} />
+              ) : (
+                <p className="meta">Ocenę rozpoczyna przełożony.</p>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
-    </>
+    </div>
   );
 }

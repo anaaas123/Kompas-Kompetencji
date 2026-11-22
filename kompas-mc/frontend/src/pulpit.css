@@ -10,12 +10,12 @@
 .pulpit-kafle button.kafel:active { background: var(--k-wiersz-pressed); }
 
 .pulpit-kolumny { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--o-32); align-items: start; }
-.pulpit-kolumny > .sekcja, .pulpit-boczna > .sekcja { border-top: 0; padding-top: 0; margin: 0; }
+:is(.pulpit-kolumny, .pulpit-jedna) > .sekcja, .pulpit-boczna > .sekcja { border-top: 0; padding-top: 0; margin: 0; }
 .pulpit-boczna { display: flex; flex-direction: column; gap: var(--o-32); }
 .pulpit-boczna .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
 .pulpit .wiersz-tytulu h2 { margin: 0; }
 button.pulpit-wiecej { align-self: flex-start; min-height: 44px; text-align: left; white-space: normal; }
-.pulpit-kolumny > .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
+:is(.pulpit-kolumny, .pulpit-jedna) > .sekcja { display: flex; flex-direction: column; gap: var(--o-16); }
 .pulpit-fakty { margin: 0; display: flex; flex-direction: column; gap: var(--o-12); }
 .pulpit-fakty div { display: flex; flex-direction: column; gap: var(--o-2); }
 .pulpit-fakty dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
@@ -23,7 +23,8 @@ button.pulpit-wiecej { align-self: flex-start; min-height: 44px; text-align: lef
 
 .pulpit-pasek {
   position: sticky; bottom: 0; z-index: var(--z-sticky); margin-top: auto; margin-bottom: calc(-1 * var(--o-64));
-  padding: var(--o-16) 0 var(--o-24); background: var(--k-canvas);
+  padding: var(--o-16) 0 var(--o-24); border-top: 1px solid var(--k-line); background: var(--k-canvas);
+  box-shadow: 0 -12px 16px -12px var(--k-backdrop);
 }
 
 @container (min-width: 880px) {
@@ -42,4 +43,33 @@ button.pulpit-wiecej { align-self: flex-start; min-height: 44px; text-align: lef
 }
 @media (prefers-reduced-motion: reduce) {
   .pulpit-kafle button.kafel { transition: none; }
+}
+
+/* „Mój zespół”: zwarty blok wyrównany do „Do zrobienia” (ten sam wiersz tytułu), liczby i wyniki ocen. */
+.pulpit-zespol { display: flex; flex-direction: column; gap: var(--o-16); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.pulpit-liczby { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-12); }
+.pulpit-liczby div { display: flex; flex-direction: column; gap: var(--o-2); }
+.pulpit-liczby dd { margin: 0; font-size: var(--t-value-r); line-height: var(--t-value-l); font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; }
+.pulpit-liczby dt { color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.pulpit-oceny { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-8); }
+.pulpit-oceny .kafel-etykieta { flex-basis: 100%; }
+.pulpit .mapa-kompetencji { padding-top: var(--o-8); }
+
+/* Pulpit jako rozmowa z asystentem: znika reszta, zostaje rozmowa z polem pytania przyklejonym na dole. */
+.pulpit-rozmowa { gap: var(--o-24); }
+.pulpit-rozmowa-glowa { display: flex; align-items: center; gap: var(--o-12); padding-top: var(--o-16); }
+.pulpit-rozmowa-glowa > div { flex: 1; min-width: 0; }
+.pulpit-rozmowa-glowa .meta { margin: 0; }
+.pulpit-rozmowa-glowa button.link { min-height: 44px; }
+.pulpit-rozmowa .czat { flex: 1; display: flex; flex-direction: column; width: 100%; }
+/* Pole pytania na całą szerokość kolumny, wiadomości do 1040 px: dłuższe wiersze cytatów trudno czytać. */
+.pulpit-rozmowa .czat > .opis, .pulpit-rozmowa .czat .rozmowa { max-width: 1040px; }
+.pulpit-rozmowa .czat > .opis { margin: 0; }
+.pulpit-rozmowa .czat .rozmowa li { scroll-margin-top: var(--o-16); }
+.pulpit-rozmowa .cytat blockquote { white-space: normal; }
+.pulpit-rozmowa .czat form { position: sticky; bottom: 0; z-index: var(--z-sticky); margin-top: auto; margin-bottom: calc(-1 * var(--o-64)); padding: var(--o-12) 0 var(--o-24); border-top: 1px solid var(--k-line); background: var(--k-canvas); }
+.pulpit-rozmowa .czat .wiersz { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .pulpit-rozmowa .czat form { bottom: calc(var(--o-64) + var(--o-8)); margin-bottom: calc(-1 * var(--o-32)); }
+  .pulpit-liczby { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

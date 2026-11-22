@@ -11,6 +11,7 @@ from kompas_core.zrodla import Fragment
 
 from .kompetencje import ModelKompetencji
 from .krok2 import (
+    ZapisZapoznania,
     BladWyboru,
     KonfiguracjaKroku2,
     PropozycjaKroku2,
@@ -19,7 +20,7 @@ from .krok2 import (
     zatwierdz,
 )
 from .osp import KatalogOsp
-from .procesy import ProcesOceny, wczytaj_proces
+from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt
 
 
@@ -108,6 +109,43 @@ def router(
             konf.wersja,
         )
         return po
+
+    @r.put("/procesy/{proces_id}/krok2/zapoznanie")
+    def zapoznanie(
+        proces_id: int,
+        body: ZapisZapoznania,
+        request: Request,
+        uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> ProcesOceny:
+        """Zakończenie części I: data rozmowy na początku okresu i zapoznania ocenianego z kryteriami
+        (rozp. 2016 § 5 ust. 1, § 6 ust. 2). Na końcu okresu przełożony przepisuje ją z podpisanej części I.
+        409 przed zapisem kryteriów albo poza toku; 422, gdy data jest z przyszłości albo sprzed początku
+        okresu (poprzednia ocena na piśmie albo zatrudnienie, § 7 pkt 1)."""
+        proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
+        if proces.status != "W_TOKU":
+            raise HTTPException(409, "Proces nie jest w toku")
+        if proces.krok2 is None:
+            raise HTTPException(409, "Najpierw zatwierdź kryteria (krok 2).")
+        p = qnt.pracownik(proces.osoba_id)
+        od = (p.ostatnia_ocena_okresowa.data if p.ostatnia_ocena_okresowa else p.data_zatrudnienia) if p else None
+        if body.data > dzien_urzedowy(datetime.now(UTC)) or (od and body.data < od):
+            raise HTTPException(
+                422, f"Data zapoznania z kryteriami musi przypadać od {od:%d.%m.%Y} (początek okresu oceny) do dziś."
+                if od else "Data zapoznania z kryteriami nie może być z przyszłości.",
+            )
+        baza = request.app.state.baza
+        przed = proces.krok2.zapoznanie
+        with baza:
+            baza.execute(
+                "UPDATE procesy SET krok2 = ? WHERE id = ?",
+                (proces.krok2.model_copy(update={"zapoznanie": body.data}).model_dump_json(), proces.id),
+            )
+        dziennik: Dziennik = request.app.state.dziennik
+        dziennik.zapisz(
+            uz.login, "proces", str(proces.id),
+            {"zapoznanie": przed.isoformat() if przed else None}, {"zapoznanie": body.data.isoformat()}, konf.wersja,
+        )
+        return wczytaj_proces(baza, proces.id)
 
     return r
 

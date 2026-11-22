@@ -1,137 +1,138 @@
 import { useEffect, useRef, useState } from "react";
+import { makePlayer, STATES } from "./wydra-player.js";
+import type { Player, Poza, Stan } from "./wydra-player.js";
 import stoi from "./wydra-stoi.webp";
-import skok from "./wydra-skok.webp";
-import macha from "./wydra-macha.webp";
 import prosi from "./wydra-prosi.webp";
 import sklada from "./wydra-sklada.webp";
+import powieki from "./powieki.webp";
 import "./wydra.css";
 
-/** Poza spoczynkowa: „stoi” macha łapką, „prosi” wyciąga łapkę w geście „proszę”. */
-export type PozaWydry = "stoi" | "prosi";
-export type RuchWydry = "podskok" | "machanie" | "proszenie";
-
-// Ruchy dostępne w danej pozie: każdy zaczyna się i kończy na jej klatce spoczynkowej.
-const RUCHY: Record<PozaWydry, RuchWydry[]> = {
-  stoi: ["podskok", "machanie"],
-  prosi: ["proszenie"],
-};
-
-// Animacja, której koniec oznacza koniec ruchu (działa też przy ograniczonym ruchu).
-const KONIEC: Record<string, RuchWydry> = {
-  "wydra-klatka": "podskok",
-  "wydra-macha-klatka": "machanie",
-  "wydra-proszenie-prosi": "proszenie",
-};
-
+export type PozaWydry = Poza;
+export type RuchWydry = Stan;
 type Props = {
-  poza?: PozaWydry;
-  /** Szerokość w px; wysokość wynika z proporcji klatek (578 × 649). */
-  szerokosc?: number;
-  /** Zmiana wartości (np. licznik) wywołuje dany ruch z zewnątrz. */
-  podskok?: number;
-  machanie?: number;
-  proszenie?: number;
-  /** Jeden ruch przy pierwszym pokazaniu; domyślnie pierwszy ruch danej pozy. */
-  naStart?: RuchWydry;
-  /** Ruch po kliknięciu; domyślnie pierwszy ruch danej pozy. */
-  naKlik?: RuchWydry;
-  /** Czy wydra rusza się sama co kilka sekund (domyślnie tak). */
-  samoczynnie?: boolean;
+  poza?: Poza; szerokosc?: number; naStart?: Stan; naKlik?: Stan; samoczynnie?: boolean;
+} & Partial<Record<Stan, number>>;
+
+const POZY = { stoi, prosi, sklada };
+const RUCHY: Record<Poza, Stan[]> = {
+  stoi: ["podskok", "machanie", "nasluchiwanie", "radosc"],
+  prosi: ["proszenie"], sklada: ["skupienie", "sennosc"],
 };
+const losuj = (poza: Poza) => {
+  const ruchy = RUCHY[poza];
+  return ruchy[Math.floor(Math.random() * ruchy.length)];
+};
+const preferencja = () => matchMedia("(prefers-reduced-motion: reduce)");
 
-// Przerwa między samoczynnymi ruchami: losowa, żeby nie wyglądało jak metronom.
-const PRZERWA_MIN = 6000;
-const PRZERWA_MAX = 12000;
-
-const losuj = <T,>(lista: readonly T[]) => lista[Math.floor(Math.random() * lista.length)];
-
-const malyRuch = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-const KLATKI = [
-  ["stoi", stoi],
-  ["skok", skok],
-  ["macha", macha],
-  ["prosi", prosi],
-  ["sklada", sklada],
-] as const;
-
-export function Wydra({
-  poza = "stoi",
-  szerokosc = 160,
-  podskok,
-  machanie,
-  proszenie,
-  naStart,
-  naKlik,
-  samoczynnie = true,
-}: Props) {
-  const dozwolony = (r?: RuchWydry) => (r && RUCHY[poza].includes(r) ? r : null);
-  const [ruch, setRuch] = useState<RuchWydry | null>(dozwolony(naStart ?? RUCHY[poza][0]));
-
-  // Nowy ruch w trakcie trwającego jest ignorowany: wydra najpierw kończy.
-  // Ruch spoza bieżącej pozy też, bo skończyłby się na cudzej klatce.
-  const rusz = (r: RuchWydry) => {
-    if (dozwolony(r)) setRuch((obecny) => obecny ?? r);
-  };
-
-  useEffect(() => { if (podskok) rusz("podskok"); }, [podskok]);
-  useEffect(() => { if (machanie) rusz("machanie"); }, [machanie]);
-  useEffect(() => { if (proszenie) rusz("proszenie"); }, [proszenie]);
-  // Zmiana pozy przerywa ruch. Porównanie z poprzednią pozą, bo sam efekt
-  // odpala się też przy montowaniu i skasowałby ruch startowy.
+export function Wydra(props: Props) {
+  const { poza = "stoi", szerokosc = 160, naStart, naKlik, samoczynnie = true } = props;
+  const pierwszy = naStart ?? RUCHY[poza][0];
+  const [ruch, ustawRuch] = useState<Stan | null>(
+    STATES[pierwszy].pose === poza ? pierwszy : null,
+  );
+  const warstwa = useRef<HTMLSpanElement>(null);
+  const silnik = useRef<null | (() => Promise<Player>)>(null);
   const poprzedniaPoza = useRef(poza);
+  const liczniki = useRef<Partial<Record<Stan, number>>>({});
+  function rusz(stan: Stan) {
+    if (STATES[stan].pose === poza && !preferencja().matches) ustawRuch(obecny => obecny ?? stan);
+  }
+
   useEffect(() => {
-    if (poprzedniaPoza.current === poza) return;
-    poprzedniaPoza.current = poza;
-    setRuch(null);
+    if (poprzedniaPoza.current !== poza) {
+      poprzedniaPoza.current = poza;
+      ustawRuch(null);
+    }
+  }, [poza]);
+  useEffect(() => {
+    for (const stan of Object.keys(STATES) as Stan[]) {
+      if (props[stan] && props[stan] !== liczniki.current[stan]) rusz(stan);
+      liczniki.current[stan] = props[stan];
+    }
+  });
+  useEffect(() => {
+    if (!samoczynnie) return;
+    let timer: number;
+    function zaplanuj() {
+      timer = window.setTimeout(() => {
+        if (!document.hidden) rusz(losuj(poza));
+        zaplanuj();
+      }, 6000 + Math.random() * 6000);
+    }
+    zaplanuj();
+    return () => window.clearTimeout(timer);
+  }, [poza, samoczynnie]);
+
+  useEffect(() => {
+    const el = warstwa.current;
+    if (!el) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = 650; canvas.height = 786; el.prepend(canvas);
+    let wynik: Promise<Player> | undefined;
+    let utracony = false;
+    const utrata = () => { utracony = true; };
+    canvas.addEventListener("webglcontextlost", utrata);
+    // Twórz kontekst dopiero przy pierwszym ruchu i używaj go do końca tej pozy.
+    silnik.current = () => utracony
+      ? Promise.reject(new Error("WebGL context lost"))
+      : (wynik ??= makePlayer(canvas, POZY[poza], poza, powieki));
+    return () => {
+      silnik.current = null;
+      void wynik?.then(p => p.dispose(), () => {});
+      canvas.removeEventListener("webglcontextlost", utrata);
+      canvas.remove();
+    };
   }, [poza]);
 
-  // Samoczynny ruch co kilka sekund; pomijany przy ograniczonym ruchu i w ukrytej karcie.
   useEffect(() => {
-    if (!samoczynnie || malyRuch()) return;
-    let licznik: number;
-    const zaplanuj = () => {
-      licznik = window.setTimeout(() => {
-        if (!document.hidden) rusz(losuj(RUCHY[poza]));
-        zaplanuj();
-      }, PRZERWA_MIN + Math.random() * (PRZERWA_MAX - PRZERWA_MIN));
+    const el = warstwa.current, init = silnik.current;
+    if (!ruch || !el || !init || STATES[ruch].pose !== poza) return;
+    const motion = preferencja(), stop = () => ustawRuch(null);
+    if (motion.matches) { stop(); return; }
+    const cancel = new AbortController();
+    const stan = ruch, duration = STATES[ruch].ms;
+    let raf = 0;
+    async function odtworz() {
+      try {
+        const player = await init!();
+        if (cancel.signal.aborted) return;
+        const start = performance.now();
+        el!.dataset.gra = "canvas";
+        function frame(now: number) {
+          if (cancel.signal.aborted) return;
+          const ms = Math.max(0, now - start);
+          if (ms >= duration) { stop(); return; }
+          player.draw(stan, ms);
+          raf = requestAnimationFrame(frame);
+        }
+        frame(start);
+      } catch {
+        // Bez WebGL wydra zostaje w pozie spoczynkowej (zapasowe klipy WebP z paczki pominięte, #75).
+        if (!cancel.signal.aborted) stop();
+      }
+    }
+    const zmiana = () => { if (motion.matches) stop(); };
+    const utrata = (event: Event) => {
+      event.preventDefault();
+      if (!cancel.signal.aborted) stop();
     };
-    zaplanuj();
-    return () => window.clearTimeout(licznik);
-  }, [samoczynnie, poza]);
+    const canvas = el.querySelector("canvas");
+    canvas?.addEventListener("webglcontextlost", utrata);
+    motion.addEventListener("change", zmiana);
+    void odtworz();
+    return () => {
+      cancel.abort(); cancelAnimationFrame(raf);
+      canvas?.removeEventListener("webglcontextlost", utrata);
+      motion.removeEventListener("change", zmiana);
+      delete el.dataset.gra;
+    };
+  }, [ruch, poza]);
 
-  return (
-    <button
-      type="button"
-      className="wydra"
-      style={{ width: szerokosc }}
-      aria-label="Wydra Kompas"
-      data-poza={poza}
-      data-ruch={ruch ?? undefined}
-      onClick={() => rusz(naKlik ?? RUCHY[poza][0])}
-      // Najechanie myszą (nie dotyk, bo tam po dotknięciu przychodzi też klik).
-      onPointerEnter={(e) => {
-        if (e.pointerType === "mouse") rusz(losuj(RUCHY[poza]));
-      }}
-      onAnimationEnd={(e) => {
-        if (KONIEC[e.animationName] === ruch) setRuch(null);
-      }}
-    >
-      <span className="wydra__cien" aria-hidden />
-      <span className="wydra__cialo" aria-hidden>
-        {KLATKI.map(([nazwa, src]) => (
-          <img
-            key={nazwa}
-            className={`wydra__klatka wydra__klatka--${nazwa}`}
-            src={src}
-            alt=""
-            width={578}
-            height={649}
-            draggable={false}
-          />
-        ))}
-      </span>
-    </button>
-  );
+  return <button type="button" className="wydra" style={{ width: szerokosc }}
+    data-poza={poza} data-ruch={ruch ?? undefined} aria-label="Wydra Kompas – odtwórz gest"
+    onClick={() => rusz(naKlik ?? RUCHY[poza][0])}
+    onPointerEnter={e => { if (e.pointerType === "mouse") rusz(naKlik ?? losuj(poza)); }}>
+    <span ref={warstwa} className="wydra__gest" aria-hidden="true" />
+    <img className="wydra__spoczynek" src={POZY[poza]} width={578} height={649} alt="" draggable={false} />
+  </button>;
 }

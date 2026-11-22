@@ -70,7 +70,7 @@ zakres_rozmowy:
 szablony_pytan:
   - id: pyt.wskaznik.przyklad
     powiazanie: wskaznik
-    tresc: "Opowiedz o konkretnej sytuacji z ocenianego okresu związanej z: „{wskaznik}”. Co było zadaniem, co zrobiłeś/zrobiłaś i jaki był rezultat?"
+    tresc: "Opowiedz o sytuacji z okresu oceny, w której było to widać: co było zadaniem, co się wydarzyło i jaki był rezultat?"
     uzasadnienie: Model kompetencji każe opierać ocenę na przykładach – sytuacja, działanie, rezultat.
     adnotacje:
       - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
@@ -86,7 +86,7 @@ szablony_pytan:
 
   - id: pyt.wskaznik.powtarzalnosc
     powiazanie: przyklad
-    tresc: "Przykład: „{przyklad}”. Czy to było typowe dla całego okresu, czy jednorazowe? Jak złożona była sytuacja i jakie miałeś/miałaś uprawnienia?"
+    tresc: "Przykład: „{przyklad}”. Czy to było typowe dla całego okresu, czy jednorazowe? Jak złożona była sytuacja i jakie były Twoje uprawnienia?"
     uzasadnienie: Przy ocenie przykładu model każe uwzględnić powtarzalność, złożoność sytuacji i uprawnienia.
     adnotacje:
       - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
@@ -95,7 +95,7 @@ szablony_pytan:
   - id: pyt.osp.zadanie
     powiazanie: zadanie_osp
     sciezka: okresowa
-    tresc: "Zadanie z opisu stanowiska: „{zadanie_osp}”. Jak je realizowałeś/realizowałaś w tym okresie i co było efektem?"
+    tresc: "Jak wyglądała realizacja tego zadania w okresie oceny i co było efektem? Zadanie z opisu stanowiska: „{zadanie_osp}”."
     uzasadnienie: Rozmowa oceniająca obejmuje główne obowiązki i sposób ich realizacji.
     adnotacje:
       - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10 pkt 1", strona: 3,
@@ -123,7 +123,7 @@ szablony_pytan:
   - id: pyt.sprawozdanie
     powiazanie: przepis
     sciezka: pierwsza
-    tresc: "W sprawozdaniu opisałeś/opisałaś: „{fragment_sprawozdania}”. Które zadanie było najtrudniejsze i czego się z niego nauczyłeś/nauczyłaś?"
+    tresc: "W sprawozdaniu jest: „{fragment_sprawozdania}”. Które zadanie było najtrudniejsze i co z niego wynika na przyszłość?"
     uzasadnienie: Pierwszą ocenę dokonuje się, biorąc pod uwagę sprawozdanie ocenianego.
     adnotacje:
       - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 2 pkt 3", strona: 1,
@@ -218,7 +218,7 @@ kwestie_do_omowienia:
 # Ochrona danych: co wolno wysłać do opcjonalnego modelu redakcyjnego.
 # ---------------------------------------------------------------------------------------
 dane_dla_modelu:
-  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp, przyklad]
+  dozwolone: [wskaznik, opis_poziomu, szablon, zadanie_osp, przyklad, uwagi]
   zabronione: [imie, nazwisko, komorka, osoba_id]
   adnotacje:
     - kategoria: DECYZJA_PROJEKTOWA

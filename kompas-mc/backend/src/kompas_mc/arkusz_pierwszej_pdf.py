@@ -135,6 +135,16 @@ class _ArkuszPierwszejOceny(_Arkusz):
         self._elementy[poczatek_pouczenia:] = [KeepTogether(self._elementy[poczatek_pouczenia:])]
 
 
+def _pola(wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], drukuj_wnioski: bool) -> dict[str, str | None]:
+    return {
+        pole["id"]: wartosci.get(pole["id"])
+        for sekcja in wzor["sekcje"]
+        for pole in sekcja["pola"]
+        if pole["rodzaj"] not in {"tekst_staly", "miejsce_na_podpis_odreczny"}
+        and (drukuj_wnioski or pole["id"] != "wnioski_rozwojowe")
+    }
+
+
 def arkusz_pierwszej_oceny_pdf(
     wzor: Mapping[str, Any],
     wartosci: Mapping[str, str | None],
@@ -143,13 +153,7 @@ def arkusz_pierwszej_oceny_pdf(
     wersja: str,
 ) -> bytes:
     """Składa gotowe wartości procesu w arkusz pierwszej oceny do wydruku."""
-    pola = {
-        pole["id"]: wartosci.get(pole["id"])
-        for sekcja in wzor["sekcje"]
-        for pole in sekcja["pola"]
-        if pole["rodzaj"] not in {"tekst_staly", "miejsce_na_podpis_odreczny"}
-        and (drukuj_wnioski or pole["id"] != "wnioski_rozwojowe")
-    }
+    pola = _pola(wzor, wartosci, drukuj_wnioski)
     dokument = _ArkuszPierwszejOceny(
         wzor, pola, Stopka(
             wersja,
@@ -165,4 +169,19 @@ def arkusz_pierwszej_oceny_pdf(
     dokument.pierwsza_ocena()
     dokument.nowa_strona()
     dokument.uzasadnienie_i_potwierdzenie(drukuj_wnioski)
+    return dokument.bajty()
+
+
+def rozmowa_wstepna_pdf(wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], *, wersja: str) -> bytes:
+    """Część ogólna i sekcja „Rozmowa wstępna” arkusza do podpisu po rozmowie wstępnej (rozp. 2015 § 3–4)."""
+    pola = _pola(wzor, wartosci, drukuj_wnioski=False)
+    dokument = _ArkuszPierwszejOceny(
+        wzor, pola, Stopka(
+            wersja,
+            hash_tresci({"wzor": wzor["zrodlo"], "czesc": "rozmowa_wstepna", "wartosci": pola}),
+            KOMUNIKAT_PODPIS,
+        ),
+    )
+    dokument.czesc_ogolna(wzor["zrodlo"]["zalacznik"])
+    dokument.rozmowa_wstepna()
     return dokument.bajty()

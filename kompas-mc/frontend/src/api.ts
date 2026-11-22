@@ -196,6 +196,8 @@ export interface ProcesOceny {
   rozpoczeto: string;
   zgodna_z_propozycja: boolean;
   uzasadnienie: string | null;
+  /** Kryteria zatwierdzone w kroku 2 (z datą zapoznania, gdy część I jest zakończona); null przed zapisem. */
+  krok2?: WyborKroku2 | null;
 }
 
 /** Błąd API z kodem i polem `detail` (np. braki przy 422). */
@@ -299,6 +301,8 @@ export interface WyborKroku2 {
   }[];
   zapisal: string;
   zapisano: string;
+  /** Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2): zakończenie części I. */
+  zapoznanie?: string | null;
 }
 
 export interface Krok2 {
@@ -332,6 +336,18 @@ export async function zapiszKrok2(
   return tresc as ProcesOceny;
 }
 
+/** Zakończenie części I: data rozmowy na początku okresu i zapoznania z kryteriami (§ 5 ust. 1, § 6 ust. 2). */
+export async function zapiszZapoznanie(token: string, procesId: number, data: string): Promise<ProcesOceny> {
+  const r = await fetch(`/api/procesy/${procesId}/krok2/zapoznanie`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ data }),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc as ProcesOceny;
+}
+
 /* Kroki 3–5: zachowania i przykłady, sugestia, decyzja przełożonego (#31, kontrakt w issue #31). */
 
 export interface Przyklad {
@@ -347,6 +363,8 @@ export interface OcenaWskaznika {
   poziom: number | null;
   brak_podstaw: boolean;
   przyklady: Przyklad[];
+  /** Uwagi z rozmowy przy wskaźniku (zamiast pełnego przykładu). */
+  uwagi?: string | null;
 }
 
 export interface WskaznikOceny {
@@ -391,9 +409,20 @@ export interface KryteriumOceny {
   decyzja: Decyzja | null;
 }
 
+export type TematRozmowy = "obowiazki" | "sprawozdanie" | "cele" | "rozwoj";
+
+/** Zapis rozmowy oceniającej (§ 10): notatki tematów, szkic informacji zwrotnej, data do części II arkusza. */
+export interface ZapisRozmowy {
+  data?: string | null;
+  notatki?: Partial<Record<TematRozmowy, string>>;
+  mocne_strony?: string | null;
+  obszary_rozwoju?: string | null;
+}
+
 export interface StanOceny {
   /** Status samooceny (#8), tylko dla przełożonego. */
   samoocena_status?: StatusSamooceny | null;
+  rozmowa?: ZapisRozmowy | null;
   proces_id: number;
   sciezka: Sciezka;
   arkusz: "B" | "C" | "PIERWSZA";
@@ -464,6 +493,43 @@ async function odpowiedzApi<T>(r: Response): Promise<T> {
   return tresc as T;
 }
 
+/** Poprzednia ocena okresowa z punktami z arkusza w aktach osobowych (§ 12 ust. 2); tylko z ocena.tresc. */
+export interface PoprzedniaOcenaOkresowa {
+  data: string;
+  wynik: "pozytywna" | "negatywna";
+  punkty: Record<string, number>;
+}
+
+export const pobierzPoprzedniaOcene = (token: string, osobaId: string) =>
+  fetch(`/api/pracownicy/${osobaId}/poprzednia-ocena`, { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<PoprzedniaOcenaOkresowa | null>(r),
+  );
+
+/** Nazwy kompetencji z Model_kompetencji.xlsx (pozostałe pola modelu nie są tu potrzebne). */
+export const pobierzModelKompetencji = (token: string) =>
+  fetch("/api/model-kompetencji", { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<{ kompetencje: { id: string; nazwa: string }[] }>(r),
+  );
+
+/** Opis osoby na karcie (#55): zdania z podstawą w faktach; nic się nie zapisuje. */
+export interface FaktOpisu {
+  id: string;
+  tekst: string;
+  zrodlo: string;
+}
+export interface OpisOsoby {
+  zdania: { tekst: string; fakty: FaktOpisu[] }[];
+  /** "SZABLON" bez modelu, inaczej tryb dostawcy z łańcucha. */
+  tryb: string;
+  dostawca: string | null;
+  oznaczenie: string;
+  odrzucone: string[];
+}
+export const pobierzOpisOsoby = (token: string, osobaId: string, model: boolean) =>
+  fetch(`/api/pracownicy/${encodeURIComponent(osobaId)}/opis?model=${model}`, { headers: autoryzacja(token) }).then((r) =>
+    odpowiedzApi<OpisOsoby>(r),
+  );
+
 /** Błąd niesie kod i komunikat z API (np. 403 dla pracownika przed przekazaniem samooceny). */
 export const pobierzOcene = (token: string, procesId: number) =>
   fetch(`/api/procesy/${procesId}/ocena`, { headers: autoryzacja(token) }).then((r) => odpowiedzApi<StanOceny>(r));
@@ -481,6 +547,9 @@ async function zapiszOcene(token: string, procesId: number, sciezka: string, dan
 
 export const zapiszWskazniki = (token: string, procesId: number, wskazniki: Record<string, OcenaWskaznika | null>) =>
   zapiszOcene(token, procesId, "wskazniki", { wskazniki });
+
+export const zapiszRozmowe = (token: string, procesId: number, zapis: ZapisRozmowy) =>
+  zapiszOcene(token, procesId, "rozmowa", zapis);
 
 export const zapiszDecyzje = (
   token: string,
@@ -589,6 +658,7 @@ export interface PytanieRozmowy {
     typ: "wskaznik" | "przyklad" | "zadanie_osp" | "przepis";
     kompetencja: string | null;
     wskaznik: string | null;
+    wskaznik_id?: string | null;
     zadanie_osp: number | null;
   };
   adnotacje: SourceRef[];
@@ -717,6 +787,30 @@ export const zapiszArkusz = (token: string, procesId: number, pola: Record<strin
 
 export async function pobierzArkuszPdf(token: string, procesId: number): Promise<Blob> {
   const r = await fetch(`${sciezkaArkusza(procesId)}/pdf`, { headers: autoryzacja(token) });
+  if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
+  return r.blob();
+}
+
+/** Zakończenie oceny po zapoznaniu ocenianego z oceną (§ 12 ust. 1): status ZAKONCZONY, ocena trafia do kartoteki. */
+export interface ZakonczenieOceny {
+  proces_id: number;
+  data_sporzadzenia_oceny: string;
+  data_zapoznania_z_ocena: string;
+  wynik: "pozytywna" | "negatywna";
+  srednia: string;
+}
+
+export const zakonczOcene = (token: string, procesId: number, dataZapoznania: string) =>
+  fetch(`${sciezkaArkusza(procesId)}/zakoncz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ data_zapoznania_z_ocena: dataZapoznania }),
+  }).then((r) => odpowiedz<ZakonczenieOceny>(r));
+
+/** Sama część I arkusza do podpisu po rozmowie na początku okresu (rozp. 2016 § 5 ust. 3, § 6).
+ *  409 przed zapisem kroku 2, 422 gdy nie da się ustalić terminu oceny. */
+export async function pobierzCzescIPdf(token: string, procesId: number): Promise<Blob> {
+  const r = await fetch(`${sciezkaArkusza(procesId)}/czesc-i/pdf`, { headers: autoryzacja(token) });
   if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
   return r.blob();
 }
@@ -922,3 +1016,125 @@ export const celeApi = {
   status: (t: string, id: number, status: "w_realizacji" | "osiągnięty" | "porzucony") =>
     wyslijCele<Cel>(t, `/api/cele/${id}/status`, "POST", { status }),
 };
+
+/* Pierwsza ocena: terminy, sprawozdanie, egzamin, wynik § 10 i arkusz (#34, kontrakt w issue #34). */
+
+export interface SprawozdaniePierwszej {
+  zadania: string;
+  problemy_i_rozwiazania: string;
+  nowe_umiejetnosci_i_wiedza: string;
+  propozycje_usprawnien: string;
+}
+
+export type PrzeslankaEgzaminu = "ksap_bez_wniosku" | "zastepstwo" | "wyzsze_stanowisko";
+
+export interface EgzaminPierwszej {
+  wynik: "tak" | "nie" | "nie_dotyczy";
+  przeslanka: PrzeslankaEgzaminu | null;
+}
+
+export interface PrzedluzeniePierwszej {
+  nowy_termin: string;
+  data_zawiadomienia: string;
+  przyczyna: "usprawiedliwiona_nieobecnosc" | "obowiazki_poza_miejscem_pracy" | "przedluzenie_umowy";
+  okres_od: string | null;
+  okres_do: string | null;
+  nowy_termin_od: string | null;
+}
+
+export interface DanePierwszej {
+  data_ustalenia_oceny_zastepstwa: string | null;
+  data_konca_zatrudnienia: string | null;
+  data_rozmowy_wstepnej: string | null;
+  termin_sprawozdania_od: string | null;
+  wyznaczony_termin_sprawozdania: string | null;
+  przedluzenie: PrzedluzeniePierwszej | null;
+  data_zlozenia_sprawozdania: string | null;
+  sprawozdanie_niezlozone: boolean;
+  sprawozdanie_okres_od: string | null;
+  sprawozdanie_okres_do: string | null;
+  data_rozmowy_oceniajacej: string | null;
+  data_sporzadzenia_oceny: string | null;
+  data_zapoznania_z_ocena: string | null;
+  sprawozdanie: SprawozdaniePierwszej | null;
+  egzamin: EgzaminPierwszej | null;
+  uzasadnienie: string | null;
+  wnioski_rozwojowe: string | null;
+  pola: Record<string, string | null>;
+}
+
+export interface StanPierwszejOceny {
+  proces_id: number;
+  wersja_regul: string;
+  dane: DanePierwszej;
+  terminy: Record<string, Termin | string | boolean | null | string[] | SladReguly[]> & {
+    slad: SladReguly[];
+    braki: string[];
+    uwagi: string[];
+  };
+  egzamin: EgzaminPierwszej | null;
+  przeslanki_egzaminu: Record<PrzeslankaEgzaminu, SourceRef>;
+  obliczenie: WynikOkresowy["obliczenie"] | null;
+  warunki: { id: string; opis: string; spelniony: boolean; zrodlo: SourceRef }[];
+  uzasadnienie_wymagane: boolean;
+  podstawa_uzasadnienia: SourceRef;
+  wnioski_dostepne: boolean;
+  podstawa_wnioskow: SourceRef;
+  mapowanie: { wartosci: Record<string, number>; adnotacje: SourceRef[] };
+  wersja_metodyki: string;
+  zawiadomienie_dostepne: boolean;
+  formularz: Omit<ArkuszOkresowy, "proces_id" | "arkusz" | "wersja_wzoru" | "rejestracja_ezd">;
+}
+
+const sciezkaPierwszej = (procesId: number) => `/api/procesy/${procesId}/pierwsza-ocena`;
+
+export const pobierzPierwsza = (token: string, procesId: number) =>
+  fetch(sciezkaPierwszej(procesId), { headers: autoryzacja(token) }).then((r) => odpowiedz<StanPierwszejOceny>(r));
+
+export const zapiszPierwsza = (token: string, procesId: number, dane: DanePierwszej, zatwierdz: boolean) =>
+  fetch(sciezkaPierwszej(procesId), {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ ...dane, zatwierdz }),
+  }).then((r) => odpowiedz<StanPierwszejOceny>(r));
+
+export async function pobierzPdfPierwszej(token: string, procesId: number, plik: "arkusz.pdf" | "zawiadomienie.pdf" | "rozmowa-wstepna.pdf"): Promise<Blob> {
+  const r = await fetch(`${sciezkaPierwszej(procesId)}/${plik}`, { headers: autoryzacja(token) });
+  if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
+  return r.blob();
+}
+
+/* Wersje metodyki sugestii i mapowania 5→3 z zatwierdzaniem (#39, kontrakt w PR #67). */
+
+export interface WersjaMetodyki {
+  id: string;
+  numer: number;
+  status: "PROJEKT" | "ZATWIERDZONA" | "ZASTĄPIONA";
+  minimalny_udzial_ocenionych: number;
+  mapowanie_pierwsza: Record<string, number>;
+  zmiana: string;
+  utworzyl: string;
+  utworzono: string;
+  zatwierdzil: string | null;
+  data_zatwierdzenia: string | null;
+}
+
+export const pobierzMetodyke = (token: string) =>
+  fetch("/api/metodyka", { headers: autoryzacja(token) }).then((r) => odpowiedz<{ aktywna: string; wersje: WersjaMetodyki[] }>(r));
+
+export const utworzWersjeMetodyki = (
+  token: string,
+  dane: { minimalny_udzial_ocenionych: number; mapowanie_pierwsza: Record<string, number>; zmiana: string },
+) =>
+  fetch("/api/metodyka", {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify(dane),
+  }).then((r) => odpowiedz<WersjaMetodyki>(r));
+
+export const zatwierdzMetodyke = (token: string, id: string, dane: { osoba: string | null; dzien: string | null }) =>
+  fetch(`/api/metodyka/${encodeURIComponent(id)}/zatwierdz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify(dane),
+  }).then((r) => odpowiedz<WersjaMetodyki>(r));

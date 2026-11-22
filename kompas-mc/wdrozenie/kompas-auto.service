@@ -1,0 +1,6 @@
+[Unit]
+Description=Kompas: wdrożenie nowego main z GitHuba
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/kompas/wdroz-auto.sh

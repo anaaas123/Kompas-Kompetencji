@@ -1,0 +1,128 @@
+/* Pracownicy jako tabela (#54): listwa z wyszukiwarką i pigułkami menu, tabela z przyklejonym nagłówkiem, grupy,
+   stronicowanie. Tylko tokeny --k-*, --t-*, --o-*, --r-*. style.css ładuje się po tym pliku, stąd selektory
+   z klasą rodzica (mocniejsze niż ogólne button, th, td). */
+
+.listwa { display: flex; flex-direction: column; gap: var(--o-12); }
+.listwa-przyciski { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-8); }
+.listwa-odstep { flex: 1; }
+.listwa .listwa-znaczniki { align-items: center; gap: var(--o-8); margin: 0; }
+.listwa button.znacznik-filtra { gap: var(--o-4); min-height: 32px; border: 0; color: var(--k-info-text); }
+.listwa button.link { min-height: 32px; color: var(--k-link); }
+
+/* Pigułka otwiera własne menu; włączony filtr albo ustawienie w kolorze informacji. */
+.rozwijane { position: relative; }
+.listwa button.pigulka {
+  display: inline-flex; align-items: center; gap: var(--o-6); min-height: 44px; padding: 0 var(--o-12) 0 var(--o-16);
+  border: 1px solid var(--k-line-control); border-radius: 999px; background: var(--k-surface); color: var(--k-text);
+  font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium);
+}
+.listwa button.pigulka .ikona { color: var(--k-text-muted); transform: rotate(90deg); transition: transform var(--ruch-szybki) var(--ruch-krzywa); }
+.listwa button.pigulka[aria-expanded="true"] .ikona { transform: rotate(-90deg); }
+.listwa button.pigulka.aktywna { border-color: transparent; background: var(--k-info-bg); color: var(--k-info-text); }
+.listwa button.pigulka.aktywna .ikona { color: var(--k-info-text); }
+.listwa button.pigulka:active { background: var(--k-wiersz-pressed); }
+
+.panel-rozwijany {
+  position: absolute; top: calc(100% + var(--o-4)); left: 0; z-index: var(--z-drawer); min-width: 240px; max-height: 60vh;
+  overflow-y: auto; display: flex; flex-direction: column; gap: var(--o-2); padding: var(--o-8);
+  border: 1px solid var(--k-line); border-radius: var(--r-card); background: var(--k-surface); box-shadow: var(--s-popover);
+}
+.rozwijane.do-prawej .panel-rozwijany { left: auto; right: 0; }
+.panel-rozwijany:focus { outline: 0; }
+.panel-rozwijany .opcja {
+  display: flex; align-items: center; gap: var(--o-12); width: 100%; min-height: 44px; padding: 0 var(--o-12);
+  border: 0; border-radius: var(--r-sm); background: none; color: var(--k-text); font-size: var(--t-ui-r); line-height: var(--t-ui-l);
+  font-weight: var(--f-regular); text-align: left; white-space: nowrap; cursor: pointer;
+}
+.panel-rozwijany button.opcja { justify-content: space-between; }
+.panel-rozwijany button.opcja[aria-pressed="true"] { background: var(--k-tab-active); color: var(--k-link); font-weight: var(--f-semibold); }
+.panel-rozwijany button.opcja:active, .panel-rozwijany label.opcja:active { background: var(--k-wiersz-pressed); }
+.panel-rozwijany label.opcja:has(input:disabled) { color: var(--k-text-muted); cursor: default; }
+.panel-rozwijany label.opcja:focus-within { outline: 2px solid var(--k-focus); outline-offset: -2px; }
+.panel-rozwijany label.opcja input { margin: 0; }
+.liczba-opcji { color: var(--k-text-muted); font-variant-numeric: tabular-nums; font-weight: var(--f-regular); }
+
+/* Tabela: nagłówek przyklejony przy przewijaniu strony, wiersz klikalny, kolumna wiodąca = osoba. */
+.tabela-pracownikow { margin: 0; }
+.tabela-pracownikow thead th { position: sticky; top: 0; z-index: var(--z-sticky); padding: 0; vertical-align: bottom; }
+.tabela-pracownikow th button.sortuj {
+  display: inline-flex; align-items: center; gap: var(--o-4); width: 100%; min-height: 44px; padding: 0 var(--o-8);
+  border: 0; border-radius: inherit; background: none; color: inherit; font-size: inherit; line-height: inherit; font-weight: inherit;
+}
+.tabela-pracownikow th[aria-sort] { color: var(--k-text); font-weight: var(--f-semibold); }
+.tabela-pracownikow th[aria-sort] .ikona { color: var(--k-link); }
+.tabela-pracownikow th[aria-sort="descending"] .ikona { transform: rotate(180deg); }
+.tabela-pracownikow th button.sortuj:active { background: var(--k-wiersz-pressed); }
+.tabela-pracownikow td {
+  padding: var(--o-12) var(--o-8); vertical-align: middle; color: var(--k-text-secondary);
+  font-size: var(--t-small-r); line-height: var(--t-small-l); overflow-wrap: break-word;
+}
+.tabela-pracownikow td .meta { margin: 0; }
+.tabela-pracownikow .kol-termin, .tabela-pracownikow .kol-ocena { white-space: nowrap; }
+.tabela-pracownikow tr.wiersz-osoby { cursor: pointer; transition: background-color var(--ruch-szybki) var(--ruch-krzywa); }
+.tabela-pracownikow tr.wiersz-osoby:active { background: var(--k-wiersz-pressed); }
+.tabela-pracownikow tr.wiersz-osoby:focus-visible { outline: 2px solid var(--k-focus); outline-offset: -2px; }
+.osoba-w-tabeli { display: flex; align-items: center; gap: var(--o-12); color: var(--k-text); font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-weight: var(--f-semibold); }
+.tabela-pracownikow th:first-child button.sortuj, .tabela-pracownikow td:first-child { padding-left: var(--o-12); }
+.bez-lamania { white-space: nowrap; }
+.komorka-pionowa { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-4); }
+/* Nazwy komórek ustępują miejsca reszcie wiersza: łamią się w dowolnym miejscu i mają najwyżej dwie linie. */
+.nazwa-komorki { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.tabela-pracownikow td.kol-czynnosc { min-width: 160px; }
+/* Wąska treść (tablet, okno obok okna): całe słowa i przewijanie w bok; nagłówek nie przykleja się wtedy do okna. */
+@container (max-width: 959px) {
+  .tabela-przewijana { overflow-x: auto; }
+  .nazwa-komorki { overflow-wrap: normal; }
+}
+
+/* Nagłówek grupy: wiersz jak w mObywatelu (tło --k-wiersz), zwija i rozwija grupę. */
+.tabela-pracownikow tr.wiersz-grupy th { padding: var(--o-16) 0 var(--o-4); background: var(--k-canvas); white-space: normal; border-radius: 0; }
+.tabela-pracownikow button.grupa {
+  display: flex; align-items: center; gap: var(--o-12); width: 100%; min-height: 48px; padding: var(--o-8) var(--o-12);
+  border: 0; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-weight: var(--f-regular); text-align: left; white-space: normal;
+}
+.tabela-pracownikow button.grupa:active { background: var(--k-wiersz-pressed); }
+.tabela-pracownikow button.grupa .ikona { color: var(--k-link); transition: transform var(--ruch-szybki) var(--ruch-krzywa); }
+.tabela-pracownikow button.grupa[aria-expanded="true"] .ikona { transform: rotate(90deg); }
+.nazwa-grupy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nazwa-grupy strong { font-weight: var(--f-semibold); }
+.nazwa-grupy .meta { margin: 0; }
+.liczba-grupy { flex: none; color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-variant-numeric: tabular-nums; }
+
+/* Wczytywanie: nagłówek i wiersze tabeli w szkielecie, bez kręcącego się wskaźnika. */
+.szkielet-tabeli { display: flex; flex-direction: column; }
+.szkielet-tabeli span { height: 64px; border-bottom: 1px solid var(--k-line-subtle); animation: szkielet 1.2s ease-in-out infinite alternate; }
+.szkielet-tabeli span:first-child { height: 44px; border: 0; border-radius: var(--r-sm); background: var(--k-table-head); }
+.pusta-tabela { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-12); }
+.pusta-tabela .meta { margin: 0; }
+
+.stronicowanie { display: flex; align-items: center; justify-content: space-between; gap: var(--o-12); }
+.stronicowanie button.jasny { display: inline-flex; align-items: center; gap: var(--o-4); }
+
+@media (hover: hover) and (pointer: fine) {
+  .listwa button.pigulka:not(:disabled):hover { background: var(--k-wiersz); }
+  .listwa button.pigulka.aktywna:not(:disabled):hover { background: var(--k-info-bg); }
+  .listwa button.znacznik-filtra:not(:disabled):hover { background: var(--k-info-bg); text-decoration: underline; }
+  .panel-rozwijany button.opcja:not(:disabled):hover, .panel-rozwijany label.opcja:hover { background: var(--k-wiersz); }
+  .panel-rozwijany button.opcja[aria-pressed="true"]:not(:disabled):hover { background: var(--k-tab-active); }
+  .tabela-pracownikow th button.sortuj:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .tabela-pracownikow tr.wiersz-osoby:hover { background: var(--k-wiersz); }
+  .tabela-pracownikow button.grupa:not(:disabled):hover { background: var(--k-wiersz-hover); }
+}
+
+/* Telefon: wiersz staje się blokiem (osoba na górze, reszta w dwóch kolumnach z etykietą), bez przewijania w bok. */
+@media (max-width: 760px) {
+  .tabela-pracownikow thead { display: none; }
+  .tabela-pracownikow, .tabela-pracownikow tbody, .tabela-pracownikow tr, .tabela-pracownikow th, .tabela-pracownikow td { display: block; }
+  .tabela-pracownikow tr.wiersz-osoby { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-12); padding: var(--o-16) var(--o-4); border-bottom: 1px solid var(--k-line-subtle); }
+  .tabela-pracownikow td, .tabela-pracownikow td:first-child { padding: 0; border: 0; }
+  .tabela-pracownikow td.kol-osoba { grid-column: 1 / -1; }
+  .tabela-pracownikow td[data-etykieta]::before { content: attr(data-etykieta); display: block; color: var(--k-text-muted); font-size: var(--t-micro-r); line-height: var(--t-micro-l); }
+  .listwa-odstep { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listwa button.pigulka .ikona, .tabela-pracownikow button.grupa .ikona, .tabela-pracownikow tr.wiersz-osoby { transition: none; }
+  .szkielet-tabeli span { animation: none; }
+}

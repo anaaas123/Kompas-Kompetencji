@@ -1,0 +1,15 @@
+[Unit]
+Description=Kompas Kompetencji API (wersja testowa)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/kompas-repo/kompas-mc/backend
+Environment=KOMPAS_MC_PORT=8000
+Environment=KOMPAS_MC_DANE=/var/lib/kompas
+# SCALEWAY_API_KEY (klucz IAM tylko z GenerativeApisModelAccess); plik 600, poza repo.
+EnvironmentFile=-/etc/kompas.env
+ExecStart=/root/.local/bin/uv run --frozen --no-sync kompas-mc
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

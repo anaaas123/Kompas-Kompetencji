@@ -2,15 +2,15 @@
 
 Czyste funkcje. Metodyka sugestii (mediana, remis, „niewystarczające dane”, mapowanie 5→3)
 jest DECYZJĄ_PROJEKTOWĄ z ``konfiguracja/ocena.yaml``. Sugestia nigdy nie wpisuje oceny
-cząstkowej; decyzję podejmuje przełożony, a odejście od sugestii wymaga uzasadnienia.
+cząstkowej; decyzję podejmuje przełożony, uzasadnienie odejścia od sugestii jest opcjonalne (Karol 21.11).
 """
 
 from __future__ import annotations
 
 import math
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 import yaml
 from kompas_core.zrodla import SourceRef
@@ -97,6 +97,8 @@ class OcenaWskaznika(BaseModel):
     poziom: Literal[1, 3, 5, 7, 9] | None = None
     brak_podstaw: bool = False
     przyklady: list[Przyklad] = Field(default_factory=list)
+    uwagi: str | None = Field(default=None, max_length=2000)
+    """Uwagi przełożonego z rozmowy przy wskaźniku (zamiast pełnego przykładu)."""
 
     @model_validator(mode="after")
     def _wykluczanie(self) -> OcenaWskaznika:
@@ -216,6 +218,19 @@ class SkalaWidok(BaseModel):
     adnotacje: list[SourceRef]
 
 
+Tekst = Annotated[str, Field(max_length=4000)]
+
+
+class ZapisRozmowy(BaseModel):
+    """Rozmowa oceniająca (rozp. 2016 § 10): notatki tematów, szkic informacji zwrotnej i data.
+    Data trafia do części II arkusza, notatka o rozwoju podpowiada wnioski (§ 11 ust. 1 pkt 5)."""
+
+    data: date | None = None
+    notatki: dict[Literal["obowiazki", "sprawozdanie", "cele", "rozwoj"], Tekst] = Field(default_factory=dict)
+    mocne_strony: Tekst | None = None
+    obszary_rozwoju: Tekst | None = None
+
+
 class StanOceny(BaseModel):
     samoocena_status: Literal["brak", "szkic", "przekazana"] | None = None
     """Status samooceny (#8), tylko dla przełożonego; treść przy wskaźnikach po przekazaniu."""
@@ -230,6 +245,8 @@ class StanOceny(BaseModel):
     kompletnosc: Kompletnosc
     ostrzezenia: list[str]
     dla_rozwoju: list[WskaznikDlaRozwoju]
+    rozmowa: ZapisRozmowy | None = None
+    """Zapis rozmowy oceniającej; ``None``, dopóki przełożony nic nie zapisał."""
 
 
 # ---------------------------------------------------------------- logika
@@ -302,7 +319,7 @@ def zgodna(punkty: int, s: Sugestia) -> bool | None:
 def ostrzezenia_wskaznika(o: OcenaWskaznika | None, konf: KonfiguracjaOceny) -> list[str]:
     if o is None or o.poziom is None:
         return []
-    if o.poziom != konf.poziom_oczekiwan and not o.przyklady:
+    if o.poziom != konf.poziom_oczekiwan and not o.przyklady and not (o.uwagi or "").strip():
         return [konf.przyklady.ostrzezenie_bez_przykladu]
     return []
 
@@ -351,7 +368,8 @@ def zbuduj_stan(
                         wskaznik=w.nazwa,
                         wskaznik_id=w.id,
                         poziom=o.poziom,
-                        przyklady=[p.jako_tekst() for p in o.przyklady],
+                        # Pole „Przykład z okresu” przy wskaźniku zapisuje się jako uwagi (#72 pkt 7).
+                        przyklady=[p.jako_tekst() for p in o.przyklady] or ([o.uwagi] if o.uwagi else []),
                     )
                 )
         kryteria.append(
@@ -429,11 +447,6 @@ def scal_decyzje(
             continue
         uzasadnienie = (d.uzasadnienie or "").strip() or None
         z = zgodna(d.punkty, k.sugestia)
-        if z is False and uzasadnienie is None:
-            bledy.append(
-                f"{k.nazwa}: {d.punkty} pkt różni się od sugestii ({k.sugestia.opis}) – podaj uzasadnienie."
-            )
-            continue
         wynik[k_id] = Decyzja(
             punkty=d.punkty, uzasadnienie=uzasadnienie, zgodna_z_sugestia=z, zapisal=zapisal, zapisano=zapisano
         )

@@ -4,12 +4,13 @@ import { Logowanie, type Sesja } from "./Konto";
 import { Krok1 } from "./Krok1";
 import { Krok2 } from "./Krok2";
 import { Ocena } from "./Ocena";
-import { Rozmowa } from "./Rozmowa";
 import { Wynik } from "./Wynik";
 import { Arkusz } from "./Arkusz";
 import { Wnioski } from "./Wnioski";
+import { Pierwsza } from "./Pierwsza";
+import PanelMetodyki from "./PanelMetodyki";
 import PanelHR from "./PanelHR";
-import type { Pracownik, ProcesOceny } from "./api";
+import { pobierzWynik, type Pracownik, type ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
 import { Pulpit } from "./Pulpit";
@@ -23,10 +24,12 @@ import type { FiltrPracownikow } from "./zespol-dane";
 
 const KLUCZ_SESJI = "kompas-mc-sesja";
 
-type Etap = "krok2" | "ocena" | "rozmowa" | "wynik" | "arkusz" | "wnioski";
+type Etap = "krok2" | "ocena" | "wynik" | "arkusz" | "wnioski";
 
 export default function App() {
   const [blad, setBlad] = useState<string | null>(null);
+  // Kryteria otwarte z rozmowy: tylko podgląd części I (§ 5–6, § 9 ust. 3).
+  const [podgladCzesciI, setPodgladCzesciI] = useState(false);
   const [zrodla, setZrodla] = useState<Zrodla | null>(null);
   const [widok, setWidok] = useState<Widok>("pulpit");
   const [asystent, setAsystent] = useState(false);
@@ -60,6 +63,9 @@ export default function App() {
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
+    setFiltr({});
+    setPytanie(null);
+    setPodgladCzesciI(false);
   }, []);
 
   // Wybór pozycji menu zamyka otwartą ocenę i wraca do listy.
@@ -103,6 +109,33 @@ export default function App() {
   const widokZrodel = widok === "zrodla" && sesja.uzytkownik.rola === "hr";
   const widokProcesow = widok === "procesy" && sesja.uzytkownik.rola === "hr";
 
+  // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
+  // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
+  // Pierwsza ocena: od kroku 6 (wynik zapisany albo rozmowa zakończona) ekran Pierwsza.tsx.
+  /** `wymus`: etap wybrany na karcie (#55), np. kryteria procesu, który jest już dalej. */
+  const otworzProces = async (osoba: Pracownik, p: ProcesOceny | null, wymus?: Etap) => {
+    const k = p?.krok ?? 0;
+    const nowyEtap: Etap = wymus ??
+      (k >= 8
+        ? "wnioski"
+        : k === 7 && p?.sciezka === "okresowa"
+          ? await pobierzWynik(sesja.token, p.id).then(
+              (w): Etap => (w.zapisany ? "arkusz" : "wynik"),
+              (): Etap => "wynik",
+            )
+          : k >= 6
+            ? "wynik"
+            : k >= 3 || p?.krok2?.zapoznanie
+              ? // Część I zakończona (data zapoznania z kryteriami, § 6): „Zakończ ocenę” otwiera rozmowę; niezamknięta część I → krok 2.
+                // Kryteria z części I widać w „Zobacz kryteria (część I)” albo z etapu na karcie.
+                "ocena"
+              : "krok2");
+    setEtap(nowyEtap);
+    setPodgladCzesciI(false);
+    setProces(p);
+    setOceniany(osoba);
+  };
+
   return (
     <Powloka
       sesja={sesja}
@@ -129,9 +162,17 @@ export default function App() {
           token={sesja.token}
           osoba={oceniany}
           proces={proces}
-          moznaProwadzic={prowadzi}
+          moznaProwadzic={prowadzi && !podgladCzesciI}
           onWstecz={() => setProces(null)}
-          onDalej={() => setEtap("ocena")}
+          onDalej={() => {
+            setPodgladCzesciI(false);
+            setEtap("ocena");
+          }}
+          onPracownik={() => {
+            setProces(null);
+            setOceniany(null);
+            setEtap("krok2");
+          }}
         />
       )}
       {oceniany && proces && etap === "ocena" && (
@@ -140,47 +181,39 @@ export default function App() {
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("krok2")}
-          onDalej={() => setEtap("rozmowa")}
-        />
-      )}
-      {oceniany && proces && etap === "rozmowa" && (
-        <Rozmowa
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("ocena")}
+          onWstecz={() => {
+            // Z rozmowy kryteria tylko do podglądu: część I ustalono na początku okresu (§ 5–6, § 9 ust. 3).
+            setPodgladCzesciI(true);
+            setEtap("krok2");
+          }}
           onDalej={() => setEtap("wynik")}
         />
       )}
-      {oceniany && proces && etap === "wynik" && (
-        <Wynik
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("rozmowa")}
-          onDalej={() => setEtap("arkusz")}
-        />
-      )}
-      {oceniany && proces && etap === "arkusz" && (
-        <Arkusz
-          token={sesja.token}
-          osoba={oceniany}
-          proces={proces}
-          moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("wynik")}
-          onDalej={() => setEtap("wnioski")}
-        />
-      )}
+      {oceniany && proces && (etap === "wynik" || etap === "arkusz" || etap === "wnioski") && (() => {
+        const Ekran = proces.sciezka === "pierwsza" ? Pierwsza : etap === "arkusz" ? Arkusz : Wynik;
+        return (
+          <div hidden={etap === "wnioski"}>
+            <Ekran
+              key={proces.id}
+              token={sesja.token}
+              osoba={oceniany}
+              proces={proces}
+              moznaProwadzic={prowadzi}
+              zalogowanyId={sesja.uzytkownik.osoba_id}
+              onWstecz={() => setEtap("ocena")}
+              onZmienOcene={proces.status === "W_TOKU" ? () => setEtap("ocena") : undefined}
+              onDalej={() => setEtap("wnioski")}
+            />
+          </div>
+        );
+      })()}
       {oceniany && proces && etap === "wnioski" && (
         <Wnioski
           token={sesja.token}
           osoba={oceniany}
           proces={proces}
           moznaProwadzic={prowadzi}
-          onWstecz={() => setEtap("arkusz")}
+          onWstecz={() => setEtap(proces.sciezka === "pierwsza" ? "wynik" : "arkusz")}
         />
       )}
       {karta && samoocena !== null && (
@@ -191,20 +224,22 @@ export default function App() {
           sesja={sesja}
           osoba={karta}
           onWroc={() => setKarta(null)}
-          onOcen={() => setOceniany(karta)}
+          onOcen={(p, e) => otworzProces(karta, p, e)}
           onSamoocena={setSamoocena}
           onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
           cele={<CeleOsoby sesja={sesja} osoba={karta} maks={3} />}
         />
       )}
+      {!karta && !oceniany && widokZrodel && <h1 className="tytul-widoku">Źródła i braki</h1>}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
+      {!karta && !oceniany && widokZrodel && <PanelMetodyki token={sesja.token} mozeZarzadzac />}
+      {!karta && !oceniany && widokProcesow && <h1 className="tytul-widoku">Procesy i terminy</h1>}
       {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit
           sesja={sesja}
           onWybierz={setKarta}
-          onZapytaj={zapytajAsystenta}
           onWyloguj={wyloguj}
           onZespol={() => przejdz("zespol")}
           onPracownicy={() => przejdz("pracownicy")}

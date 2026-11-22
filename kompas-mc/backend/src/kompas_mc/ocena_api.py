@@ -12,6 +12,7 @@ from pydantic import TypeAdapter
 from .krok2_api import StanKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import (
+    ZapisRozmowy,
     BladOceny,
     Decyzja,
     KonfiguracjaOceny,
@@ -24,9 +25,9 @@ from .ocena import (
     scal_oceny,
     zbuduj_stan,
 )
-from .procesy import ProcesOceny, wczytaj_proces
+from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt
-from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
+from .samoocena import rozbieznosc, ukryj_przed_przekazaniem, wczytaj as wczytaj_samoocene
 
 _OCENY = TypeAdapter(dict[str, OcenaWskaznika])
 _DECYZJE = TypeAdapter(dict[str, Decyzja])
@@ -37,6 +38,11 @@ def _wczytaj_dane(baza, proces_id: int) -> tuple[dict[str, OcenaWskaznika], dict
         "SELECT oceny_wskaznikow, decyzje FROM procesy WHERE id = ?", (proces_id,)
     ).fetchone()
     return (_OCENY.validate_json(o) if o else {}), (_DECYZJE.validate_json(d) if d else {})
+
+
+def _wczytaj_rozmowe(baza, proces_id: int) -> ZapisRozmowy | None:
+    (r,) = baza.execute("SELECT rozmowa FROM procesy WHERE id = ?", (proces_id,)).fetchone()
+    return ZapisRozmowy.model_validate_json(r) if r else None
 
 
 def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
@@ -65,10 +71,12 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
 
     def stan(request: Request, proces: ProcesOceny) -> StanOceny:
         oceny, decyzje = _wczytaj_dane(request.app.state.baza, proces.id)
-        return zbuduj_stan(
+        wynik = zbuduj_stan(
             proces.id, proces.sciezka, proces.arkusz, proces.krok2, oceny, decyzje, stan2.model,
             konf_procesu(request, proces),
         )
+        wynik.rozmowa = _wczytaj_rozmowe(request.app.state.baza, proces.id)
+        return wynik
 
     def zapisz(
         request: Request, uz: Uzytkownik, proces: ProcesOceny, kolumna: str, wartosc: str, przed, po
@@ -96,9 +104,8 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         proces = proces_dostepny(request, proces_id, uz, "ocena.tresc")
         p = qnt.pracownik(proces.osoba_id)
         # Pracownik zobaczy ocenę przełożonego dopiero po przekazaniu samooceny, żeby jej nie przepisywał.
-        if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.zapisz"):
-            if wczytaj_samoocene(request.app.state.baza, proces.id)[0] != "przekazana":
-                raise HTTPException(403, "Ocena przełożonego będzie widoczna po przekazaniu samooceny.")
+        if p is not None:
+            ukryj_przed_przekazaniem(auth, uz, p.model_dump(), request.app.state.baza, proces)
         wynik = stan(request, proces)
         if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.czytaj"):
             status, _, pozycje = wczytaj_samoocene(request.app.state.baza, proces.id)
@@ -146,7 +153,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
     ) -> StanOceny:
         """Krok 5: ocena cząstkowa kryterium wybrana przez przełożonego. Punkty ze skali ścieżki;
-        odejście od sugestii wymaga uzasadnienia. ``null`` cofa decyzję."""
+        uzasadnienie odejścia od sugestii jest opcjonalne. ``null`` cofa decyzję."""
         proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
         if proces.status != "W_TOKU":
             raise HTTPException(409, "Proces nie jest w toku")
@@ -162,5 +169,33 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
             request, uz, proces, "decyzje", _DECYZJE.dump_json(nowe).decode(),
             {"decyzje": zrzut(obecne)}, {"decyzje": zrzut(nowe)},
         )
+
+    @r.put("/procesy/{proces_id}/ocena/rozmowa")
+    def rozmowa(
+        proces_id: int,
+        body: ZapisRozmowy,
+        request: Request,
+        uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> StanOceny:
+        """Rozmowa oceniająca (§ 10): notatki tematów, szkic informacji zwrotnej i data. Zastępuje
+        poprzedni zapis. Data rozmowy przy komplecie ocen cząstkowych kończy rozmowę: proces przechodzi
+        do oceny na piśmie (krok 6). 422, gdy data jest z przyszłości albo sprzed zapoznania z kryteriami."""
+        proces = proces_dostepny(request, proces_id, uz, "ocena.prowadz")
+        if proces.status != "W_TOKU":
+            raise HTTPException(409, "Proces nie jest w toku")
+        zapoznanie = proces.krok2.zapoznanie if proces.krok2 else None
+        if body.data and (body.data > dzien_urzedowy(datetime.now(UTC)) or (zapoznanie and body.data < zapoznanie)):
+            raise HTTPException(422, "Data rozmowy musi przypadać od zapoznania z kryteriami do dziś.")
+        przed = _wczytaj_rozmowe(request.app.state.baza, proces.id)
+        nowy = zapisz(
+            request, uz, proces, "rozmowa", body.model_dump_json(),
+            {"rozmowa_data": przed.data.isoformat() if przed and przed.data else None},
+            {"rozmowa_data": body.data.isoformat() if body.data else None},
+        )
+        if body.data and nowy.kompletnosc.wszystkie_decyzje:
+            baza = request.app.state.baza
+            with baza:
+                baza.execute("UPDATE procesy SET krok = MAX(krok, 6) WHERE id = ?", (proces.id,))
+        return nowy
 
     return r

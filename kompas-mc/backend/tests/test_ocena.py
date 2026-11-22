@@ -1,6 +1,6 @@
 """Kroki 3–5 (#31): zachowania i przykłady, sugerowany poziom, decyzja przełożonego."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from kompas_core.zrodla import cytat_w_korpusie
@@ -12,6 +12,7 @@ from kompas_mc.ocena import (
     OcenaWskaznika,
     Przyklad,
     ZapisDecyzji,
+    ostrzezenia_wskaznika,
     scal_decyzje,
     sugestia,
 )
@@ -167,10 +168,10 @@ def test_pelny_przebieg_okresowej(klient, naglowek):
     assert k["decyzja"] is None
     assert klient.get(f"/api/procesy/{proces['id']}", headers=h).json()["krok"] >= 3
 
-    # krok 5: odejście od sugestii bez uzasadnienia → 422; z uzasadnieniem → OK
+    # krok 5: odejście od sugestii zapisuje się także bez uzasadnienia (opcjonalne, Karol 21.11)
     kid = k["kompetencja_id"]
     r = klient.put(f"{url}/decyzje", headers=h, json={"decyzje": {kid: {"punkty": 5}}})
-    assert r.status_code == 422 and "uzasadnienie" in r.json()["detail"]["bledy"][0]
+    assert r.status_code == 200 and r.json()["kryteria"][0]["decyzja"]["zgodna_z_sugestia"] is False
     r = klient.put(f"{url}/decyzje", headers=h, json={"decyzje": {kid: {"punkty": 5, "uzasadnienie": "Jeden przykład."}}})
     assert r.status_code == 200
     d = r.json()["kryteria"][0]["decyzja"]
@@ -267,3 +268,44 @@ def test_decyzja_przy_niewystarczajacych_danych_bez_uzasadnienia(konf):
     assert wynik["k"].zgodna_z_sugestia is None
     with pytest.raises(BladOceny):
         scal_decyzje({}, ZapisDecyzji(decyzje={"zzz": {"punkty": 3}}), stan, konf, "x", datetime.now(UTC))
+
+
+def test_uwagi_zastepuja_przyklad_w_ostrzezeniu(konf):
+    """Uwagi z rozmowy przy wskaźniku zdejmują ostrzeżenie o poziomie innym niż oczekiwany bez przykładu."""
+    assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7), konf)
+    assert not ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="Wyjaśniła akt UODO prostym językiem."), konf)
+    assert ostrzezenia_wskaznika(OcenaWskaznika(poziom=7, uwagi="   "), konf)
+
+
+def test_zapis_rozmowy_i_zakonczenie(klient, naglowek):
+    """Rozmowa oceniająca (§ 10) zapisuje się w API, a data przy komplecie ocen kończy ją (krok 6)."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/ocena"
+    body = {"notatki": {"obowiazki": "Omówiono trzy zadania z OSP."}, "mocne_strony": "Jasne pisma."}
+    r = klient.put(f"{url}/rozmowa", json=body, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["rozmowa"]["notatki"]["obowiazki"] == "Omówiono trzy zadania z OSP."
+    assert klient.get(url, headers=h).json()["rozmowa"]["mocne_strony"] == "Jasne pisma."
+    jutro = (date.today() + timedelta(days=1)).isoformat()
+    assert klient.put(f"{url}/rozmowa", json={"data": jutro}, headers=h).status_code == 422
+    assert klient.put(f"{url}/rozmowa", json={"notatki": {"inne": "x"}}, headers=h).status_code == 422
+    stan = klient.get(url, headers=h).json()
+    for kr in stan["kryteria"]:
+        klient.put(f"{url}/decyzje", json={kr["kompetencja_id"]: {"punkty": 5}}, headers=h)
+    r = klient.put(f"{url}/rozmowa", json={**body, "data": date.today().isoformat()}, headers=h)
+    assert r.status_code == 200, r.text
+    assert klient.get(f"/api/procesy/{proces['id']}", headers=h).json()["krok"] >= 6
+    assert klient.put(f"{url}/rozmowa", json={}, headers=naglowek("hr")).status_code == 403
+
+
+def test_przyklad_z_pola_uwag_liczy_sie_dla_rozwoju(klient, naglowek):
+    """#72 pkt 7: przykład wpisany przy wskaźniku (pole uwag) trafia do propozycji rozwoju."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/ocena"
+    w = klient.get(url, headers=h).json()["kryteria"][0]["wskazniki"][0]["wskaznik_id"]
+    r = klient.put(f"{url}/wskazniki", json={"wskazniki": {w: {"poziom": 7, "uwagi": "Przygotowała opinię w 2 dni."}}}, headers=h)
+    assert r.status_code == 200, r.text
+    dla = {x["wskaznik_id"]: x for x in r.json()["dla_rozwoju"]}
+    assert dla[w]["przyklady"] == ["Przygotowała opinię w 2 dni."]

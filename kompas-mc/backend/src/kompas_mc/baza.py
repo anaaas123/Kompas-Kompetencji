@@ -80,7 +80,10 @@ def polacz(plik: str | Path) -> Baza:
     )
     kolumny = {w[1] for w in conn.execute("PRAGMA table_info(procesy)")}
     # Kolejne kroki mogą otworzyć bazę utworzoną przez starszą wersję.
-    for nazwa in ("krok2", "oceny_wskaznikow", "decyzje", "wynik_okresowy", "arkusz_okresowy", "pierwsza_ocena"):
+    for nazwa in (
+        "krok2", "oceny_wskaznikow", "decyzje", "wynik_okresowy", "arkusz_okresowy", "pierwsza_ocena", "rozmowa",
+        "zakonczenie",
+    ):
         if nazwa not in kolumny:
             conn.execute(f"ALTER TABLE procesy ADD COLUMN {nazwa} TEXT")
     conn.execute(

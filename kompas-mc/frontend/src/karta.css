@@ -1,0 +1,39 @@
+/* Karta pracownika (#55): opis osoby z podstawą, klikalne etapy, poprzednie oceny w cyklu, skrócony opis stanowiska. */
+
+/* Opis osoby: warstwa asystenta oznaczona cienką niebieską linią (kolor AI floty = info), tekst w kolorze treści. */
+.opis-osoby { margin-top: var(--o-8); padding-left: var(--o-12); border-left: 2px solid var(--k-info-text); display: flex; flex-direction: column; gap: var(--o-4); max-width: 100ch; }
+.zdania-opisu { margin: 0; font-size: var(--t-body-r); line-height: var(--t-body-l); color: var(--k-text-secondary); }
+.podpis-opisu { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-4) var(--o-16); font-size: var(--t-small-r); line-height: var(--t-small-l); color: var(--k-text-muted); }
+.podpis-opisu button.link { min-height: 24px; font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.podpis-opisu button.link:disabled { color: var(--k-text-muted); text-decoration: none; }
+.podstawa-opisu { margin: var(--o-4) 0 0; padding-left: var(--o-16); display: flex; flex-direction: column; gap: var(--o-8); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.podstawa-opisu li { display: flex; flex-direction: column; gap: var(--o-2); }
+.opis-osoby.szkielet-tekstu { height: 40px; border-left-color: var(--k-line); background: var(--k-wiersz); border-radius: var(--r-wiersz); animation: szkielet 1.2s ease-in-out infinite alternate; }
+
+/* Etapy cyklu jako przyciski: znak etapu zachowuje własny kolor, strzałka tylko na klikalnych. */
+button.etap .znak-etapu .ikona { color: inherit; }
+button.etap:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  button.etap:hover { background: var(--k-wiersz-hover); }
+}
+
+/* Arkusz jako dopisek w tytule oceny, poprzednie oceny pod etapami. */
+.arkusz-dopisek { color: var(--k-text-muted); font-weight: var(--f-regular); }
+.poprzednie { display: flex; flex-direction: column; gap: var(--o-8); padding-top: var(--o-16); border-top: 1px solid var(--k-line-subtle); }
+
+/* Opis stanowiska skrócony: cel i każde zadanie w dwóch liniach (wzór kroku 1, #46). */
+.opis-stanowiska.skrocone .cel-stanowiska,
+.opis-stanowiska.skrocone .tekst-zadania { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.opis-stanowiska button.link { align-self: flex-start; min-height: 44px; }
+.opis-stanowiska button.link:active { color: var(--k-link-pressed); }
+
+@media (prefers-reduced-motion: reduce) {
+  .opis-osoby.szkielet-tekstu { animation: none; }
+}
+
+/* Braki dat w kartotece: jedna linia w tonie uwagi, lista przepisowa po rozwinięciu. */
+.braki-karty { border-radius: var(--r-wiersz); background: var(--k-attention-bg); color: var(--k-attention-text); }
+.braki-karty > summary { display: flex; align-items: center; min-height: 44px; padding: var(--o-8) var(--o-16); cursor: pointer; font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium); }
+.braki-karty > summary:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.braki-karty > summary:active { background: var(--k-wiersz-pressed); }
+.braki-karty ul { margin: 0; padding: 0 var(--o-16) var(--o-12) var(--o-32); font-size: var(--t-small-r); line-height: var(--t-small-l); }

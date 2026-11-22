@@ -55,7 +55,8 @@ def test_po_ocenie_negatywnej_kryteria_w_7_dni_i_znacznik_po_terminie(klient, h)
     e = cykl(klient, h("przelozony2"))["P-102"]
     assert (e["etap"], e["czynnosc"]) == ("kryteria", "Ustal kryteria")
     assert (e["termin"]["data"], e["dni_do_terminu"]) == ("2026-11-23", 2)
-    assert any("zapoznania" in b for b in e["braki"]), "ponowna ocena wymaga daty zapoznania"
+    # Ponowna ocena liczy się od zapoznania z oceną negatywną; data jest w aktach (kartoteka QNT, demo).
+    assert not any("zapoznania" in b for b in e["braki"])
 
     klient.app.state.dzis = lambda: date(2026, 11, 25)
     try:

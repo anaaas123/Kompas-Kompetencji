@@ -1,6 +1,6 @@
 """Krok 2 (#30): model kompetencji, kryteria obowiązkowe i dodatkowe, wskaźniki z zadaniami OSP."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from kompas_core.zrodla import cytat_w_korpusie, cytat_w_tekscie
@@ -271,3 +271,48 @@ def test_cytaty_kroku2_sa_w_korpusie(klient, naglowek, korpus_mc):
     for ref in refs:
         if ref and ref.get("cytat_dosłowny"):
             assert cytat_w_korpusie(ref["cytat_dosłowny"], korpus_mc.korpus, ref["doc_id"]), ref
+
+
+def test_zakonczenie_czesci_i_zapisuje_date_zapoznania(klient, naglowek):
+    """Część I kończy się datą rozmowy i zapoznania z kryteriami (rozp. 2016 § 5 ust. 1, § 6 ust. 2)."""
+    from datetime import date, timedelta
+
+    h = naglowek("przelozony2")
+    proces = _proces(klient, naglowek, "P-102", "okresowa", "przelozony2")
+    url = f"/api/procesy/{proces['id']}/krok2"
+    dzis = date.today().isoformat()
+    p = klient.get(url, headers=h).json()
+    wsk = {k["kompetencja_id"]: [w["wskaznik_id"] for w in k["wskazniki"][:1]] for k in p["kryteria"] if k["rodzaj"] == "OBOWIAZKOWE"}
+    assert klient.put(url, json={"wskazniki": wsk}, headers=h).status_code == 200
+    jutro = (date.today() + timedelta(days=1)).isoformat()
+    assert klient.put(f"{url}/zapoznanie", json={"data": jutro}, headers=h).status_code == 422
+    # Przed początkiem okresu (poprzednia ocena P-102: 16.11.2026) nie wolno; część I sprzed miesięcy na końcu
+    # okresu wolno (przepisanie z podpisanej części I) — sprawdza to test cyklu poniżej.
+    assert klient.put(f"{url}/zapoznanie", json={"data": "2026-11-15"}, headers=h).status_code == 422
+    r = klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["krok2"]["zapoznanie"] == dzis
+    # Nowy zapis kryteriów kasuje datę: część I trzeba podpisać od nowa.
+    assert klient.put(url, json={"wskazniki": wsk}, headers=h).json()["krok2"]["zapoznanie"] is None
+    assert klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=naglowek("hr")).status_code == 403
+
+
+def test_czesc_i_przepisana_na_koncu_okresu(klient, naglowek):
+    """#72: na końcu okresu przełożony przepisuje datę z podpisanej części I sprzed miesięcy; cykl liczy
+    ustalenie kryteriów od tej daty, nie od dnia przepisania (bez błędu kolejności dat)."""
+    h = naglowek("przelozony1")
+    proces = _proces(klient, naglowek, "P-105", "okresowa", "przelozony1")
+    url = f"/api/procesy/{proces['id']}/krok2"
+    p = klient.get(url, headers=h).json()
+    wsk = {k["kompetencja_id"]: [w["wskaznik_id"] for w in k["wskazniki"][:1]] for k in p["kryteria"] if k["rodzaj"] == "OBOWIAZKOWE"}
+    assert klient.put(url, json={"wskazniki": wsk}, headers=h).status_code == 200
+    poprzednia = klient.get("/api/pracownicy/P-105", headers=h).json()["ostatnia_ocena_okresowa"]["data"]
+    rok_temu = (date.fromisoformat(poprzednia) + timedelta(days=20)).isoformat()
+    r = klient.put(f"{url}/zapoznanie", json={"data": rok_temu}, headers=h)
+    assert r.status_code == 200, r.text
+    cykl = klient.get("/api/cykl", headers=h)
+    assert cykl.status_code == 200, cykl.text
+    e = {x["osoba_id"]: x for x in cykl.json()}["P-105"]
+    assert e["kryteria_ustalone"] == rok_temu
+    przed = (date.fromisoformat(poprzednia) - timedelta(days=1)).isoformat()
+    assert klient.put(f"{url}/zapoznanie", json={"data": przed}, headers=h).status_code == 422

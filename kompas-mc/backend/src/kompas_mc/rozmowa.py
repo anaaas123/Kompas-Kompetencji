@@ -155,8 +155,8 @@ class PlanRozmowy(BaseModel):
 # --- logika -------------------------------------------------------------------------
 
 
-def _skrot(p: Przyklad, n: int = 220) -> str:
-    t = f"{p.sytuacja} – {p.dzialanie} – {p.rezultat}"
+def _skrot(p: Przyklad | str, n: int = 220) -> str:
+    t = p if isinstance(p, str) else f"{p.sytuacja} – {p.dzialanie} – {p.rezultat}"
     return t if len(t) <= n else t[: n - 1].rstrip() + "…"
 
 
@@ -207,8 +207,8 @@ def przygotuj(
 
     def dodaj(szablon_id: str, tresc: str, powiazanie: Powiazanie) -> None:
         s = konf.szablon(szablon_id)
-        if any(p.tresc == tresc for p in pytania):
-            return  # ten sam przykład przy kilku wskaźnikach – pytamy raz
+        if powiazanie.typ == "przyklad" and any(p.tresc == tresc for p in pytania):
+            return  # ten sam przykład przy kilku wskaźnikach – pytamy raz; pytania o wskaźniki zostają wszystkie
         pytania.append(
             Pytanie(
                 id=f"{szablon_id}#{len(pytania) + 1}",
@@ -245,11 +245,14 @@ def przygotuj(
 
             poziom = ocena.poziom
             przyklady = ocena.przyklady
-            if przyklady:
-                for i, p in enumerate(przyklady[:2]):
+            # Pole „Przykład z okresu” zapisuje uwagi (#46); bez pełnych przykładów one są przykładem.
+            uwagi = (ocena.uwagi or "").strip()
+            teksty = [_skrot(p) for p in przyklady] or ([_skrot(uwagi)] if uwagi else [])
+            if teksty:
+                for i, t in enumerate(teksty[:2]):
                     dodaj(
                         "pyt.wskaznik.powtarzalnosc",
-                        konf.szablon("pyt.wskaznik.powtarzalnosc").tresc.format(przyklad=_skrot(p)),
+                        konf.szablon("pyt.wskaznik.powtarzalnosc").tresc.format(przyklad=t),
                         baza.model_copy(update={"typ": "przyklad", "przyklad": i}),
                     )
             else:
@@ -276,16 +279,16 @@ def przygotuj(
                         etykieta=opis.etykieta,
                         zachowanie=opis.opis,
                         zachowanie_zrodlo=zrodlo,
-                        przyklad=f"{pierwszy.sytuacja} – {pierwszy.dzialanie}" if pierwszy else None,
+                        przyklad=f"{pierwszy.sytuacja} – {pierwszy.dzialanie}" if pierwszy else (uwagi or None),
                         rezultat=pierwszy.rezultat if pierwszy else None,
-                        uwaga=None if pierwszy else "Brak przykładu: dopisz sytuację, działanie i rezultat.",
+                        uwaga=None if teksty else "Brak przykładu: dopisz sytuację, działanie i rezultat.",
                     )
                 )
 
             if poziom > oczekiwany:
                 mocne.append(
                     fz["szablon_mocnej_strony"].format(
-                        wskaznik=nazwa, przyklad=_w_zdaniu(_skrot(pierwszy)) if pierwszy else "(dopisz przykład)"
+                        wskaznik=nazwa, przyklad=_w_zdaniu(teksty[0]) if teksty else "(dopisz przykład)"
                     )
                 )
             elif poziom < oczekiwany:

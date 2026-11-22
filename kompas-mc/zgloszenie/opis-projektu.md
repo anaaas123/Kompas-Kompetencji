@@ -18,7 +18,7 @@ Działamy według trzech zasad:
 | 2. Kryteria i wskaźniki | Zatwierdza kryteria obowiązkowe, wybiera do 3 dodatkowych i wskaźniki | Ładuje kryteria obowiązkowe arkusza (§ 4) i proponuje dodatkowe z zadań OSP. Przy każdym wskaźniku pokazuje zadania, które go uzasadniają. Czwartego kryterium API nie przyjmie. |
 | 3. Zachowania i przykłady | Przy każdym wskaźniku wybiera opis zachowania (5 poziomów z modelu) albo „brak podstaw” i dodaje przykład: sytuacja – działanie – rezultat | Ostrzega, gdy poziom inny niż „na poziomie oczekiwań” nie ma przykładu. |
 | 4. Sugerowany poziom | Widzi sugestię dla kryterium | Liczy medianę poziomów wskaźników według zatwierdzonej wersji metodyki. „Brak podstaw” nie obniża sugestii. Przy remisie pokazuje obie wartości i nie wybiera. |
-| 5. Decyzja | Sam wybiera ocenę cząstkową | Wymaga uzasadnienia, gdy decyzja odbiega od sugestii. |
+| 5. Decyzja | Sam wybiera ocenę cząstkową | Zapisuje, czy decyzja odbiega od sugestii; uzasadnienie opcjonalne. |
 | 6. Rozmowa i wynik | Przygotowuje rozmowę, wpisuje daty i uzasadnienie | Asystent rozmowy daje plan: zakres z przepisu, pytania z powiązaniem i uzasadnieniem, argumenty, szkic informacji zwrotnej. Wynik według § 11: średnia, poziom, reguła rozstrzygająca (np. jedna ocena 1 pkt ⇒ negatywna). Terminy liczy kalendarz, zawiadomienie § 8 trafia do PDF. |
 | 7. Formularz i PDF | Uzupełnia brakujące pola, zatwierdza | Wypełnia arkusz B/C danymi z procesu i kadr, blokuje PDF przy brakach, generuje PDF do podpisu odręcznego i rejestruje go w (mockowym) EZD. |
 | 8. Wnioski rozwojowe | Pisze wnioski do IPRZ | Proponuje obszary rozwoju (wskaźniki poniżej oczekiwań) i mocne strony z formami rozwoju z poradników. Wiąże każdą propozycję ze wskaźnikiem i przykładem. |

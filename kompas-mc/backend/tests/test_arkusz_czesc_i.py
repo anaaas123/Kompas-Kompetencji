@@ -94,7 +94,7 @@ def test_zmiana_kryteriow_zmienia_wydruk_czesci_i(api_arkusza):
     nazwy = _zapisz_krok2(klient, h, proces, dodatkowe=1)
     po = klient.get(url, headers=h).content
     assert po != przed
-    assert nazwy[0] in _tekst(po)
+    assert nazwy[0].capitalize() in _tekst(po)  # arkusz pisze nazwy jak wzór (#72)
 
 
 def test_pelny_arkusz_po_ocenie_ma_te_sama_czesc_i(api_arkusza):
@@ -114,14 +114,26 @@ def test_pelny_arkusz_po_ocenie_ma_te_sama_czesc_i(api_arkusza):
     assert przed["termin_sporzadzenia_oceny"] is not None
 
 
-def test_bez_terminu_czesc_i_zwraca_422_z_brakiem(api_arkusza):
-    # Po ocenie negatywnej termin liczy się od zapoznania z nią (§ 7 pkt 2), a tej daty jeszcze nie ma.
+def test_po_ocenie_negatywnej_termin_z_daty_zapoznania_w_aktach(api_arkusza):
+    # Po ocenie negatywnej termin liczy się od zapoznania z nią (§ 7 pkt 2); data jest w aktach (QNT, demo).
     klient, naglowek = api_arkusza
     h = naglowek("przelozony2")
     proces = _proces(klient, h, "P-102")
     _zapisz_krok2(klient, h, proces)
     odpowiedz = klient.get(f"{proces}/arkusz-okresowy/czesc-i/pdf", headers=h)
+    assert odpowiedz.status_code == 200, odpowiedz.text
+    assert odpowiedz.content.startswith(b"%PDF")
+
+
+def test_bez_terminu_czesc_i_zwraca_422_z_brakiem(api_arkusza):
+    # Umowa na czas określony bez poprzedniej oceny: nie ma od czego liczyć terminu oceny okresowej.
+    klient, naglowek = api_arkusza
+    h = naglowek("przelozony2")
+    r = klient.post("/api/procesy", json={"osoba_id": "P-201", "sciezka": "okresowa", "uzasadnienie": "Test braku terminu."}, headers=h)
+    proces = f"/api/procesy/{_json(r, 201)['id']}"
+    _zapisz_krok2(klient, h, proces)
+    odpowiedz = klient.get(f"{proces}/arkusz-okresowy/czesc-i/pdf", headers=h)
     assert odpowiedz.status_code == 422, odpowiedz.text
     szczegoly = odpowiedz.json()["detail"]
     assert "termin" in szczegoly["komunikat"]
-    assert any("zapoznania z poprzednią oceną" in b for b in szczegoly["braki_terminu"])
+    assert szczegoly["braki_terminu"]
