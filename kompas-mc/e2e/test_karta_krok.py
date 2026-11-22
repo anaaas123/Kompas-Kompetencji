@@ -118,3 +118,27 @@ def test_etapy_bez_oceny_w_aplikacji_nie_otwieraja_nowej(przegladarka):
     expect(page.locator(".szczegoly-etapu")).to_contain_text("ustalone poza aplikacją")
     expect(page.locator(".szczegoly-etapu button")).to_have_count(0)
     page.close()
+
+
+def test_hr_na_karcie_nie_pyta_o_tresc_oceny(przegladarka, proces_w_kroku_5):
+    """Przegląd serwera (zgłoszenie 122, poz. 1): HR na karcie osoby z oceną w toku nie wysyła zapytań o treść
+    oceny (API odmawia i zapisuje odmowę w rejestrze) i nie dostaje „Zobacz ocenę”; podpis poprzedniej oceny
+    nie wisi bez pasków (poz. 10)."""
+    _, b = przegladarka
+    page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=os.environ.get("TRYB", "light"))
+    odmowy: list[str] = []
+    page.on("response", lambda r: odmowy.append(r.url) if r.status == 403 else None)
+    page.goto(URL)
+    page.fill('input[aria-label="Login"]', "hr")
+    page.fill('input[aria-label="Hasło"]', "demo")
+    page.click("form.logowanie-formularz button")
+    page.wait_for_selector(".powloka")
+    page.locator("nav.menu button.poz", has_text="Pracownicy").click()
+    page.get_by_text("Robert Maj-Demo").first.click()
+    expect(page.get_by_role("heading", level=1, name="Robert Maj-Demo")).to_be_visible()
+    expect(page.locator(".ramka.nastepny")).to_be_visible()
+    page.wait_for_load_state("networkidle")
+    expect(page.get_by_role("button", name="Zobacz ocenę")).to_have_count(0)
+    expect(page.get_by_text("Poprzednia ocena, skala 1–9 pkt")).to_have_count(0)
+    assert odmowy == [], odmowy
+    page.close()

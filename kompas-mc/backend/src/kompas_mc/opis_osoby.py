@@ -111,7 +111,9 @@ def fakty(
     d = p.data_zatrudnienia
     staz = dzis.year - d.year - ((dzis.month, dzis.day) < (d.month, d.day))
     umowa = "umowa na czas nieokreślony"
-    if p.rodzaj_umowy == "okreslony":
+    if p.korpus == "urzednik_sc":
+        umowa = "mianowanie"  # art. 48 ust. 4 ustawy: stosunek pracy przekształca się w mianowanie
+    elif p.rodzaj_umowy == "okreslony":
         umowa = "umowa na czas określony" + (f" do {_data(p.data_konca_zatrudnienia)}" if p.data_konca_zatrudnienia else "")
     w = [
         Fakt(id="kadry.stanowisko", tekst=p.stanowisko, zrodlo=KADRY),
