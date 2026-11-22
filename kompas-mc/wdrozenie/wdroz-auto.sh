@@ -4,7 +4,7 @@
 set -euo pipefail
 REPO=/opt/kompas-repo
 git -C "$REPO" fetch -q origin main
-NOWY=$(git -C "$REPO" rev-parse --short origin/main)
+NOWY=$(git -C "$REPO" rev-parse refs/remotes/origin/main)
 OBECNY=$(cat /opt/kompas/WERSJA 2>/dev/null || true)
 [ "$NOWY" = "$OBECNY" ] && exit 0
 grep -qx "$NOWY" /opt/kompas/nieudane 2>/dev/null && exit 0
