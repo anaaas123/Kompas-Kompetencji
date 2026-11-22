@@ -75,6 +75,16 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     _, b = przegladarka
     tryb = os.environ.get("TRYB", "light")
     page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=tryb, accept_downloads=True)
+    # Nowa karta do druku: zapamiętujemy adres, który aplikacja w niej otwiera (chrome-headless-shell nie ma
+    # przeglądarki PDF i przerywa nawigację na PDF, więc nie sprawdzamy samej karty).
+    page.add_init_script("""
+        window.__druk = null;
+        window.open = () => {
+            const okno = { close() {}, location: {} };
+            Object.defineProperty(okno.location, "href", { set(v) { window.__druk = v; } });
+            return okno;
+        };
+    """)
     page.goto(URL)
     page.fill('input[aria-label="Login"]', "przelozony1")
     page.fill('input[aria-label="Hasło"]', "demo")
@@ -133,10 +143,9 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)
     # „Drukuj do podpisu” otwiera arkusz w nowej karcie (podpis odręczny na wydruku).
-    with page.expect_popup() as druk:
-        page.get_by_role("button", name="Drukuj do podpisu").click()
-    druk.value.wait_for_url(re.compile("^blob:"))
-    druk.value.close()
+    page.get_by_role("button", name="Drukuj do podpisu").click()
+    page.wait_for_function("() => window.__druk && window.__druk.startsWith('blob:')")
+    assert page.evaluate("async () => (await (await fetch(window.__druk)).text()).slice(0, 5)") == "%PDF-"
     with page.expect_download() as pobranie:
         page.get_by_role("button", name="Pobierz PDF").click()
     sciezka = pobranie.value.path()
