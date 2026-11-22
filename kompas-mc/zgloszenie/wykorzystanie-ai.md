@@ -25,7 +25,7 @@ Wygrywa pierwsza odpowiedź, której cytaty przejdą walidację. Brak klucza, si
 - **Walidacja odpowiedzi LLM** (`kompas_core.llm.wywolaj`): każdy cytat musi pochodzić z fragmentu przekazanego do modelu. W przeciwnym razie odpowiedź jest odrzucana, zalogowana i łańcuch przechodzi do następnego dostawcy (test z atrapą zmyślającą cytat).
 - **Log każdego wywołania** (`backend/dane/llm.jsonl`): tryb (na żywo / zapisane / ekstrakcyjne), model, wersja promptu, ID użytych fragmentów, wynik walidacji. Błąd zapisu tego pliku jest zgłaszany przez `logging` (stderr procesu API) i nie przerywa odpowiedzi.
 - **Pytania kontrolne** (`pytania-kontrolne.yaml`): 22 pytania z bazy z oczekiwanym dokumentem i paragrafem oraz 6 pytań spoza bazy, które muszą dostać „brak informacji”. Uruchamia je `pytest` (`tests/test_asystent_formalny.py`); wynik w trybie ekstrakcyjnym: 22/22 i 6/6.
-- **Pseudonimizacja**: imiona, nazwiska, identyfikatory osób i nazwy komórek z mocka QNT zastępują etykiety (`Oceniany`, `Przełożony`, `Osoba`, `Komórka`) przed wysłaniem kontekstu do dostawcy. Listę pól dozwolonych i zabronionych zawiera `rozmowa.yaml` (`dane_dla_modelu`).
+- **Pseudonimizacja**: imiona, nazwiska, identyfikatory osób i nazwy komórek z mocka QNT zastępują etykiety (`Oceniany`, `Przełożony`, `Osoba`, `Komórka`) przed wysłaniem kontekstu do dostawcy. Imiona i nazwiska są rozpoznawane także w odmianie („Pawła Dąbrowskiego”), małymi literami i przy zapisie członów nazwiska ze spacją; zdrobnień („Pawełek”) wzorzec nie obejmuje. Listę pól dozwolonych i zabronionych zawiera `rozmowa.yaml` (`dane_dla_modelu`).
 
 ## Ograniczenia
 
