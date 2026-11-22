@@ -103,3 +103,17 @@ def test_kazda_rejestrowana_trasa_ma_nazwe_dla_hr(klient):
     assert all("`" not in e and "403" not in e for e in ETYKIETY.values())
     wpis = next(w for w in _wpisy(klient) if w["trasa"] == "/api/pracownicy/{osoba_id}")
     assert (wpis["akcja"], wpis["etykieta"]) == ("GET /api/pracownicy/{osoba_id}", "Odczyt karty pracownika")
+
+
+def test_logowanie_i_cel_maja_nazwe_i_osobe_w_rejestrze(klient):
+    """Przegląd zrzutów 22.11: logowanie (trasa z prefiksem /api) było „Czynnością w aplikacji”, a zatwierdzenie
+    celu bez osoby w kolumnie „Dotyczy”."""
+    h = {"Authorization": f"Bearer {klient.post('/api/auth/login', json={'login': 'przelozony1', 'hasło': 'demo'}).json()['token']}"}
+    cel = klient.post("/api/pracownicy/P-101/cele", headers=h, json={
+        "nazwa": "Cel do rejestru", "miernik": "jeden", "termin": "2027-06-30"}).json()
+    klient.post(f"/api/cele/{cel['id']}/zatwierdz", headers=h)
+    wpisy = _wpisy(klient)
+    login = next(w for w in wpisy if w["metoda"] == "POST" and w["trasa"].endswith("/auth/login"))
+    assert (login["trasa"], login["akcja"], login["etykieta"]) == ("/api/auth/login", "POST /api/auth/login", "Logowanie")
+    zatw = next(w for w in wpisy if w["trasa"] == "/api/cele/{cel_id}/zatwierdz")
+    assert (zatw["etykieta"], zatw["oceniany_osoba"]) == ("Zatwierdzenie celu", "P-101")
