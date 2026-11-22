@@ -22,7 +22,10 @@ git -C "$REPO" checkout -q --detach "$CEL"
 SHA=$(git -C "$REPO" rev-parse HEAD)
 (cd "$REPO/kompas-mc/backend" && "$UV" sync --frozen --quiet)
 (cd "$REPO/kompas-mc/frontend" && npm ci --silent --no-audit --no-fund && npx vite build --outDir "/opt/kompas/www-$SHA" --emptyOutDir >/dev/null)
-ln -sfn "/opt/kompas/www-$SHA" /opt/kompas/www
+# Podmiana atomowa (-T: nigdy link wewnątrz katalogu). 22.11: /opt/kompas/www był katalogiem, `ln -sfn` wstawiał
+# link do środka i od 01:49 serwer pokazywał stary front przy nowym API. Zły stan = przerwane wdrożenie, nie cisza.
+ln -sfnT "/opt/kompas/www-$SHA" /opt/kompas/www
+[ "$(readlink /opt/kompas/www)" = "/opt/kompas/www-$SHA" ] || { echo "BŁĄD: /opt/kompas/www nie wskazuje www-$SHA"; exit 1; }
 echo "$SHA" > /opt/kompas/WERSJA
 echo "$(date -Is) $SHA $REF" >> /opt/kompas/historia
 systemctl restart kompas
