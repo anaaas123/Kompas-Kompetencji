@@ -17,6 +17,7 @@ from .krok2 import WyborKroku2
 from .ocena import Decyzja, aktualne_decyzje
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, Pracownik
+from .rejestr import ustaw_szczegoly
 from .samoocena import ukryj_przed_przekazaniem
 from .zakonczenie import pracownik_procesu
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, TerminyOkresowej, oblicz_terminy
@@ -284,6 +285,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, serwis: SerwisWynikuOkresowego) -> A
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
     ) -> Response:
         """Pobierz zawiadomienie z § 8 po zapisaniu zmiany terminu."""
+        ustaw_szczegoly(request, format="pdf")
         m = dostepny(request, proces_id, uz, "ocena.tresc")
         wynik = serwis.obecny_widok(m)
         zmiana = wynik.dane.zmiana_terminu

@@ -20,6 +20,7 @@ from .arkusze import (
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, OstatniaOcenaOkresowa, Pracownik
+from .rejestr import ustaw_szczegoly
 from .zakonczenie import ZakonczenieOceny, pracownik_procesu, zastosuj_zakonczone  # noqa: F401 (app importuje stąd)
 from .samoocena import ukryj_przed_przekazaniem
 from .terminy_okresowej import TerminyOkresowej
@@ -266,6 +267,7 @@ def router(
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
     ) -> Response:
         """Pobierz wypełniony arkusz z miejscami na podpis odręczny. 422 zwraca listę braków."""
+        ustaw_szczegoly(request, format="pdf")
         stan = wczytaj(request, proces_id, uz, "ocena.tresc")
         doc = dokument(stan, stan.zapis)
         _wymagaj_kompletu(doc)
@@ -284,6 +286,7 @@ def router(
         Dostępna od zapisu kryteriów w kroku 2, bez wyniku oceny. Zawiera dane obu stron, kryteria,
         termin sporządzenia oceny i miejsca na podpisy. Przed krokiem 2 zwraca 409.
         """
+        ustaw_szczegoly(request, format="pdf")
         stan = wczytaj(request, proces_id, uz, "ocena.tresc")
         if stan.kryteria is None:
             raise HTTPException(409, "Najpierw zatwierdź kryteria (krok 2). Część I zawiera wybrane kryteria.")
@@ -304,6 +307,7 @@ def router(
         Zwraca numer sprawy, czas i SHA-256 zapisanego PDF. Wymaga kompletnego arkusza (422)
         i dostępu przełożonego (403). Zmiana danych w trakcie zapisu skutkuje 409.
         """
+        ustaw_szczegoly(request, format="pdf", walidacja="zarejestrowano")
         stan = wczytaj(request, proces_id, uz, "ocena.prowadz")
         doc = dokument(stan, stan.zapis)
         _wymagaj_kompletu(doc)
