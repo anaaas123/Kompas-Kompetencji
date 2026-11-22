@@ -393,6 +393,8 @@ pozycje:
     pytania:
       - sprzeciw od oceny okresowej termin i adresat
       - procedura sprzeciwu dyrektor generalny
+      - w jakim terminie można wnieść sprzeciw od oceny okresowej
+      - ile dni na sprzeciw od oceny okresowej
     odpowiedz: Sprzeciw wnosi się do dyrektora generalnego urzędu w 7 dni od zapoznania się z oceną; rozpatruje się go w 14 dni (poradnik KPRM, powołuje art. 83 ustawy).
     adnotacje:
       - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa,
