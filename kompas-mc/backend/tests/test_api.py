@@ -70,3 +70,17 @@ def test_asystent_tylko_po_zalogowaniu_i_z_limitem(klient, naglowek):
     h = naglowek("oceniany")
     kody = [klient.post("/api/asystent", headers=h, json=pytanie).status_code for _ in range(LIMIT_ASYSTENTA + 1)]
     assert kody[:-1] == [200] * LIMIT_ASYSTENTA and kody[-1] == 429
+
+
+def test_limit_asystenta_rownolegle(klient, naglowek):
+    """Przegląd bezpieczeństwa: równoległe pytania z jednego konta nie przekraczają limitu (blokada)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from kompas_mc.app import LIMIT_ASYSTENTA
+
+    h = naglowek("hr")
+    pytanie = {"pytanie": "Ile kryteriów dodatkowych można wybrać?", "sciezka": "okresowa"}
+    with ThreadPoolExecutor(8) as pula:
+        kody = list(pula.map(lambda _: klient.post("/api/asystent", headers=h, json=pytanie).status_code,
+                             range(LIMIT_ASYSTENTA + 10)))
+    assert kody.count(200) == LIMIT_ASYSTENTA and kody.count(429) == 10
