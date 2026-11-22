@@ -32,6 +32,7 @@ import {
   dzienZapisu,
   type ZRozmowy,
   zRozmowy,
+  zachowajDateZapoznania,
   poprawnaData,
   zapiszPlik,
   drukujDoPodpisu,
@@ -59,7 +60,6 @@ const DATY = [
   ["sprawozdanie_okres_do", "Sprawozdanie za okres do", "raport"],
   ["data_rozmowy_oceniajacej", "Rozmowa oceniająca", "daty"],
   ["data_sporzadzenia_oceny", "Sporządzenie oceny", "daty"],
-  ["data_zapoznania_z_ocena", "Zapoznanie ocenianego z oceną", "daty"],
   ["data_konca_zatrudnienia", "Koniec umowy na czas określony", "wyjatki"],
   ["data_ustalenia_oceny_zastepstwa", "Ustalenie pierwszej oceny przy zastępstwie", "wyjatki"],
 ] as const;
@@ -226,7 +226,6 @@ function Formularz({
     "okres_pierwszej_oceny.do": "data_konca_zatrudnienia",
     "dokonanie_oceny.przelozony.data": "data_sporzadzenia_oceny",
     "rozmowa_oceniajaca.data": "data_rozmowy_oceniajacej",
-    "zapoznanie.oceniany.data": "data_zapoznania_z_ocena",
     sprawozdanie_okres: "sprawozdanie_okres_od",
     sprawozdanie_w_terminie: "data_zlozenia_sprawozdania",
     data_zlozenia_sprawozdania: "data_zlozenia_sprawozdania",
@@ -314,7 +313,8 @@ function Formularz({
         p.id, p.id in d.pola ? d.pola[p.id] : p.rodzaj === "data" ? null : p.wartosc,
       ]));
       const po = await zapiszPierwsza(token, stan.proces_id, doZapisu({
-        ...d, pola, wnioski_rozwojowe: stan.wnioski_dostepne ? d.wnioski_rozwojowe : null,
+        ...zachowajDateZapoznania(d, stan.dane.data_zapoznania_z_ocena),
+        pola, wnioski_rozwojowe: stan.wnioski_dostepne ? d.wnioski_rozwojowe : null,
       }), zatwierdz);
       const poZapisie = daneFormularza(po, edycja);
       if (!stan.wnioski_dostepne && po.wnioski_dostepne && !po.formularz.zatwierdzony && !poZapisie.wnioski_rozwojowe?.trim()) {
@@ -365,6 +365,7 @@ function Formularz({
         <>
           <PoleOpisowe id="uzasadnienie" etykieta={`Uzasadnienie oceny ${uzasadnienieWymagane ? "(wymagane)" : "(opcjonalnie)"}`}
             wartosc={d.uzasadnienie} wymagane={uzasadnienieWymagane} blokada={!edycja || czekam} wiersze={3}
+            szkicZRozmowy={rozmowa?.szkicUzasadnienia}
             onZmiana={(tekst) => ustaw({ uzasadnienie: tekst || null })} />
           {stan.wnioski_dostepne && (
             <div className="sekcja">
@@ -550,8 +551,7 @@ function Formularz({
           {!stan.obliczenie && (
             <p className="meta">Do wyliczenia wyniku potrzebne są oceny cząstkowe, dane sprawozdania i egzaminu.</p>
           )}
-          {/* Pierwsza ocena kończy się arkuszem; dalej kadry: umowa na czas nieokreślony albo mianowanie, przy negatywnej rozwiązanie umowy. */}
-          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony. Dalej: decyzja kadrowa (umowa/mianowanie).</p>}
+          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną; oryginał wraz ze sprawozdaniem trafia do akt, kopia do ocenianego (§ 11).</p>}
         </>
       }
       akcje={

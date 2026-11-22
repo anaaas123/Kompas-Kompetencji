@@ -24,6 +24,7 @@ from .ocena import Decyzja, Mapowanie, aktualne_decyzje
 from .pierwsza_ocena import DanePierwszejOceny, ZapisDanychPierwszej, uzupelnij_z_kadr, wypelnij_pierwsza
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, Pracownik
+from .rejestr import ustaw_szczegoly
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, TerminyPierwszej, oblicz_terminy_pierwszej
 from .wynik_pierwszej import (
     KonfiguracjaWynikuPierwszej, EgzaminPierwszej, WarunekPierwszej,
@@ -294,6 +295,7 @@ def router(
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
     ) -> Response:
         """Pobierz arkusz pierwszej oceny z miejscami na podpisy odręczne."""
+        ustaw_szczegoly(request, format="pdf")
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
         stan, _ = widok(request, m, m.zapis)
         _sprawdz_gotowosc(stan)
@@ -314,6 +316,7 @@ def router(
 
         Dostępne po zapisie daty rozmowy wstępnej i wyznaczonego końca terminu sprawozdania; wcześniej 409.
         """
+        ustaw_szczegoly(request, format="pdf")
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
         stan, _ = widok(request, m, m.zapis)
         if stan.terminy.data_rozmowy_wstepnej is None or stan.terminy.termin_sprawozdania_do is None:
@@ -332,11 +335,15 @@ def router(
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
     ) -> Response:
         """Wygeneruj pismo o zapisanej zmianie terminu sprawozdania (§ 5 ust. 4)."""
+        ustaw_szczegoly(request, format="pdf")
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
         stan, _ = widok(request, m, m.zapis)
         if not stan.zawiadomienie_dostepne:
             raise HTTPException(404, "Brak zapisanej zmiany terminu sprawozdania.")
-        pdf = zawiadomienie_pierwszej_pdf(m.pracownik, stan.dane.przedluzenie, stan.terminy, konf_terminow, wersja)
+        pdf = zawiadomienie_pierwszej_pdf(
+            m.pracownik, stan.dane.przedluzenie, stan.terminy, konf_terminow, wersja,
+            nazwa_urzedu=wzory.nazwa_urzedu, oceniajacy=m.przelozony,
+        )
         return Response(pdf, media_type="application/pdf", headers={
             "Content-Disposition": f'attachment; filename="pierwsza-zawiadomienie-{proces_id}.pdf"',
         })

@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { Ikona } from "./Ikona";
 import { SzkieletListy, WierszListy } from "./Lista";
 import { Zwijane } from "./Zwijane";
+import { unikalneZrodla } from "./Wnioski";
 export { Arkusz as Wynik } from "./Arkusz";
 import "./krok7.css";
 import {
@@ -35,20 +36,38 @@ export function dzienZapisu(czas: Date) {
   return czas.toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
 }
 
-/** Z rozmowy oceniającej (część 2) do części 3: data rozmowy i wnioski IPRZ z notatki „Rozwój” i obszarów rozwoju. */
 export interface ZRozmowy {
   data: string;
   wnioski: string | null;
+  szkicUzasadnienia: string;
 }
 
 export async function zRozmowy(token: string, procesId: number): Promise<ZRozmowy> {
   const stan = await pobierzOcene(token, procesId);
   const czasy = stan.kryteria.flatMap((k) => k.decyzja ? [Date.parse(k.decyzja.zapisano)] : []).filter(Number.isFinite);
   const wnioski = [stan.rozmowa?.notatki?.rozwoj, stan.rozmowa?.obszary_rozwoju].map((t) => t?.trim()).filter(Boolean).join("\n\n");
+  const mocne = stan.rozmowa?.mocne_strony?.trim();
+  const obszary = stan.rozmowa?.obszary_rozwoju?.trim();
+  const oceny = stan.kryteria.flatMap((k) => k.decyzja ? [`${nazwaKryterium(k.nazwa)} ${k.decyzja.punkty} pkt`] : []);
   return {
     data: stan.rozmowa?.data ?? dzienZapisu(czasy.length ? new Date(Math.max(...czasy)) : new Date()),
     wnioski: wnioski || null,
+    szkicUzasadnienia: [
+      mocne && `Mocne strony: ${mocne}`,
+      obszary && `Obszary do rozwoju: ${obszary}`,
+      oceny.length > 0 && `Oceny: ${oceny.join(", ")}`,
+    ].filter(Boolean).join("\n"),
   };
+}
+
+/** PUT zastępuje komplet danych. Zachowaj wcześniej zapisaną datę wyłącznie z odczytu API. */
+export function zachowajDateZapoznania<T extends { data_zapoznania_z_ocena?: string | null }>(
+  formularz: T, dataZApi: string | null,
+) {
+  const dane = { ...formularz };
+  if (dataZApi === null) delete dane.data_zapoznania_z_ocena;
+  else dane.data_zapoznania_z_ocena = dataZApi;
+  return dane;
 }
 
 const TERMINY: { klucz: keyof WynikOkresowy["terminy"]; nazwa: string }[] = [
@@ -217,7 +236,7 @@ export function BladPola({ cel }: { cel: string }) {
   return brak ? <span className="blad">{brak.opis ?? "Uzupełnij pole."}</span> : null;
 }
 
-export function PoleOpisowe({ id, etykieta, wartosc, wymagane, blokada, wiersze, onZmiana }: {
+export function PoleOpisowe({ id, etykieta, wartosc, wymagane, blokada, wiersze, onZmiana, szkicZRozmowy }: {
   id: string;
   etykieta: string;
   wartosc: string | null;
@@ -225,6 +244,7 @@ export function PoleOpisowe({ id, etykieta, wartosc, wymagane, blokada, wiersze,
   blokada: boolean;
   wiersze: number;
   onZmiana: (tekst: string) => void;
+  szkicZRozmowy?: string;
 }) {
   const brak = useContext(Rozwiniecia).braki.find((b) => b.cel === id);
   return (
@@ -234,6 +254,12 @@ export function PoleOpisowe({ id, etykieta, wartosc, wymagane, blokada, wiersze,
         aria-invalid={!!brak} aria-describedby={brak ? id + "-blad" : undefined}
         onChange={(e) => onZmiana(e.target.value)} />
       {brak && <span className="blad" id={id + "-blad"}>{brak.opis ?? "Uzupełnij pole."}</span>}
+      {!blokada && !wartosc?.trim() && szkicZRozmowy && (
+        <button type="button" className="link" onClick={() => {
+          onZmiana(szkicZRozmowy);
+          document.getElementById(id)?.focus();
+        }}>Wstaw szkic z rozmowy</button>
+      )}
     </div>
   );
 }
@@ -372,21 +398,15 @@ export function Werdykt({
   wynik,
   warunki,
   onZmienOcene,
+  podstawaWyniku,
 }: {
   wynik: WynikOkresowy["obliczenie"] | null;
   warunki: { opis: string; spelniony: boolean; zrodlo: SourceRef; szczegoly?: string }[];
   onZmienOcene?: () => void;
+  podstawaWyniku?: SourceRef;
 }) {
-  const zrodla = new Map<string, SourceRef>();
-  for (const { zrodlo } of warunki) {
-    const klucz = JSON.stringify([zrodlo.kategoria, zrodlo.doc_id, zrodlo.lokalizator, zrodlo.strona]);
-    const poprzednie = zrodla.get(klucz);
-    if (!poprzednie) zrodla.set(klucz, zrodlo);
-    else if (zrodlo.cytat_dosłowny && !poprzednie.cytat_dosłowny?.includes(zrodlo.cytat_dosłowny)) {
-      const fragmenty = [poprzednie.cytat_dosłowny, zrodlo.cytat_dosłowny].filter(Boolean);
-      zrodla.set(klucz, { ...poprzednie, cytat_dosłowny: fragmenty.join(" […] ") });
-    }
-  }
+  const podstawy = warunki.map((w) => w.zrodlo);
+  if (podstawaWyniku) podstawy.push(podstawaWyniku);
   return (
     <>
       <div className={`k7-werdykt ${wynik?.wynik ?? ""}`} role="status">
@@ -412,14 +432,15 @@ export function Werdykt({
                   <Ikona nazwa={w.spelniony ? "ok" : "krzyz"} />
                 </span>
                 <div>
-                  {opisObliczenia(w.opis).replace(". Próg ", " przy progu ").replace(/\.$/, "")}{w.szczegoly && ` (${w.szczegoly})`}.
+                  {opisObliczenia(w.opis).replace(". Próg ", " przy progu ").replace(/\.$/, "")}.
+                  {w.szczegoly && <div className="meta">{w.szczegoly}</div>}
                 </div>
               </li>
             ))}
           </ul>
           <details>
             <summary>Podstawa prawna</summary>
-            <Zrodla adnotacje={[...zrodla.values()]} />
+            <Zrodla adnotacje={unikalneZrodla(podstawy)} />
           </details>
           {warunki.some((w) => !w.spelniony) && onZmienOcene && (
             <button type="button" className="link" onClick={onZmienOcene}>Zmień ocenę</button>
@@ -479,7 +500,6 @@ export const DATY_OKRESOWE = [
   ["data_ustalenia_kryteriow", "Ustalenie kryteriów"],
   ["data_zapoznania_z_kryteriami", "Zapoznanie ocenianego z kryteriami"],
   ["data_sporzadzenia_oceny", "Sporządzenie oceny"],
-  ["data_zapoznania_z_ocena", "Zapoznanie ocenianego z oceną"],
 ] as const;
 
 interface FormularzOkresowej {
@@ -495,26 +515,30 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznani
   zapoznanie?: ReactNode;
 }) {
   const o = wynik.obliczenie;
-  const minimum = Math.min(...wynik.oceny_czastkowe.map((k) => k.punkty));
+  const jedynki = wynik.oceny_czastkowe.filter((k) => k.punkty === 1);
   const wypiszPunkty = (oceny: WynikOkresowy["oceny_czastkowe"]) => oceny.map((k) => `${nazwaKryterium(k.nazwa)}: ${k.punkty} pkt`).join(", ");
-  const warunki = o.slad.flatMap(({ regula }) => {
-    const spelniony = regula.id !== o.regula_rozstrzygajaca.id || o.wynik === "pozytywna";
-    if (regula.id === "negatywna-za-ocene-czastkowa") {
-      return [{
-        opis: spelniony ? "Żadne kryterium nie otrzymało najniższej oceny." : "Co najmniej jedno kryterium otrzymało najniższą ocenę.",
-        spelniony, zrodlo: regula.zrodlo,
-        szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe.filter((k) => k.punkty === minimum)),
-      }];
-    }
-    if (regula.id !== "negatywna-za-poziom" && regula.id !== "pozytywna") return [];
-    return [{
-      opis: regula.id === "pozytywna" ? "Warunki pozytywnej oceny są spełnione." : `Ogólny poziom: ${o.poziom}.`,
-      spelniony, zrodlo: regula.zrodlo, szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe),
-    }];
-  });
+  const podstawa = (id: string) => o.slad.find((k) => k.regula.id === id)?.regula.zrodlo;
+  // Przy ocenie 1 pkt ślad kończy się przed regułą ogólnego poziomu, ale zawiera już wyliczony próg.
+  const prog = o.slad.find((k) => k.regula.id.startsWith("poziom-"))?.regula;
+  const podstawaPoziomu = podstawa("negatywna-za-poziom");
+  const poziomSpelniony = podstawaPoziomu ? o.regula_rozstrzygajaca.id !== "negatywna-za-poziom"
+    : prog?.id !== "poziom-a" && prog?.id !== "poziom-b";
+  const warunki = [
+    {
+      opis: jedynki.length ? "Co najmniej jedno kryterium ma ocenę „znacznie poniżej oczekiwań” (1 pkt)."
+        : "Żadne kryterium nie ma oceny „znacznie poniżej oczekiwań” (1 pkt).",
+      spelniony: !jedynki.length, zrodlo: podstawa("negatywna-za-ocene-czastkowa") ?? o.regula_rozstrzygajaca.zrodlo,
+      szczegoly: wypiszPunkty(jedynki),
+    },
+    {
+      opis: `Ogólny poziom: ${o.poziom}.`, spelniony: poziomSpelniony,
+      zrodlo: podstawaPoziomu ?? prog?.zrodlo ?? o.regula_rozstrzygajaca.zrodlo,
+      szczegoly: poziomSpelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe),
+    },
+  ];
   return (
     <>
-      <Werdykt wynik={o} warunki={warunki} onZmienOcene={onZmienOcene} />
+      <Werdykt wynik={o} warunki={warunki} podstawaWyniku={o.regula_rozstrzygajaca.zrodlo} onZmienOcene={onZmienOcene} />
       {wynik.czesc_iii.dostepna ? (
         <div>
           <label className="zaznacz">

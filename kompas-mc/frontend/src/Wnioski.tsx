@@ -9,6 +9,20 @@ import {
 } from "./api";
 import { Zrodla, nazwaKryterium, opisBledu } from "./Krok1";
 
+export function unikalneZrodla(adnotacje: SourceRef[]) {
+  const zrodla = new Map<string, SourceRef>();
+  for (const a of adnotacje) {
+    const klucz = JSON.stringify([a.kategoria, a.doc_id, a.lokalizator, a.strona, a.uzasadnienie, a.zatwierdził]);
+    const poprzednie = zrodla.get(klucz);
+    if (!poprzednie) zrodla.set(klucz, a);
+    else if (a.cytat_dosłowny && !poprzednie.cytat_dosłowny?.includes(a.cytat_dosłowny)) {
+      const cytaty = [poprzednie.cytat_dosłowny, a.cytat_dosłowny].filter(Boolean);
+      zrodla.set(klucz, { ...poprzednie, cytat_dosłowny: cytaty.join(" […] ") });
+    }
+  }
+  return [...zrodla.values()];
+}
+
 function Propozycja({ p }: { p: PropozycjaRozwoju }) {
   const [komunikat, setKomunikat] = useState("");
   async function kopiuj() {
@@ -112,6 +126,11 @@ export function PropozycjeZwarte({ token, procesId, wartosc, onZmiana, blokada }
     ...lista.filter((p) => p.typ === "MOCNA_STRONA"),
   ].slice(0, 4);
   if (!propozycje.length) return null;
+  const zastosowaneReguly = new Set(propozycje.map((p) => p.regula));
+  const zrodla = unikalneZrodla([
+    ...dane.propozycje.reguly.filter((r) => zastosowaneReguly.has(r.id)).flatMap((r) => r.adnotacje),
+    ...propozycje.flatMap((p) => p.formy[0]?.adnotacje ?? []),
+  ]);
 
   function dodaj(tekst: string) {
     const separator = wartosc && !wartosc.endsWith("\n") ? "\n" : "";
@@ -139,6 +158,12 @@ export function PropozycjeZwarte({ token, procesId, wartosc, onZmiana, blokada }
           );
         })}
       </ul>
+      {zrodla.length > 0 && (
+        <details>
+          <summary>Skąd te propozycje</summary>
+          <Zrodla adnotacje={zrodla} />
+        </details>
+      )}
     </div>
   );
 }
