@@ -108,7 +108,13 @@ export default function PanelMetodyki({ token, mozeZarzadzac }: { token: string;
         Sugestia poziomu kryterium (kroki 3–5) i przejście ze skali modelu na skalę pierwszej oceny. Zmiana tworzy nową wersję. Do ocen trafia dopiero po
         zatwierdzeniu, a ocena w toku liczy według wersji przypiętej przy pierwszym zapisie kroku 3.
       </p>
-      {stan && <p className="meta">Aktywna wersja: {stan.aktywna}</p>}
+      {stan && (
+        <p className="meta">
+          Aktywna wersja: {stan.aktywna}
+          {stan.wersje.find((w) => w.id === stan.aktywna)?.status === "PROJEKT" &&
+            " (startowa, czeka na zatwierdzenie; do tego czasu sugestie są oznaczone jako decyzja projektowa)"}
+        </p>
+      )}
       {blad && <p className="blad">{blad}</p>}
       {stan && (
         <table>
@@ -126,7 +132,9 @@ export default function PanelMetodyki({ token, mozeZarzadzac }: { token: string;
                 <td>
                   {w.id}
                   <div>
-                    <span className={`status ${STATUS[w.status].klasa}`}>{STATUS[w.status].tekst}</span>
+                    <span className={`status ${STATUS[w.status].klasa}`}>
+                      {w.id === stan.aktywna && w.status === "PROJEKT" ? "aktywna, do zatwierdzenia" : STATUS[w.status].tekst}
+                    </span>
                   </div>
                 </td>
                 <td className="meta">

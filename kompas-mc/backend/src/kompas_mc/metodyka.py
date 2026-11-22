@@ -63,6 +63,10 @@ class BladMetodyki(ValueError):
     pass
 
 
+STARTOWA_ZMIANA = "Wersja startowa z konfiguracji aplikacji."
+_STARTOWA_ZMIANA_DAWNA = "Wersja startowa z konfiguracja/ocena.yaml (#31)."
+
+
 class RejestrMetodyk:
     def __init__(self, baza: sqlite3.Connection, bazowa: KonfiguracjaOceny) -> None:
         self.baza = baza
@@ -76,6 +80,10 @@ class RejestrMetodyk:
             kolumny = {w[1] for w in baza.execute("PRAGMA table_info(procesy)")}
             if "metodyka" not in kolumny:
                 baza.execute("ALTER TABLE procesy ADD COLUMN metodyka TEXT")
+        # Bazy sprzed zmiany opisu: zdanie dla użytkownika bez nazwy pliku i numeru zgłoszenia.
+        for w in self.lista():
+            if w.zmiana == _STARTOWA_ZMIANA_DAWNA:
+                self._zapisz(w.model_copy(update={"zmiana": STARTOWA_ZMIANA}))
         if not self.lista():
             self._zapisz(
                 WersjaMetodyki(
@@ -84,7 +92,7 @@ class RejestrMetodyk:
                     status="PROJEKT",
                     minimalny_udzial_ocenionych=bazowa.metodyka.minimalny_udzial_ocenionych,
                     mapowanie_pierwsza=bazowa.mapowanie_pierwsza.wartosci,
-                    zmiana="Wersja startowa z konfiguracja/ocena.yaml (#31).",
+                    zmiana=STARTOWA_ZMIANA,
                     utworzyl="konfiguracja",
                     utworzono=datetime.now(UTC),
                 )
