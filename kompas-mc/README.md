@@ -68,6 +68,21 @@ nie jest w nim uruchamiany; poniższa tabela nie przypisuje mu wyniku bez pomiar
 | Ekstrakcyjny | 22/22 | 16/22 | 6/6 kontrolnych, 5/5 parafraz |
 | DeepSeek v4 Flash przez Scaleway (`deepseek-v4-flash-0731`) | do pomiaru z kluczem | do pomiaru z kluczem | do pomiaru z kluczem |
 
+Próba jury (`pytania-jury.yaml`, `uv run pytest tests/test_asystent_proba_jury.py -s`): 30 pytań
+zadanych tak, jak mógłby je zadać juror, i 15 pytań odłożonych, na których niczego się nie stroi.
+Pytanie jest trafione, gdy odpowiedź pochodzi z właściwej pozycji `faq.yaml`, czyli użytkownik
+widzi odpowiedź napisaną przez człowieka i jej cytat.
+
+| Stan | Próba 30 pytań | Zestaw odłożony 15 pytań |
+|---|---:|---:|
+| Przed dopisaniem pozycji (main `1f676b5`) | 5/30 | 1/15 |
+| Po dopisaniu pozycji z próby (#53) | 28/30 | 10/15 |
+
+Dwa pytania próby i jedno odłożone czekają na pozycje z gałęzi `53-asystent-jury`. Na serwerze
+testowym z modelem (22.11, main `1f676b5`) te same 30 pytań dostało 9 poprawnych odpowiedzi,
+10 błędnych i 5 odmów: błędy brały się z dopasowania FAQ i z blokady nieznanych słów, czyli
+z etapów przed modelem.
+
 `GET /api/zrodla` pokazuje dokumenty korpusu, duplikat „Rozporządzenie … (4).pdf” (fragment rozporządzenia z 2016 r., nie osobne źródło) i pliki pominięte.
 
 ## Logowanie, role i mock QNT

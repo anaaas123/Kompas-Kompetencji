@@ -25,7 +25,7 @@ export const NAZWA_SCIEZKI: Record<Sciezka, string> = { pierwsza: "pierwsza ocen
 export const nazwaKryterium = (n: string) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 
 /** Kategorie źródeł po ludzku: przepis, materiał (poradnik, model, OSP), zasada aplikacji. */
-const KATEGORIE: Record<string, { tekst: string; klasa: string }> = {
+export const KATEGORIE: Record<string, { tekst: string; klasa: string }> = {
   PRZEPIS: { tekst: "Przepis", klasa: "przepis" },
   "OBJAŚNIENIE_MATERIAŁU": { tekst: "Materiał", klasa: "" },
   DECYZJA_PROJEKTOWA: { tekst: "Zasada aplikacji", klasa: "zasada" },

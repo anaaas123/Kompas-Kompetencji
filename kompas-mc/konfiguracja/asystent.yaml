@@ -71,6 +71,12 @@ slownik:
   ile czasu: termin
   w jakim czasie: termin
   jak długo: okres
+  # Próba jury (#53): potoczne słowa o prowadzeniu rozmowy, których nie ma w materiałach.
+  zdenerwowany: emocje
+  zdenerwowana: emocje
+  poprowadzić: rozmowa
+  rozmawiać: rozmowa
+  zadać: pytania
 
 # Odwołanie do przepisu ustawy: we fragmencie objaśnienia (flaga „powołuje ustawę”) i w pytaniu
 # (wskazany artykuł idzie na początek cytatów).
@@ -87,7 +93,8 @@ ustawa_maks_z_rankingu: 1
 wzorzec_pytania_o_ustawe: '\bustaw(?:a|y|ie|ę|ą)\b|\bu\.\s*s\.\s*c\b'
 
 komunikaty:
-  nieznane_pojecia: 'Tych pojęć nie ma w bazie wiedzy: {pojecia}.'
+  nieznane_pojecie: 'W materiałach nie znaleziono słowa z pytania: {pojecia}.'
+  nieznane_pojecia: 'W materiałach nie znaleziono słów z pytania: {pojecia}.'
   brak_ustawy: Tekstu ustawy o służbie cywilnej nie ma w bazie wiedzy, więc asystent nie cytuje jej przepisów – sprawdź w ustawie.
   ustawa: Fragment poradnika lub arkusza powołuje przepis ustawy o służbie cywilnej; jej tekst jednolity (Dz.U. 2026 poz. 590) jest w bazie wiedzy – zapytaj o wskazany artykuł, np. „art. 83 ustawy”.
   sugestia: Asystent wskazuje fragmenty źródeł; nie podejmuje decyzji o ocenie.

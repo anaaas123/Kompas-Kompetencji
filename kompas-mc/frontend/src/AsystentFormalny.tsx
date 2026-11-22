@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { pytajAsystenta, type CytatAsystenta, type OdpowiedzAsystenta, type Sciezka } from "./api";
+import { KATEGORIE } from "./Krok1";
 
 /**
  * Czat asystenta formalnego (#37). Komponent do osadzenia na ekranie każdej ścieżki:
@@ -154,7 +155,11 @@ function Odpowiedz({ o }: { o: OdpowiedzAsystenta }) {
       <div className="brak">
         <strong>Brak wystarczających informacji w bazie wiedzy.</strong>
         {o.nieznane_pojecia.length > 0 && (
-          <> Tych pojęć nie ma w materiałach: {o.nieznane_pojecia.join(", ")}.</>
+          <>
+            {" "}
+            W materiałach nie znaleziono {o.nieznane_pojecia.length === 1 ? "słowa" : "słów"} z pytania:{" "}
+            {o.nieznane_pojecia.map((p) => `„${p}”`).join(", ")}.
+          </>
         )}{" "}
         Asystent nie odpowiada bez źródła.
       </div>
@@ -184,10 +189,11 @@ function Cytat({ c, glowny }: { c: CytatAsystenta; glowny: boolean }) {
   const [caly, setCaly] = useState(false);
   const w = c.wyrozniony && c.cytat.includes(c.wyrozniony) ? c.wyrozniony : null;
   const pokaz = caly || !w ? c.cytat : w;
+  const kategoria = KATEGORIE[c.kategoria] ?? { tekst: c.kategoria, klasa: "" };
   return (
     <article className={`cytat ${glowny ? "glowny" : ""}`}>
       <div className="zrodlo">
-        <span className={`kategoria ${c.kategoria === "PRZEPIS" ? "przepis" : ""}`}>{c.kategoria}</span>
+        <span className={`kategoria ${kategoria.klasa}`}>{kategoria.tekst}</span>
         {c.powoluje_ustawe && (
           <span className="kategoria ustawa" title="Fragment powołuje przepis ustawy; tekst ustawy jest w bazie wiedzy">
             powołuje ustawę
