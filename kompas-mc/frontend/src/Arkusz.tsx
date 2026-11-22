@@ -386,11 +386,13 @@ export function Arkusz({
         setWynik(w.value);
         const dane = w.value.dane;
         const wybor = krok2.status === "fulfilled" ? krok2.value?.wybor : undefined;
-        const kryteria = wybor?.zapisano && Number.isFinite(Date.parse(wybor.zapisano)) ? dzienZapisu(new Date(wybor.zapisano)) : null;
+        // Dzień ustalenia kryteriów jak w API (dzien_ustalenia_kryteriow): data rozmowy z części I, bez niej dzień zapisu.
+        const zapis = wybor?.zapisano && Number.isFinite(Date.parse(wybor.zapisano)) ? dzienZapisu(new Date(wybor.zapisano)) : null;
+        const kryteria = wybor?.zapoznanie ?? zapis;
         setF(edycja && !zatwierdzony ? {
           ...dane,
           data_ustalenia_kryteriow: dane.data_ustalenia_kryteriow ?? kryteria,
-          data_zapoznania_z_kryteriami: dane.data_zapoznania_z_kryteriami ?? wybor?.zapoznanie ?? kryteria,
+          data_zapoznania_z_kryteriami: dane.data_zapoznania_z_kryteriami ?? kryteria,
           data_sporzadzenia_oceny: dane.data_sporzadzenia_oceny ?? dzienZapisu(new Date()),
           poprzednia_ocena_poziom: w.value.poprzednia_ocena?.poziom ?? dane.poprzednia_ocena_poziom,
         } : dane);
