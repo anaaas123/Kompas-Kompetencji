@@ -259,7 +259,8 @@ def test_oceniany_widzi_pierwsza_ocene_dopiero_po_sporzadzeniu(api_pierwszej):
     mapa = _json(klient.get("/api/zespol/kompetencje", headers=oceniany))
     assert all(o["zrodlo"] != "biezaca_ocena" for o in mapa["osoby"] if o["osoba_id"] == "P-101"), mapa["osoby"]
     opis = _json(klient.get("/api/pracownicy/P-101/opis", headers=oceniany))
-    assert all("biezaca.decyzje" not in z.get("fakty", []) for z in opis["zdania"]), opis["zdania"]
+    fakty = [f["id"] if isinstance(f, dict) else f for z in opis["zdania"] for f in z.get("fakty", [])]
+    assert "biezaca.decyzje" not in fakty, fakty
     assert "bieżąca ocena" not in str(opis)
 
 
