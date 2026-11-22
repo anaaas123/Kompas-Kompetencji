@@ -30,7 +30,7 @@ export function RozmowaWstepna({
       .then((s) => {
         setStan(s);
         setDataRozmowy(s.dane.data_rozmowy_wstepnej ?? (s.terminy.data_rozmowy_wstepnej as string | null) ?? dzisIso());
-        setKoniec(s.dane.wyznaczony_termin_sprawozdania);
+        setKoniec(s.dane.wyznaczony_termin_sprawozdania ?? dzien(s, "termin_sprawozdania_od"));
       })
       .catch((err) => setBlad(bladWyniku(err)));
   }, [token, procesId]);
@@ -40,6 +40,9 @@ export function RozmowaWstepna({
   const sprawozdanieDo = stan && dzien(stan, "termin_sprawozdania_do");
   const ocenaDo = stan && dzien(stan, "pierwsza_ocena_do");
   const zapisane = !!rozmowa && !!sprawozdanieDo;
+  // Daty RRRR-MM-DD porównują się jak tekst. Komunikat zanim zapytamy API, bez języka „okna”.
+  const pozaZakresem = !!koniec && poprawnaData(koniec) && ((!!sprawozdanieOd && koniec < sprawozdanieOd) || (!!ocenaDo && koniec > ocenaDo));
+  const gotowe = !!dataRozmowy && !!koniec && poprawnaData(dataRozmowy) && poprawnaData(koniec) && !pozaZakresem;
 
   async function drukuj(s: StanPierwszejOceny) {
     zapiszPlik(await pobierzPdfPierwszej(token, s.proces_id, "rozmowa-wstepna.pdf"), `pierwsza-ocena-${s.proces_id}-rozmowa-wstepna.pdf`);
@@ -73,17 +76,17 @@ export function RozmowaWstepna({
       ) : (
         stan && (
           <>
-            <p className="meta">
-              Na rozmowie wstępnej wyznaczasz termin sprawozdania
-              {sprawozdanieOd && `: najwcześniej od ${data(sprawozdanieOd)}`}
-              {ocenaDo && `, tak żeby ocena zmieściła się do ${data(ocenaDo)}`}.
-            </p>
             {moznaProwadzic && (
               <div className="siatka-dat">
                 <PoleDaty nazwa="Data rozmowy wstępnej" wartosc={dataRozmowy} onZmiana={setDataRozmowy} />
-                <PoleDaty nazwa="Koniec terminu na sprawozdanie" wartosc={koniec} onZmiana={setKoniec} />
+                <PoleDaty nazwa="Termin sprawozdania pracownika" wartosc={koniec} onZmiana={setKoniec} />
               </div>
             )}
+            <p className={pozaZakresem ? "blad" : "meta"}>
+              Termin sprawozdania wyznaczasz na rozmowie (§ 3 pkt 4)
+              {sprawozdanieOd && `: najwcześniej ${data(sprawozdanieOd)}, po 8 miesiącach pracy`}
+              {ocenaDo && `, najpóźniej ${data(ocenaDo)}, żeby zdążyć z oceną`}.
+            </p>
           </>
         )
       )}
@@ -94,7 +97,7 @@ export function RozmowaWstepna({
         {moznaProwadzic && stan && (
           <button
             type="button"
-            disabled={pracuje || (!zapisane && !(dataRozmowy && koniec && poprawnaData(dataRozmowy) && poprawnaData(koniec)))}
+            disabled={pracuje || (!zapisane && !gotowe)}
             onClick={wykonaj}
           >
             {pracuje ? "Przygotowuję PDF…" : zapisane ? "Wydrukuj części I–II do podpisu" : "Zapisz i wydrukuj części I–II"}

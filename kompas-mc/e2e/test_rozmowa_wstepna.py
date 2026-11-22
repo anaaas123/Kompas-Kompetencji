@@ -1,8 +1,8 @@
 """Test Playwright #73: pierwsza ocena, krok 2 kończy się rozmową wstępną z wydrukiem części I–II arkusza.
 
 Przełożony ma proces pierwszej oceny Kacpra (P-202) z zapisanym krokiem 2 i bez daty rozmowy wstępnej.
-Na końcu kroku 2 wpisuje koniec terminu na sprawozdanie, zapisuje i pobiera PDF; cykl przestaje
-pokazywać „Rozmowa wstępna” jako czynność do zrobienia (rozp. 2015 § 3–4).
+Na końcu kroku 2 termin sprawozdania jest już podpowiedziany (pierwszy możliwy dzień), data sprzed
+8 miesięcy pracy blokuje zapis z ludzkim komunikatem; zapis pobiera PDF, a cykl przestaje pokazywać „Rozmowa wstępna” jako czynność do zrobienia (rozp. 2015 § 3–4).
 Uruchomienie i zmienne jak w test_samoocena.py; potrzebna świeża baza (P-202 bez procesu).
 """
 
@@ -71,9 +71,13 @@ def test_rozmowa_wstepna_zapis_i_wydruk_czesci_i_ii(przegladarka, api, proces_po
     page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
 
     przycisk = page.get_by_role("button", name="Zapisz i wydrukuj części I–II")
-    expect(page.get_by_text("Na rozmowie wstępnej wyznaczasz termin sprawozdania")).to_be_visible()
+    expect(page.get_by_text("Termin sprawozdania wyznaczasz na rozmowie")).to_be_visible()
+    pole = page.get_by_label("Termin sprawozdania pracownika")
+    expect(pole).to_have_value(najwczesniej)
+    pole.fill("2026-11-23")
     expect(przycisk).to_be_disabled()
-    page.get_by_label("Koniec terminu na sprawozdanie").fill(najwczesniej)
+    expect(page.locator(".k2-ustalone p.blad")).to_contain_text("najwcześniej")
+    pole.fill(najwczesniej)
     with page.expect_download() as pobranie:
         przycisk.click()
     assert pobranie.value.suggested_filename == f"pierwsza-ocena-{pid}-rozmowa-wstepna.pdf"
