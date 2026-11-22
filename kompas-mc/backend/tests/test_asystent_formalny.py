@@ -127,6 +127,7 @@ def test_domyslny_lancuch_deepseek_ollama_ekstrakcyjny(ustawienia):
         "base_url": "https://api.scaleway.ai/v1",
         "model": "deepseek-v4-flash-0731",
         "zmienna_klucza": "SCALEWAY_API_KEY",
+        "zmienna_adresu": "SCALEWAY_BASE_URL",
         "timeout": 30,
         "temperatura": 0.0,
     }

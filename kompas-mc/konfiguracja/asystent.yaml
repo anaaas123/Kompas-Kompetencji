@@ -81,6 +81,8 @@ llm:
       base_url: https://api.scaleway.ai/v1
       model: deepseek-v4-flash-0731
       zmienna_klucza: SCALEWAY_API_KEY
+      # Klucz z uprawnieniami do jednego projektu wymaga adresu https://api.scaleway.ai/<projekt>/v1 (ustaw na serwerze).
+      zmienna_adresu: SCALEWAY_BASE_URL
       timeout: 30
       temperatura: 0.0
     - {typ: ollama, model: "qwen3:8b", timeout: 5}

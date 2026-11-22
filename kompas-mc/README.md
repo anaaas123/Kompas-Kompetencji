@@ -33,7 +33,8 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
   Brak klucza, sieci lub Ollamy nie przerywa odpowiedzi: asystent przechodzi do
   następnego dostawcy.
 - Aby włączyć model, skopiuj `backend/.env.example` jako `backend/.env` i ustaw
-  `SCALEWAY_API_KEY` (klucz IAM z uprawnieniem GenerativeApisModelAccess). Plik
+  `SCALEWAY_API_KEY` (klucz IAM z uprawnieniem GenerativeApisModelAccess). Klucz ograniczony do
+  jednego projektu wymaga też `SCALEWAY_BASE_URL=https://api.scaleway.ai/<id projektu>/v1`. Plik
   `.env` jest ignorowany przez Git. Aby wyłączyć model, usuń wartość klucza;
   kolejność dostawców zmienia się w `konfiguracja/asystent.yaml`.
 - Listę modeli można sprawdzić bez ujawniania klucza poleceniem
