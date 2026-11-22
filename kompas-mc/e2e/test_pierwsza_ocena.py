@@ -1,8 +1,9 @@
 """Test Playwright #48: pierwsza ocena od kroków 3–5 do pobrania PDF arkusza (zał. nr 2 rozp. 2015).
 
 Przełożony (przelozony1) ma proces pierwszej oceny Zofii (P-203) z zapisanymi kryteriami i decyzjami.
-Z karty pracownika przechodzi podsumowanie ocen, rozmowę i ekran pierwszej oceny: zapisuje sprawozdanie
-i daty, uzupełnia pola arkusza, zatwierdza go i pobiera PDF. Uruchomienie i zmienne jak w test_samoocena.py;
+Z karty („Zakończ ocenę”) przechodzi rozmowę oceniającą, zapisuje obszary rozwoju i datę rozmowy („Zakończ rozmowę”),
+a w części 3 („Ocena na piśmie”) widzi je przeniesione, uzupełnia sprawozdanie i pola arkusza, zatwierdza go
+i pobiera PDF. Uruchomienie i zmienne jak w test_samoocena.py;
 TRYB=dark robi to samo w ciemnym motywie, KOMPAS_ZRZUTY zapisuje zrzuty.
 """
 
@@ -25,7 +26,6 @@ DATY = {
     "Złożenie sprawozdania": "2026-11-14",
     "Sprawozdanie za okres od": "2026-03-02",
     "Sprawozdanie za okres do": "2026-10-15",
-    "Rozmowa oceniająca": "2026-11-18",
     "Sporządzenie oceny": "2026-11-20",
 }
 SPRAWOZDANIE = (
@@ -81,18 +81,20 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     page.get_by_role("button", name="Zaloguj").click()
     page.wait_for_selector(".powloka")
 
-    page.locator("button.pozycja", has_text="Zofia Szymańska-Demo").first.click()
-    page.get_by_role("button", name=re.compile(r"^(Oceń kompetencje|Sporządź ocenę na piśmie)$")).first.click()
-    page.get_by_role("button", name="Dalej: krok 2").click()
-    page.get_by_role("button", name="Dalej: kroki 3–5").click()
-    plan = page.get_by_role("navigation", name="Plan oceny")
-    plan.get_by_role("button", name="Plan oceny").click()
-    plan.get_by_role("button", name=re.compile(r"Podsumowanie")).click()
-    page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
-    expect(page.get_by_role("heading", name="Zakres rozmowy")).to_be_visible()
+    page.locator(".lista button.pozycja", has_text="Szymańska-Demo").first.click()
+    page.locator(".ramka.nastepny button").click()
+    expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     wnioski = "Koordynowanie pracy z interesariuszami."
-    page.get_by_label("Obszary rozwoju").fill(wnioski)
-    page.get_by_role("button", name="Dalej: wynik, terminy i arkusz").click()
+    while not page.get_by_role("heading", name="Podsumowanie i punkty").is_visible():
+        obszary = page.get_by_label("Obszary rozwoju (szkic z Twoich ocen)")
+        if obszary.count():
+            obszary.fill(wnioski)
+        przed = page.locator(".oc-licznik").inner_text()
+        page.locator(".oc-nawigacja > button:not(.link)").click()
+        expect(page.locator(".oc-licznik", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
+    expect(page.get_by_text("Wszystkie kryteria mają punkty.")).to_be_visible()
+    page.get_by_label("Data rozmowy oceniającej").fill("2026-11-18")
+    page.get_by_role("button", name="Zakończ rozmowę").click()
 
     expect(page.get_by_role("heading", name="Zakończenie oceny")).to_be_visible()
     expect(page.get_by_text("Część 3 z 3 · Ocena na piśmie", exact=True)).to_be_visible()
@@ -105,6 +107,7 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
 
     rozwin("Daty (z wcześniejszych kroków)")
     expect(page.get_by_label("Zapoznanie ocenianego z oceną")).to_have_value("")
+    expect(page.get_by_role("textbox", name=re.compile("^Rozmowa oceniająca"))).to_have_value("2026-11-18")
     rozwin("Sprawozdanie")
     for etykieta, data in DATY.items():
         page.get_by_role("textbox", name=re.compile("^" + re.escape(etykieta))).fill(data)
@@ -125,7 +128,7 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     expect(page.get_by_role("textbox", name="Wnioski rozwojowe")).to_have_value(wnioski)
 
     page.get_by_role("button", name="Zatwierdź arkusz").click()
-    expect(page.get_by_text("Arkusz zatwierdzony.")).to_be_visible()
+    expect(page.get_by_text("Arkusz zatwierdzony. Dalej: decyzja kadrowa (umowa/mianowanie).")).to_be_visible()
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)

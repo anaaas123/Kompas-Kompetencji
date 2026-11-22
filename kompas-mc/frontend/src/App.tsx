@@ -122,8 +122,8 @@ export default function App() {
             )
           : k >= 6
             ? "wynik"
-            : k >= 3 || p?.krok2
-              ? // Część I zapisana (krok 2): „Zakończ ocenę” otwiera rozmowę, nie edycję kryteriów (#72).
+            : k >= 3 || p?.krok2?.zapoznanie
+              ? // Część I zakończona (data zapoznania z kryteriami, § 6): „Zakończ ocenę” otwiera rozmowę; niezamknięta część I → krok 2.
                 // Kryteria z części I widać w „Zobacz kryteria (część I)” albo z etapu na karcie.
                 "ocena"
               : "krok2");
