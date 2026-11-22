@@ -143,6 +143,13 @@ class SerwisWynikuOkresowego:
     def podstawa(self, m: MigawkaWyniku) -> str:
         return hash_tresci({"kryteria": m.wybory_json, "decyzje": m.decyzje_json, "reguly": self.wersja})
 
+    def _poziom_z_kartoteki(self, oceny: dict[str, int]) -> str | None:
+        """Poziom poprzedniej oceny wyliczony z jej ocen cząstkowych w aktach (progi § 11 ust. 1 pkt 2), gdy kadry go nie podają."""
+        try:
+            return oblicz_wynik(list(oceny.values()), self.skala).poziom if oceny else None
+        except ValueError:
+            return None
+
     def widok(self, m: MigawkaWyniku, dane: DaneWynikuOkresowego, zapisany: bool) -> WynikOkresowy:
         try:
             obliczenie = oblicz_wynik([o.punkty for o in m.oceny], self.skala)
@@ -165,7 +172,8 @@ class SerwisWynikuOkresowego:
             dane=dane,
             terminy=wyliczone_terminy,
             poprzednia_ocena=PoprzedniaOcena(
-                data=poprzednia.data, wynik=poprzednia.wynik, poziom=dane.poprzednia_ocena_poziom,
+                data=poprzednia.data, wynik=poprzednia.wynik,
+                poziom=dane.poprzednia_ocena_poziom or self._poziom_z_kartoteki(poprzednia.oceny_czastkowe),
             ) if poprzednia else None,
             czesc_iii=CzescIII(
                 dostepna=czesc_dostepna,
@@ -198,6 +206,8 @@ class SerwisWynikuOkresowego:
 
 
 def router(auth: Autoryzacja, qnt: MockQnt, serwis: SerwisWynikuOkresowego) -> APIRouter:
+    from .arkusze import WzoryArkuszy
+
     r = APIRouter(prefix="/api", tags=["krok 6: wynik i terminy oceny okresowej"])
     sciezka = "/procesy/{proces_id}/wynik-okresowy"
 
@@ -280,9 +290,11 @@ def router(auth: Autoryzacja, qnt: MockQnt, serwis: SerwisWynikuOkresowego) -> A
         bazowy = wynik.terminy.termin_bazowy
         if zmiana is None or bazowy is None:
             raise HTTPException(404, "Brak zapisanej zmiany terminu z § 8.")
+        wzory = WzoryArkuszy.z_pliku(request.app.state.ustawienia.wzory_arkuszy)
         pdf = zawiadomienie_pdf(
             m.pracownik, bazowy.data, zmiana.nowy_termin, zmiana.data_zawiadomienia,
             _PRZYCZYNY_PISMA[zmiana.przyczyna], serwis.terminy.zrodlo_zmiany, serwis.wersja,
+            nazwa_urzedu=wzory.nazwa_urzedu, oceniajacy=qnt.pracownik(m.pracownik.przelozony_id),
         )
         return Response(pdf, media_type="application/pdf", headers={
             "Content-Disposition": f'attachment; filename="zawiadomienie-{proces_id}.pdf"',

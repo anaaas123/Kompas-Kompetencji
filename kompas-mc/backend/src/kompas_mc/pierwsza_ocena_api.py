@@ -336,7 +336,10 @@ def router(
         stan, _ = widok(request, m, m.zapis)
         if not stan.zawiadomienie_dostepne:
             raise HTTPException(404, "Brak zapisanej zmiany terminu sprawozdania.")
-        pdf = zawiadomienie_pierwszej_pdf(m.pracownik, stan.dane.przedluzenie, stan.terminy, konf_terminow, wersja)
+        pdf = zawiadomienie_pierwszej_pdf(
+            m.pracownik, stan.dane.przedluzenie, stan.terminy, konf_terminow, wersja,
+            nazwa_urzedu=wzory.nazwa_urzedu, oceniajacy=m.przelozony,
+        )
         return Response(pdf, media_type="application/pdf", headers={
             "Content-Disposition": f'attachment; filename="pierwsza-zawiadomienie-{proces_id}.pdf"',
         })

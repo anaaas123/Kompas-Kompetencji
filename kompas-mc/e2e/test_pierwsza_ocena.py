@@ -116,7 +116,6 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
             przycisk.click()
 
     rozwin("Daty (z wcześniejszych kroków)")
-    expect(page.get_by_label("Zapoznanie ocenianego z oceną")).to_have_value("")
     expect(page.get_by_role("textbox", name=re.compile("^Rozmowa oceniająca"))).to_have_value("2026-11-18")
     rozwin("Sprawozdanie")
     for etykieta, data in DATY.items():
@@ -138,7 +137,10 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     expect(page.get_by_role("textbox", name="Wnioski rozwojowe")).to_have_value(wnioski)
 
     page.get_by_role("button", name="Zatwierdź arkusz").click()
-    expect(page.get_by_text("Arkusz zatwierdzony. Dalej: decyzja kadrowa (umowa/mianowanie).")).to_be_visible()
+    expect(page.get_by_text(
+        "Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną; "
+        "oryginał wraz ze sprawozdaniem trafia do akt, kopia do ocenianego (§ 11)."
+    )).to_be_visible()
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)

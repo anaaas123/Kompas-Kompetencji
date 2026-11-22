@@ -271,7 +271,9 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     expect(page.locator(".oc-nawigacja")).not_to_contain_text("Brakuje")
     page.get_by_role("button", name="Zatwierdź arkusz").click()
     expect(page.get_by_text("Arkusz zatwierdzony.")).to_be_visible(timeout=30_000)
-    expect(page.get_by_text(re.compile(r"Arkusz włącza się do akt osobowych"))).to_be_visible()
+    expect(page.get_by_text(
+        "Po podpisie ocenianego wpisz datę zapoznania i zakończ ocenę."
+    )).to_be_visible()
     expect(page.get_by_role("button", name="Drukuj do podpisu")).to_be_enabled()
     s.pdf("Pobierz PDF")
     page.get_by_role("button", name="Zarejestruj w EZD (próbnie)").click()
@@ -282,6 +284,7 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     page.get_by_label("Data zapoznania ocenianego z oceną").fill(dzis)
     page.get_by_role("button", name="Zakończ ocenę").click()
     expect(page.get_by_text(re.compile(r"^Ocena zakończona: zapoznanie z oceną"))).to_be_visible()
+    expect(page.get_by_text("Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2).")).to_be_visible()
     expect(page.get_by_role("button", name="Zarejestruj w EZD (próbnie)")).to_have_count(0)
     s.pdf("Pobierz arkusz (PDF)")
     s.krok("II-ocena-zakonczona")

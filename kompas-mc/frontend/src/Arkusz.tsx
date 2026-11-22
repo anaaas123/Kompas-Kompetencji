@@ -38,6 +38,7 @@ import {
   data,
   dzienZapisu,
   zRozmowy,
+  zachowajDateZapoznania,
   srednia,
   poprawnaData,
   zapiszPlik,
@@ -336,7 +337,6 @@ const DATY_Z_WYNIKU: Record<string, (typeof DATY_OKRESOWE)[number][0] | "poprzed
   "okres_oceny.od": "data_zapoznania_z_kryteriami",
   "okres_oceny.do": "data_sporzadzenia_oceny",
   "dokonanie_oceny.oceniajacy.data": "data_sporzadzenia_oceny",
-  "zapoznanie.oceniany.data": "data_zapoznania_z_ocena",
   "poprzednia_ocena.poziom": "poprzednia_ocena_poziom",
 };
 
@@ -362,6 +362,7 @@ export function Arkusz({
   const [bladWynikuApi, setBladWynikuApi] = useState<string | null>(null);
   const [czekam, setCzekam] = useState(false);
   const [przelozony, setPrzelozony] = useState<Pracownik>();
+  const [szkicUzasadnienia, setSzkicUzasadnienia] = useState("");
   const [odswiez, setOdswiez] = useState(false);
 
   useEffect(() => {
@@ -374,6 +375,8 @@ export function Arkusz({
       edycja ? zRozmowy(token, proces.id) : undefined,
     ]).then(([w, a, kierownik, krok2, rozmowa]) => {
       if (!aktywny) return;
+      const z = rozmowa.status === "fulfilled" ? rozmowa.value : undefined;
+      setSzkicUzasadnienia(z?.szkicUzasadnienia ?? "");
       const zatwierdzony = a.status === "fulfilled" && a.value.zatwierdzony;
       if (w.status === "fulfilled") {
         setWynik(w.value);
@@ -398,7 +401,6 @@ export function Arkusz({
           const domyslne = podpowiedziPol(a.value, szef);
           for (const p of edytowalnePola(a.value)) {
             if (p.wartosc?.trim()) continue;
-            const z = rozmowa.status === "fulfilled" ? rozmowa.value : undefined;
             if (p.id === "wnioski_iprz") domyslne[p.id] = z?.wnioski ?? null;
             if (p.id === "rozmowa_oceniajaca.data") domyslne[p.id] = z?.data ?? null;
           }
@@ -528,7 +530,7 @@ export function Arkusz({
       let aktualny = arkusz;
       if (ruszonyWynik && daneWyniku) {
         const w = await zapiszWynik(token, proces.id, {
-          ...daneWyniku.f,
+          ...zachowajDateZapoznania(daneWyniku.f, daneWyniku.wynik.dane.data_zapoznania_z_ocena),
           dolacz_wniosek_o_stopien: daneWyniku.wynik.czesc_iii.dostepna && daneWyniku.f.dolacz_wniosek_o_stopien,
         });
         setWynik(w);
@@ -603,13 +605,15 @@ export function Arkusz({
         key={JSON.stringify(formularz.braki)}
         braki={braki}
         blad={blad}
-        podpis={zatwierdzony ? "Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2)." : undefined}
+        podpis={zakonczony ? "Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2)."
+          : zatwierdzony ? "Po podpisie ocenianego wpisz datę zapoznania i zakończ ocenę." : undefined}
         onWstecz={onWstecz}
         dzieci={
           <>
             {daneWyniku && <PoleOpisowe id="uzasadnienie"
               etykieta={`Uzasadnienie oceny ${daneWyniku.wynik.uzasadnienie_wymagane ? "(wymagane)" : "(opcjonalnie)"}`}
               wartosc={daneWyniku.f.uzasadnienie} wymagane={daneWyniku.wynik.uzasadnienie_wymagane}
+              szkicZRozmowy={szkicUzasadnienia}
               blokada={daneWyniku.blokada} wiersze={3} onZmiana={(tekst) => daneWyniku.ustaw({ uzasadnienie: tekst })} />}
             {wnioski && (
               <div className="sekcja">
@@ -716,8 +720,7 @@ export function Arkusz({
             )}
             {ezd && (
               <p className="sukces">
-                Próbna rejestracja w EZD: {ezd.numer_sprawy}, {data(ezd.zarejestrowano.slice(0, 10))}, skrót PDF{" "}
-                {ezd.sha256_pdf.slice(0, 12)}…
+                Próbna rejestracja w EZD: {ezd.numer_sprawy}, {data(ezd.zarejestrowano.slice(0, 10))}.
               </p>
             )}
           </>

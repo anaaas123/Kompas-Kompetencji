@@ -73,6 +73,8 @@ def test_wynik_ze_zatwierdzonych_ocen_i_ponowny_zapis_po_zmianie_punktow(api_wyn
     assert podglad["uzasadnienie_wymagane"] is True
     assert podglad["czesc_iii"]["dostepna"] is False
     assert podglad["zapisany"] is False
+    # Kadry nie podają poziomu poprzedniej oceny: liczy się z jej ocen cząstkowych w aktach (7, 7, 5, 5, 3 → 5,4).
+    assert podglad["poprzednia_ocena"] == {"data": "2024-12-02", "wynik": "pozytywna", "poziom": "na poziomie oczekiwań"}
     for dane in ({}, {"uzasadnienie": " \n "}, {"uzasadnienie": "Ocena negatywna", "dolacz_wniosek_o_stopien": True}):
         assert klient.put(url, headers=h, json=dane).status_code == 422
 
