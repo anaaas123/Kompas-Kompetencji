@@ -22,7 +22,7 @@ import "./cele.css";
  */
 type Strona = "przelozony" | "pracownik" | "odczyt";
 
-const STATUS: Record<StatusCelu, [string, string]> = {
+export const STATUS: Record<StatusCelu, [string, string]> = {
   propozycja: ["do akceptacji", "neutralna"],
   zatwierdzony: ["zatwierdzony", "info"],
   w_realizacji: ["w realizacji", "info"],

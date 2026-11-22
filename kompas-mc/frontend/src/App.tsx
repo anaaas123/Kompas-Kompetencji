@@ -246,6 +246,7 @@ export default function App() {
           onWyloguj={wyloguj}
           onZespol={() => przejdz("zespol")}
           onPracownicy={() => przejdz("pracownicy")}
+          onCele={() => przejdz("cele")}
         />
       )}
       {!karta && !oceniany && widok === "zespol" && <Zespol sesja={sesja} onWyloguj={wyloguj} onPracownicy={doPracownikow} onWybierz={setKarta} />}
