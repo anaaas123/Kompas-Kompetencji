@@ -74,7 +74,7 @@ def _dane(termin_zlozenia):
             "kierujacy_komorka.imie": "Łucja",
             "kierujacy_komorka.nazwisko": "Wójcik-Demo",
             "kierujacy_komorka.stanowisko": "Dyrektor",
-            "kierujacy_komorka.komorka_organizacyjna": "Departament Cyberbezpieczeństwa",
+            "kierujacy_komorka.komorka_organizacyjna": "Departament Rozwoju i Bezpieczeństwa Sztucznej Inteligencji",
             "potwierdzenie_rozmowy_wstepnej.przelozony.miejscowosc": "Warszawa",
             "potwierdzenie_rozmowy_wstepnej.oceniany.miejscowosc": "Warszawa",
             "potwierdzenie_rozmowy_oceniajacej.przelozony.miejscowosc": "Warszawa",
