@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Uzytkownik
 from kompas_core.llm import BrakOdpowiedzi, Zapytanie, wywolaj
@@ -32,8 +34,31 @@ class OdpowiedzCzatu(OdpowiedzAsystenta):
 POLECENIE_PODPOWIEDZI = """Zaproponuj jedno krótkie pytanie (najwyżej dwa zdania), które przełożony zada
 Ocenianemu w rozmowie oceniającej o tym wskaźniku. Pytanie ma przywołać konkretną sytuację z okresu oceny
 przy zadaniach z opisu stanowiska i pomóc porównać zachowanie ze standardem (poziom „na poziomie oczekiwań”).
-Zwracaj się do Ocenianego w drugiej osobie, bez imion. W polu "tresc" zwróć samo pytanie, a w "cytaty"
-dosłowny fragment opisu wskaźnika albo poziomu, na którym je opierasz."""
+Zwracaj się do Ocenianego w drugiej osobie, bez imion. W polu "tresc" zwróć tekst z obiektem JSON
+{"pytanie": "<pytanie zakończone znakiem zapytania>"}, a w "cytaty" dosłowny fragment opisu wskaźnika
+albo poziomu, na którym je opierasz."""
+
+
+def pytanie_z_tresci(tresc: str | None) -> tuple[str | None, str | None]:
+    """Pytanie z pola ``tresc`` modelu i powód odrzucenia. Instrukcja core każe składać ``tresc`` z cytatów,
+    więc polecenie prosi o JSON (jak cele_llm); tolerujemy też samo pytanie w cudzysłowie (#164)."""
+    tekst = (tresc or "").strip()
+    try:
+        dane = json.loads(tekst)
+        if isinstance(dane, dict):
+            tekst = str(dane.get("pytanie") or "")
+    except ValueError:
+        pass
+    tekst = tekst.strip().strip("„”\"'").strip()
+    if not tekst:
+        return None, "brak treści"
+    if "?" not in tekst:
+        return None, "nie jest pytaniem"
+    if len(tekst) > 400:
+        return None, "za długie"
+    if proponuje_ocene(tekst):
+        return None, "podsuwa ocenę"
+    return tekst, None
 
 
 class ZapytaniePodpowiedzi(BaseModel):
@@ -45,6 +70,8 @@ class PodpowiedzRozmowy(BaseModel):
     """Pytanie z modelu; ``None``, gdy model nie odpowiedział poprawnie (ekran zostaje przy szablonie)."""
     dostawca: str | None = None
     tryb: str | None = None
+    odrzucono: str | None = None
+    """Dlaczego tekst modelu nie trafił na ekran (diagnostyka; bez treści odpowiedzi)."""
 
 
 def router(
@@ -182,10 +209,8 @@ def router(
             wynik = wywolaj(zapytanie, llm.dostawcy, llm.dziennik)
         except BrakOdpowiedzi:
             return PodpowiedzRozmowy(pytanie=None)
-        pytanie = (wynik.odpowiedz.tresc or "").strip()
         # Ma to być jedno pytanie do rozmowy, nie ocena ani wykład: inaczej zostaje pytanie z szablonu.
-        if not pytanie.endswith("?") or len(pytanie) > 400 or proponuje_ocene(pytanie):
-            return PodpowiedzRozmowy(pytanie=None, dostawca=wynik.dostawca, tryb=str(wynik.tryb))
-        return PodpowiedzRozmowy(pytanie=pytanie, dostawca=wynik.dostawca, tryb=str(wynik.tryb))
+        pytanie, powod = pytanie_z_tresci(wynik.odpowiedz.tresc)
+        return PodpowiedzRozmowy(pytanie=pytanie, dostawca=wynik.dostawca, tryb=str(wynik.tryb), odrzucono=powod)
 
     return r

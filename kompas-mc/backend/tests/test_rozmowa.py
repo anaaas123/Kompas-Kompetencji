@@ -367,3 +367,20 @@ def test_tekst_modelu_nie_podsuwa_oceny(tekst, ocena):
     from kompas_mc.asystent import proponuje_ocene
 
     assert proponuje_ocene(tekst) is ocena
+
+
+@pytest.mark.parametrize(
+    "tresc,pytanie,powod",
+    [
+        ('{"pytanie": "Kiedy w tym okresie było to widać?"}', "Kiedy w tym okresie było to widać?", None),
+        ("„Jak to wyglądało przy opiniach prawnych?”", "Jak to wyglądało przy opiniach prawnych?", None),
+        ("Dobiera i stosuje wiedzę merytoryczną odpowiednią do zadania.", None, "nie jest pytaniem"),
+        ('{"pytanie": "Proponuję 7 pkt?"}', None, "podsuwa ocenę"),
+        (None, None, "brak treści"),
+    ],
+)
+def test_pytanie_z_tresci_modelu(tresc, pytanie, powod):
+    """#164: core każe składać tresc z cytatów; pytanie przychodzi w JSON, cytat bez pytania odpada."""
+    from kompas_mc.rozmowa_api import pytanie_z_tresci
+
+    assert pytanie_z_tresci(tresc) == (pytanie, powod)
