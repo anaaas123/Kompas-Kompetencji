@@ -63,6 +63,9 @@ export default function App() {
     setOceniany(null);
     setProces(null);
     setEtap("krok2");
+    setFiltr({});
+    setPytanie(null);
+    setPodgladCzesciI(false);
   }, []);
 
   // Wybór pozycji menu zamyka otwartą ocenę i wraca do listy.
@@ -228,8 +231,10 @@ export default function App() {
           cele={<CeleOsoby sesja={sesja} osoba={karta} maks={3} />}
         />
       )}
+      {!karta && !oceniany && widokZrodel && <h1 className="tytul-widoku">Źródła i braki</h1>}
       {!karta && !oceniany && widokZrodel && <PanelZrodel zrodla={zrodla} token={sesja.token} />}
       {!karta && !oceniany && widokZrodel && <PanelMetodyki token={sesja.token} mozeZarzadzac />}
+      {!karta && !oceniany && widokProcesow && <h1 className="tytul-widoku">Procesy i terminy</h1>}
       {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit
