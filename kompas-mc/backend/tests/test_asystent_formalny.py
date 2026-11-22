@@ -124,9 +124,9 @@ def test_domyslny_lancuch_deepseek_ollama_ekstrakcyjny(ustawienia):
     ]
     assert llm["dostawcy"][0] == {
         "typ": "openai_zgodny",
-        "base_url": "https://api.deepseek.com",
-        "model": "deepseek-v4-flash",
-        "zmienna_klucza": "DEEPSEEK_API_KEY",
+        "base_url": "https://api.scaleway.ai/v1",
+        "model": "deepseek-v4-flash-0731",
+        "zmienna_klucza": "SCALEWAY_API_KEY",
         "timeout": 30,
         "temperatura": 0.0,
     }
@@ -142,7 +142,7 @@ def test_domyslny_lancuch_deepseek_ollama_ekstrakcyjny(ustawienia):
 def test_bez_klucza_i_ollamy_odpowiada_ekstrakcyjnie(
     korpus_mc, ustawienia, tmp_path, monkeypatch
 ):
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.delenv("SCALEWAY_API_KEY", raising=False)
 
     def brak_ollamy(*args, **kwargs):
         raise ConnectionError("Ollama niedostępna")
@@ -161,11 +161,11 @@ def test_bez_klucza_i_ollamy_odpowiada_ekstrakcyjnie(
 def test_z_kluczem_poprawna_odpowiedz_deepseek_ma_tryb_na_zywo(
     korpus_mc, ustawienia, tmp_path, monkeypatch
 ):
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "testowy-klucz")
+    monkeypatch.setenv("SCALEWAY_API_KEY", "testowy-klucz")
 
     def odpowiedz_deepseek(url, dane, naglowki, timeout):
-        assert url == "https://api.deepseek.com/chat/completions"
-        assert dane["model"] == "deepseek-v4-flash"
+        assert url == "https://api.scaleway.ai/v1/chat/completions"
+        assert dane["model"] == "deepseek-v4-flash-0731"
         assert naglowki["authorization"] == "Bearer testowy-klucz"
         tresc = dane["messages"][1]["content"]
         dopasowanie = re.search(r"\[([^]]+)]\n(.+?)(?:\n\n\[|\n\nPYTANIE:)", tresc, re.DOTALL)
