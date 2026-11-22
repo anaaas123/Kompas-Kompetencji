@@ -213,9 +213,9 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
                 page.get_by_label("Kierunki rozwoju i potrzeby (opcjonalnie)").fill("Szkolenie z prawa UE w 2027 r.")
                 s.krok("II-temat-rozwoj")
         # Czekamy na zmianę licznika „N z M”, żeby nie kliknąć dwa razy w ten sam ekran.
-        przed = page.locator(".oc-licznik").inner_text()
+        przed = page.locator(".oc-ekran .oc-tytul").first.inner_text()
         page.locator(".oc-nawigacja > button:not(.link)").click()
-        expect(page.locator(".oc-licznik", has_text=re.compile(f"^{przed}$"))).to_have_count(0)
+        expect(page.locator(".oc-ekran .oc-tytul", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
     s.krok("II-podsumowanie-przed-punktami")
 
     # Podsumowanie (§ 11): punkty po rozmowie; pierwsze kryterium wg sugestii, drugie inaczej z uzasadnieniem.

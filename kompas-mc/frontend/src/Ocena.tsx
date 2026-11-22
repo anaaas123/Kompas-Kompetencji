@@ -621,7 +621,8 @@ function etykietaDalej(k: Krok | undefined, dane: StanOceny): string {
   if (k.typ === "podsumowanie") return "Dalej: podsumowanie";
   if (k.typ === "temat") return `Dalej: ${NAZWA_TEMATU[k.temat].toLowerCase()}`;
   if (k.w === 0) return `Dalej: ${nazwaKryterium(dane.kryteria[k.kr].nazwa)}`;
-  return `Dalej: wskaźnik ${k.w + 1} z ${dane.kryteria[k.kr].wskazniki.length}`;
+  // Jeden licznik na ekranie (nad paskiem); w obrębie kryterium sam „Dalej” (Helix G2, 22.11).
+  return "Dalej";
 }
 
 /** Postęp jak w formularzach administracji: „Kryterium X z N”, cienki pasek z odcinkiem na każdy wskaźnik
@@ -965,11 +966,6 @@ export function Ocena({
             </button>
           ) : (
             <span />
-          )}
-          {k.typ !== "podsumowanie" && (
-            <span className="meta oc-licznik">
-              {biezacy + 1} z {lista.length - 1}
-            </span>
           )}
           {nastepny ? (
             <button type="button" onClick={() => setKrok(biezacy + 1)}>

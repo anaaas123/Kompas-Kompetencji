@@ -102,9 +102,9 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
         obszary = page.get_by_label("Obszary rozwoju")
         if obszary.count():
             obszary.fill(wnioski)
-        przed = page.locator(".oc-licznik").inner_text()
+        przed = page.locator(".oc-ekran .oc-tytul").first.inner_text()
         page.locator(".oc-nawigacja > button:not(.link)").click()
-        expect(page.locator(".oc-licznik", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
+        expect(page.locator(".oc-ekran .oc-tytul", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
     expect(page.get_by_text("Wszystkie kryteria mają punkty.")).to_be_visible()
     page.get_by_label("Data rozmowy oceniającej").fill("2026-11-18")
     page.get_by_role("button", name="Zakończ rozmowę").click()
