@@ -107,7 +107,7 @@ def wypelnij_pierwsza(
         "rozmowa_oceniajaca.data": rozmowa_oceniajaca,
         "potwierdzenie_rozmowy_oceniajacej.przelozony.data": rozmowa_oceniajaca,
         "potwierdzenie_rozmowy_oceniajacej.oceniany.data": rozmowa_oceniajaca,
-        "ocena_laczna": str(obliczenie.srednia).replace(".", ",") if obliczenie else None,
+        "ocena_laczna": f"{obliczenie.srednia:.2f}".replace(".", ",") if obliczenie else None,
         "egzamin": egzamin.wynik.replace("_", " ").upper() if egzamin else None,
         "sprawozdanie_w_terminie": _tak_nie(terminy.sprawozdanie_w_terminie),
         "wynik": obliczenie.wynik.upper() if obliczenie else None,
