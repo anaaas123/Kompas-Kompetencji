@@ -322,8 +322,10 @@ def sprawdz_odpowiedz(zapytanie: Zapytanie, odpowiedz: Odpowiedz) -> list[str]:
         # Helix G3 (3), tylko asystent formalny (opis osoby i cele liczą liczby z faktów, nie z korpusu): treść ma być ułożona z cytowanych fragmentów. Liczba (dni, paragraf, punkty, data) spoza
         # cytowanych fragmentów i pytania to twierdzenie bez źródła → walidacja odrzuca, łańcuch idzie dalej.
         # ponytail: tylko liczby; zmyślenie słowne („siedem”) wymaga sprawdzenia semantycznego.
-        zrodla = " ".join(fragmenty[c.fragment_id].tekst for c in odpowiedz.cytaty if c.fragment_id in fragmenty)
-        dozwolone = set(_liczby(zrodla + " " + zapytanie.pytanie))
+        # Tylko cytowane fragmenty (tekst i lokalizator, np. „art. 83”); liczba z pytania niczego nie dowodzi
+        # (runda 2: „czy termin wynosi 99 dni?” przepuszczało „99 dni” w odpowiedzi).
+        cytowane = [fragmenty[c.fragment_id] for c in odpowiedz.cytaty if c.fragment_id in fragmenty]
+        dozwolone = set(_liczby(" ".join(f"{f.lokalizator} {f.tekst}" for f in cytowane)))
         obce = [n for n in _liczby(_BEZ_NUMEROW_LISTY.sub("", odpowiedz.tresc)) if n not in dozwolone]
         if obce:
             bledy.append(f"liczby w treści bez pokrycia w cytowanych fragmentach: {', '.join(dict.fromkeys(obce))}")

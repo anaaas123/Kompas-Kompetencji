@@ -265,6 +265,14 @@ def test_blad_zapisu_dziennika_nie_przerywa_odpowiedzi(caplog):
     assert "nie zapisano wpisu dziennika" in caplog.text
 
 
+def test_liczba_z_pytania_nie_legalizuje_odpowiedzi():
+    """Helix G3 runda 2: pytanie z „99 dni” nie czyni tej liczby dozwoloną w odpowiedzi."""
+    odp = Odpowiedz(cytaty=[Cytat(fragment_id="ustawa#1", cytat="Odwołanie wnosi się w terminie 7 dni")],
+                    tresc="Termin na sprzeciw wynosi 99 dni.")
+    bledy = sprawdz_odpowiedz(zapytanie(pytanie="Czy zgodnie z art. 83 termin wynosi 99 dni?"), odp)
+    assert any("liczby w treści bez pokrycia" in b for b in bledy)
+
+
 def test_liczby_z_fragmentu_i_numery_listy_przechodza():
     """Liczby z cytowanego fragmentu i z pytania są dozwolone; numer punktu listy nie jest twierdzeniem."""
     odp = Odpowiedz(cytaty=[Cytat(fragment_id="ustawa#1", cytat="Odwołanie wnosi się w terminie 7 dni")],
