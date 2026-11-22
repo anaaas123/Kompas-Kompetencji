@@ -77,9 +77,9 @@ function opisWskaznikow(k: KryteriumKroku2, wybrane: string[]): string {
   const jakSystem = n === system.length && system.every((id) => wybrane.includes(id));
   if (!jakSystem) return `${n} ${odmiana(n, "wskaźnik wybrany", "wskaźniki wybrane", "wskaźników wybranych")} ręcznie`;
   if (k.wskazniki.some((w) => w.proponowany)) {
-    return `${n} ${odmiana(n, "wskaźnik dobrany", "wskaźniki dobrane", "wskaźników dobranych")} do zadań z OSP`;
+    return `${n} ${odmiana(n, "wskaźnik", "wskaźniki", "wskaźników")}`;
   }
-  return `${n} ${odmiana(n, "wskaźnik", "wskaźniki", "wskaźników")}: żaden nie pasuje do zadań z OSP, więc wszystkie`;
+  return `${n} ${odmiana(n, "wskaźnik", "wskaźniki", "wskaźników")} (wszystkie)`;
 }
 
 type PropsKryterium = {
@@ -100,11 +100,15 @@ function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, d
   const nazwa = (
     <span className="k2-nazwa">
       {k.nazwa.charAt(0) + k.nazwa.slice(1).toLowerCase()}
-      {k.propozycja && <span className="status uwaga">propozycja systemu</span>}
+      {k.propozycja && (
+        <span className="status uwaga" title={k.propozycja.powody.join("; ")}>
+          propozycja systemu
+        </span>
+      )}
     </span>
   );
   return (
-    <div className={`k2-wiersz ${dodatkowe?.wybrane ? "wybrany" : ""} ${dodatkowe?.zablokowane ? "zablokowany" : ""}`}>
+    <div className={`k2-wiersz ${dodatkowe?.wybrane ? "wybrany" : ""} ${dodatkowe?.zablokowane ? "zablokowany" : ""} ${otwarte && aktywne ? "otwarty" : ""}`}>
       {dodatkowe ? (
         <button
           type="button"
@@ -132,14 +136,9 @@ function Kryterium({ k, wybrane, tylkoOdczyt, otwarte, onPrzelacz, onWskaznik, d
             {otwarte ? "Zwiń wskaźniki" : tylkoOdczyt ? "Pokaż wskaźniki" : "Zmień wskaźniki"}
           </button>
         </p>
-      ) : (
-        k.propozycja && <p className="k2-linia">{k.propozycja.powody.join("; ")}</p>
-      )}
+      ) : null}
       {otwarte && aktywne && (
         <div className="k2-cialo">
-          <p className="meta">
-            Dobierz wskaźniki do zadań z opisu stanowiska. System zaznaczył te, które pasują do zadań z OSP.
-          </p>
           <ul className="k2-wskazniki">
             {k.wskazniki.map((w) => (
               <li key={w.wskaznik_id}>
@@ -372,33 +371,22 @@ export function Krok2({
         <p className="brak">Przełożony nie zatwierdził jeszcze kryteriów. Zaznaczenia to propozycja systemu.</p>
       )}
       {!tylkoOdczyt && !dane.wybor && proces.sciezka === "okresowa" && cykl?.etap === "ocena" && (
-        <p className="meta">
-          Część I arkusza sporządzono na początku okresu oceny. Zaznacz kryteria dodatkowe tak, jak zapisano je w podpisanej części I
-          (§ 9 ust. 3: ocenia się według wybranych wcześniej kryteriów).
-        </p>
+        <p className="meta">Zaznacz kryteria dodatkowe z podpisanej części I (§ 9 ust. 3).</p>
       )}
 
-      <Sekcja tytul="Obowiązkowe" liczba={String(obowiazkowe.length)} podstawa={dane.podstawa_obowiazkowych}>
-        <p className="meta">
-          Wynikają z arkusza {nazwaArkusza}, więc się ich nie wybiera. Wskaźniki system dobrał do zadań z opisu
-          stanowiska; możesz je zmienić.
-        </p>
-        <div className="k2-lista">{obowiazkowe.map((k) => wiersz(k, false))}</div>
-      </Sekcja>
+      {/* Karol 02:04: pół na pół, obowiązkowe z lewej na dwie kolumny, dodatkowe z prawej, na jednym ekranie.
+          Pierwsza ocena nie ma dodatkowych (limit 0), więc obowiązkowe zajmują całą szerokość. */}
+      <div className={dane.limit_dodatkowych > 0 ? "k2-kolumny" : undefined}>
+        <Sekcja tytul="Obowiązkowe" liczba={String(obowiazkowe.length)} podstawa={dane.podstawa_obowiazkowych}>
+          <div className="k2-lista k2-dwie">{obowiazkowe.map((k) => wiersz(k, false))}</div>
+        </Sekcja>
 
-      <Sekcja
-        tytul="Dodatkowe"
-        liczba={dane.limit_dodatkowych > 0 ? `${dodatkowe.length} z ${dane.limit_dodatkowych}` : undefined}
-        podstawa={dane.podstawa_dodatkowych}
-      >
-        {dane.limit_dodatkowych === 0 ? (
-          <p className="meta">Pierwsza ocena nie ma kryteriów dodatkowych, więc nie ma tu nic do wybrania.</p>
-        ) : (
-          <>
-            <p className="meta">
-              Możesz wybrać najwyżej {dane.limit_dodatkowych} kryteria najważniejsze dla obowiązków z opisu stanowiska
-              albo żadnego.
-            </p>
+        {dane.limit_dodatkowych > 0 && (
+          <Sekcja
+            tytul="Dodatkowe"
+            liczba={`wybrane ${dodatkowe.length} · od 0 do ${dane.limit_dodatkowych}`}
+            podstawa={dane.podstawa_dodatkowych}
+          >
             <div className="k2-lista">
               {proponowane.map((k) => wiersz(k, true))}
               {pozostale && dostepne.map((k) => wiersz(k, true))}
@@ -408,9 +396,9 @@ export function Krok2({
                 {pozostale ? "Ukryj pozostałe kompetencje" : `Pozostałe kompetencje (${dostepne.length})`}
               </button>
             )}
-          </>
+          </Sekcja>
         )}
-      </Sekcja>
+      </div>
 
       <div className="k2-metodyka">
         <button type="button" className="link" aria-expanded={metodyka} onClick={() => setMetodyka((v) => !v)}>
