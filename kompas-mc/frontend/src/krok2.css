@@ -18,6 +18,15 @@
 .k2 button.k2-podstawa:active { background: var(--k-surface-pressed); }
 .k2-lista { display: flex; flex-direction: column; gap: var(--o-8); }
 
+/* Pół na pół (Karol 02:04): z lewej obowiązkowe w dwóch kolumnach, z prawej dodatkowe; rozwinięte wskaźniki
+   zajmują całą szerokość listy. Węższy ekran: jedna kolumna jak dotąd. */
+.k2-kolumny { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--o-32); align-items: start; }
+.k2-lista.k2-dwie { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--o-8); align-items: stretch; }
+.k2-lista.k2-dwie .k2-wiersz.otwarty { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .k2-kolumny, .k2-lista.k2-dwie { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Wiersz kryterium: znak z lewej, nazwa, pod nią cicha linia wskaźników. */
 .k2-wiersz { display: flex; flex-direction: column; border-radius: var(--r-wiersz); background: var(--k-wiersz); }
 .k2-wiersz.wybrany { background: var(--k-wiersz-hover); }
