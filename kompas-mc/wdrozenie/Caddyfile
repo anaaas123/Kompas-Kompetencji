@@ -1,0 +1,19 @@
+# Wersja testowa: HTTPS z automatycznym certyfikatem (adres sslip.io z IP serwera albo własna domena).
+151-115-86-8.sslip.io {
+	encode gzip
+	@api path /api/* /openapi.json /docs*
+	handle @api {
+		reverse_proxy 127.0.0.1:8000
+	}
+	# Który commit działa na serwerze – do dopasowania zgłoszeń z testów.
+	handle /wersja {
+		root * /opt/kompas
+		rewrite * /WERSJA
+		file_server
+	}
+	handle {
+		root * /opt/kompas/www
+		try_files {path} /index.html
+		file_server
+	}
+}
