@@ -11,15 +11,11 @@ import {
 } from "./api";
 import { NAZWA_SCIEZKI, opisBledu } from "./Krok1";
 import { Wybor } from "./Ocena";
+import { kiedy } from "./zespol-dane";
 
 const data = (iso: string) => iso.slice(0, 10).split("-").reverse().join(".");
 
-function dni(p: ProcesHr): string {
-  if (p.dni_do_terminu === null) return "—";
-  if (p.dni_do_terminu < 0) return `${-p.dni_do_terminu} dni po terminie`;
-  if (p.dni_do_terminu === 0) return "dziś";
-  return `za ${p.dni_do_terminu} dni`;
-}
+const dni = (p: ProcesHr): string => (p.dni_do_terminu === null ? "—" : kiedy(p.dni_do_terminu));
 
 /** Panel HR (#38): statusy i terminy procesów, przypomnienia do przełożonych. Bez treści ocen i notatek. */
 export default function PanelHR({ token }: { token: string }) {

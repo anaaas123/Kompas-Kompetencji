@@ -160,17 +160,20 @@ def propozycja(w: WierszPanelu) -> PropozycjaPrzypomnienia | None:
     if not w.zagrozony or w.najblizszy_termin is None:
         return None
     t = w.najblizszy_termin
+    def dni(n: int) -> str:
+        return "1 dzień" if n == 1 else f"{n} dni"
+
     kiedy = (
-        f"minął {-w.dni_do_terminu} dni temu" if w.dni_do_terminu < 0
+        f"minął {dni(-w.dni_do_terminu)} temu" if w.dni_do_terminu < 0
         else "upływa dziś" if w.dni_do_terminu == 0
-        else f"upływa za {w.dni_do_terminu} dni"
+        else f"upływa za {dni(w.dni_do_terminu)}"
     )
     return PropozycjaPrzypomnienia(
         proces_id=w.proces_id,
         adresat=w.przelozony_id,
         tresc=(
             f"Przypomnienie: w procesie oceny ({w.sciezka}, arkusz {w.arkusz}) pracownika "
-            f"{w.osoba} termin „{t.nazwa}” ({t.data.isoformat()}) {kiedy}."
+            f"{w.osoba} termin „{t.nazwa}” ({t.data.strftime("%d.%m.%Y")}) {kiedy}."
         ),
         termin=t,
     )
