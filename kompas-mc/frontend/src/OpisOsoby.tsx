@@ -45,7 +45,7 @@ export function OpisOsoby({ sesja, osoba }: { sesja: Sesja; osoba: Pracownik }) 
       <p className="zdania-opisu">{opis.zdania.map((z) => z.tekst).join(" ")}</p>
       <p className="podpis-opisu">
         <span>
-          {opis.oznaczenie} · {zModeluTryb ? "z modelem" : "bez modelu"}
+          {opis.oznaczenie}{zModeluTryb ? " · z modelem" : ""}
         </span>
         <button type="button" className="link" aria-expanded={podstawa} onClick={() => setPodstawa(!podstawa)}>
           {podstawa ? "Ukryj podstawę" : "Pokaż podstawę"}
