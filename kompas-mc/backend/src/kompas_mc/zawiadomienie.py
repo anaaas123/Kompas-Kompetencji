@@ -4,11 +4,25 @@ from __future__ import annotations
 
 from datetime import date
 
-from kompas_core.pdf import DokumentPdf, Stopka, hash_tresci
+from kompas_core.pdf import DokumentPdf
 from kompas_core.zrodla import SourceRef
+from reportlab.pdfbase import pdfmetrics
 
 from .qnt import Pracownik
-from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, PrzedluzeniePierwszej, TerminyPierwszej
+from .terminy_pierwszej import (
+    KonfiguracjaTerminowPierwszej,
+    PrzedluzeniePierwszej,
+    TerminyPierwszej,
+)
+from .wzor_druk import _font
+
+
+class _Pismo(DokumentPdf):
+    def __init__(self) -> None:
+        super().__init__(stopka=None, font=pdfmetrics.getFont(_font()).face.filename)
+
+    def _stopka(self, canvas, doc) -> None:
+        """Pismo kończy się miejscem na podpis."""
 
 
 def zawiadomienie_pdf(
@@ -26,15 +40,7 @@ def zawiadomienie_pdf(
         "stanowisko": pracownik.stanowisko,
         "komorka": pracownik.komorka,
     }
-    tresc = {
-        "oceniany": oceniany,
-        "poprzedni_termin": poprzedni_termin,
-        "nowy_termin": nowy_termin,
-        "data_zawiadomienia": data_zawiadomienia,
-        "przyczyna": przyczyna,
-        "zrodlo": zrodlo.model_dump(mode="json"),
-    }
-    pdf = DokumentPdf(Stopka(wersja, hash_tresci(tresc), "Wydruk do podpisu odręcznego"))
+    pdf = _Pismo()
     pdf.naglowek("Zawiadomienie o zmianie terminu oceny okresowej")
     pdf.akapit(f"Data pisma {data_zawiadomienia:%d.%m.%Y}")
     pdf.naglowek("Osoba oceniana", poziom=2)
@@ -81,11 +87,7 @@ def zawiadomienie_pierwszej_pdf(
     nowe = terminy.termin_sprawozdania_od.data, terminy.termin_sprawozdania_do.data
     zrodlo = konf.zrodlo_przedluzenia
     przyczyna = konf.zrodlo_przyczyny(zmiana.przyczyna)
-    odcisk = hash_tresci({
-        "osoba": pracownik.osoba_id, "zmiana": zmiana.model_dump(mode="json"),
-        "stare": stare, "nowe": nowe, "zrodlo": zrodlo.model_dump(mode="json"),
-    })
-    pdf = DokumentPdf(Stopka(wersja, odcisk, "Wydruk do podpisu odręcznego"))
+    pdf = _Pismo()
     pdf.naglowek("Zawiadomienie o zmianie terminu złożenia sprawozdania")
     pdf.akapit(f"Data pisma {zmiana.data_zawiadomienia:%d.%m.%Y}")
     pdf.naglowek("Osoba oceniana", poziom=2)

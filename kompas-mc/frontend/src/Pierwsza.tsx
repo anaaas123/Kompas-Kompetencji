@@ -33,6 +33,7 @@ import {
   zRozmowy,
   poprawnaData,
   zapiszPlik,
+  drukujDoPodpisu,
   type Brak,
   type Krok7Props,
 } from "./Wynik";
@@ -330,15 +331,14 @@ function Formularz({
       setCzekam(false);
     }
   }
-  async function pobierz(plik: "arkusz.pdf" | "zawiadomienie.pdf") {
+  async function pobierz(plik: "arkusz.pdf" | "zawiadomienie.pdf", doDruku = false) {
     if (czekam || (plik === "arkusz.pdf" ? !pdf : !stan.zawiadomienie_dostepne || ruszone)) return;
     setBlad(null);
     setCzekam(true);
     try {
-      zapiszPlik(
-        await pobierzPdfPierwszej(token, stan.proces_id, plik),
-        `${plik === "arkusz.pdf" ? "arkusz-pierwszej-oceny" : "zawiadomienie-5"}-${osoba.nazwisko}.pdf`,
-      );
+      const nazwa = `${plik === "arkusz.pdf" ? "arkusz-pierwszej-oceny" : "zawiadomienie-5"}-${osoba.nazwisko}.pdf`;
+      if (doDruku) await drukujDoPodpisu(() => pobierzPdfPierwszej(token, stan.proces_id, plik), nazwa);
+      else zapiszPlik(await pobierzPdfPierwszej(token, stan.proces_id, plik), nazwa);
     } catch (err) {
       const b = bladArkusza(err);
       setBlad(b.tekst);
@@ -356,7 +356,6 @@ function Formularz({
       key={JSON.stringify(braki)}
       braki={lista}
       blad={blad}
-      podpis={stan.formularz.komunikat_podpis}
       onWstecz={onWstecz}
       dzieci={
         <>
@@ -606,9 +605,10 @@ function Formularz({
             {pdf && <button type="button" onClick={() => pobierz("arkusz.pdf")}>Pobierz arkusz (PDF)</button>}
           </div>
         ) : zatwierdzony || !edycja ? (
-          <button type="button" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>
-            Pobierz arkusz (PDF)
-          </button>
+          <span className="k7-zakonczona">
+            <button type="button" className="link" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>Pobierz PDF</button>
+            <button type="button" disabled={!pdf} onClick={() => pobierz("arkusz.pdf", true)}>Drukuj do podpisu</button>
+          </span>
         ) : (
           <button type="button" disabled={blokadaZatwierdzenia} onClick={() => zapisz(true)}>
             Zatwierdź arkusz

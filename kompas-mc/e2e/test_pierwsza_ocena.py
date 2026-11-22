@@ -132,7 +132,12 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)
+    # „Drukuj do podpisu” otwiera arkusz w nowej karcie (podpis odręczny na wydruku).
+    with page.expect_popup() as druk:
+        page.get_by_role("button", name="Drukuj do podpisu").click()
+    druk.value.wait_for_url(re.compile("^blob:"))
+    druk.value.close()
     with page.expect_download() as pobranie:
-        page.get_by_role("button", name="Pobierz arkusz (PDF)").click()
+        page.get_by_role("button", name="Pobierz PDF").click()
     sciezka = pobranie.value.path()
     assert sciezka and Path(sciezka).read_bytes()[:5] == b"%PDF-"

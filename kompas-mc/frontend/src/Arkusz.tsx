@@ -40,6 +40,7 @@ import {
   srednia,
   poprawnaData,
   zapiszPlik,
+  drukujDoPodpisu,
   type Brak,
   type Krok7Props,
 } from "./Wynik";
@@ -526,11 +527,9 @@ export function Arkusz({
   const zlaData = edytowalne.some((p) => p.rodzaj === "data" && !poprawnaData(pola[p.id]));
   const pdf = !!arkusz?.pdf_dostepny && !brak && !ruszonePola && !ruszonyWynik && !czekam;
   const zatwierdzony = !!arkusz?.zatwierdzony && !ruszonePola && !ruszonyWynik && !odswiez;
-  const pobierz = () =>
-    pdf &&
-    wykonaj(async () =>
-      zapiszPlik(await pobierzArkuszPdf(token, proces.id), `arkusz-${proces.arkusz}-${osoba.nazwisko}.pdf`),
-    );
+  const nazwaPdf = `arkusz-${proces.arkusz}-${osoba.nazwisko}.pdf`;
+  const pobierz = () => pdf && wykonaj(async () => zapiszPlik(await pobierzArkuszPdf(token, proces.id), nazwaPdf));
+  const drukuj = () => pdf && wykonaj(() => drukujDoPodpisu(() => pobierzArkuszPdf(token, proces.id), nazwaPdf));
   function zapisz(zatwierdz: boolean) {
     if (!arkusz || !edycja || zlaData || brakiWyniku.length || odswiez || (zatwierdz && brak)) return;
     return wykonaj(async () => {
@@ -620,8 +619,7 @@ export function Arkusz({
         key={JSON.stringify(formularz.braki)}
         braki={braki}
         blad={blad}
-        podpis={(zatwierdzony ? "Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2). " : "") +
-          (arkusz?.komunikat_podpis ?? "PDF i „Zatwierdź” nie są podpisem.")}
+        podpis={zatwierdzony ? "Arkusz włącza się do akt osobowych, kopię doręcza się ocenianemu (§ 12 ust. 2)." : undefined}
         onWstecz={onWstecz}
         dzieci={
           <>
@@ -735,9 +733,10 @@ export function Arkusz({
               {pdf && <button type="button" onClick={pobierz}>Pobierz arkusz (PDF)</button>}
             </div>
           ) : zatwierdzony || !edycja ? (
-            <button type="button" disabled={!pdf} onClick={pobierz}>
-              Pobierz arkusz (PDF)
-            </button>
+            <span className="k7-zakonczona">
+              <button type="button" className="link" disabled={!pdf} onClick={pobierz}>Pobierz PDF</button>
+              <button type="button" disabled={!pdf} onClick={drukuj}>Drukuj do podpisu</button>
+            </span>
           ) : (
             <button type="button" disabled={brak || czekam} onClick={() => zapisz(true)}>
               Zatwierdź arkusz

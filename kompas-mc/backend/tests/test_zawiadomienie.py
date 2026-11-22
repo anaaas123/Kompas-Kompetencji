@@ -1,6 +1,5 @@
 from datetime import date
 from io import BytesIO
-import re
 
 import pytest
 from kompas_core.pdf import znajdz_font
@@ -63,5 +62,4 @@ def test_zawiadomienie_pdf_pokazuje_zmiane_terminu_i_podstawe():
     assert cytat in tekst
     assert "Kopię zawiadomienia dołącza się do arkusza oceny okresowej." in tekst
     assert "Podpis oceniającego" in tekst
-    assert "Wydruk do podpisu odręcznego" in tekst
-    assert re.search(r"Wersja mc-okresowa-1 · SHA-256 [0-9a-f]{64}", tekst)
+    assert all(fragment not in tekst for fragment in ("Wydruk do podpisu", "Wersja", "SHA-256", "nie są podpisem"))

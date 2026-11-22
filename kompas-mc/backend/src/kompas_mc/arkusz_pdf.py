@@ -2,253 +2,148 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from dataclasses import replace
 from datetime import date
-from io import BytesIO
 from typing import Any
 
-from kompas_core.pdf import DokumentPdf, Pole, Stopka, hash_tresci
-from reportlab.lib.colors import black
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, SimpleDocTemplate, Spacer, TableStyle
+from reportlab.lib.textsplit import wordSplit
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
-from .arkusze import KOMUNIKAT_PODPIS
-
+from .wzor_druk import INTERLINIA, MIN_ROZMIAR, Krzyzyk, _font, _wiersze, wypelnij
+from .wzor_druk import Pole as PoleWzoru
 
 _LITERY = {"okresowa_b": "B", "okresowa_c": "C"}
-_PRZEDZIALY_SREDNIEJ = (
-    "od 1 punktu do 2 punktów",
-    "powyżej 2 punktów do 4 punktów",
-    "powyżej 4 punktów do 6 punktów",
-    "powyżej 6 punktów do 8 punktów",
-    "powyżej 8 punktów do 9 punktów",
-)
-_LINIA = "........................"
-_PUSTE_POLE = "\N{NO-BREAK SPACE}"
 
 
-class _Arkusz(DokumentPdf):
-    def __init__(
-        self, wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], stopka: Stopka
-    ) -> None:
-        super().__init__(stopka)
-        self.wartosci = wartosci
-        self.pola = {pole["id"]: pole for sekcja in wzor["sekcje"] for pole in sekcja["pola"]}
-        self.przypisy = wzor["przypisy"]
-        self.punkty = wzor["zakres_punktow"]
-        self._styl_przypisu = ParagraphStyle(
-            "przypis_arkusza", parent=self._styl, fontSize=7.5, leading=9, spaceAfter=2
-        )
-        self._styl_opisu = ParagraphStyle(
-            "opis_arkusza", parent=self._styl, leftIndent=3, rightIndent=3,
-            borderColor=black, borderWidth=0.5, borderPadding=3,
-        )
+def _pola_wydruku(litera: str) -> dict[str, PoleWzoru]:
+    """Prostokąty nadruku wewnątrz komórek obu załączników, w punktach PDF od dołu."""
+    b = litera == "B"
+    pola = {}
 
-    def naglowek(self, tekst: str, poziom: int = 1) -> None:
-        super().naglowek(tekst, poziom)
-        self._elementy[-1].keepWithNext = True
+    def wiersz(klucz, strona, lewa, prawa, dol, wys=12, rozmiar=9, srodek=False):
+        pola[klucz] = PoleWzoru(strona, lewa, dol, prawa, dol + wys, rozmiar, srodek)
 
-    def tabela(
-        self,
-        wiersze: Sequence[Sequence[str | Pole]],
-        szerokosci: Sequence[float] | None = None,
-    ) -> None:
-        # Puste wiersze pozostawiają miejsce na wpis. Odstępy mieszczą przypisy na tej samej stronie.
-        dane = [[komorka if komorka != "" else _PUSTE_POLE for komorka in wiersz] for wiersz in wiersze]
-        super().tabela(dane, szerokosci)
-        tabela = self._elementy[-2]
-        tabela.setStyle(TableStyle([
-            ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ]))
-        self._elementy[-1] = Spacer(1, 5)
+    def osoba(prefiks, strona, lewa, prawa, doly):
+        for pole, dol in zip(("imie", "nazwisko", "komorka_organizacyjna", "stanowisko"), doly, strict=True):
+            wiersz(f"{prefiks}.{pole}", strona, lewa, prawa, dol)
 
-    def nowa_strona(self) -> None:
-        self._elementy.append(PageBreak())
+    def przy_podpisie(prefiks, strona, dol, poczatki):
+        # Nad liniami kropek. Ostatnia linia formularza służy wyłącznie do odręcznego podpisu.
+        for pole, x in zip(("miejscowosc", "data", "imie_nazwisko_lub_pieczatka"), poczatki):
+            wiersz(f"{prefiks}.{pole}", strona, x, x + 92, dol, 10, 8, True)
 
-    def bajty(self) -> bytes:
-        # Dokument pobrany przed rejestracją i zapisany przez mock EZD ma te same bajty.
-        bufor = BytesIO()
-        pdf = SimpleDocTemplate(
-            bufor, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
-            topMargin=18 * mm, bottomMargin=22 * mm, invariant=True,
-        )
-        pdf.build(list(self._elementy), onFirstPage=self._stopka, onLaterPages=self._stopka)
-        return bufor.getvalue()
+    wiersz("nazwa_urzedu", 0, 235, 519, 616 if b else 618)
+    osoba("oceniany", 0, 235, 521, (578, 563, 548, 533) if b else (582, 567, 551, 536))
+    osoba("oceniajacy.czesc_I", 0, 235, 521, (495, 480, 465, 450) if b else (500, 485, 469, 454))
+    for nr, dol in enumerate((384, 369, 353) if b else (390, 374, 359), 1):
+        wiersz(f"kryterium_dodatkowe.{nr}", 0, 301, 519, dol)
+    wiersz("termin_sporzadzenia_oceny", 0, 414, 519, 338 if b else 344)
+    poczatki = (101, 252) if b else (103, 253)
+    przy_podpisie("potwierdzenie_kryteriow.oceniajacy", 0, 236 if b else 252, poczatki)
+    przy_podpisie("potwierdzenie_kryteriow.oceniany", 0, 187.5 if b else 203.5, poczatki)
 
-    def etykieta(self, klucz: str) -> str:
-        pole = self.pola[klucz]
-        przypisy = "".join(f" [{nr}]" for nr in pole.get("przypisy", ()))
-        return pole["etykieta"] + przypisy
+    wiersz("rozmowa_oceniajaca.data", 1, 335, 518, 726 if b else 724)
+    wiersz("okres_oceny.od", 1, 308, 398, 706 if b else 704, 10, 8.5, True)
+    wiersz("okres_oceny.do", 1, 432, 519, 706 if b else 704, 10, 8.5, True)
+    for nr, dol in enumerate((446, 423, 399) if b else (445, 422, 398), 1):
+        wiersz(f"ocena_dodatkowa.{nr}.kryterium", 1, 77, 281, dol)
+    wiersz("srednia", 1, 432, 519, 375 if b else 374, srodek=True)
 
-    def wartosc(self, klucz: str) -> str:
-        wartosc = self.wartosci.get(klucz) or ""
-        if wartosc and self.pola[klucz]["rodzaj"] == "data":
-            return date.fromisoformat(wartosc).strftime("%d.%m.%Y")
-        return wartosc
+    wiersz("uzasadnienie", 2, 78, 518, 589 if b else 590, 159, 10)
+    wiersz("wnioski_iprz", 2, 78, 518, 480 if b else 482, 77, 10)
+    dol = 439 if b else 443
+    wiersz("poprzednia_ocena.wynik", 2, 116, 171, dol)
+    wiersz("poprzednia_ocena.poziom", 2, 222, 332, dol)
+    wiersz("poprzednia_ocena.data", 2, 465, 519, dol, srodek=True)
+    osoba("oceniajacy.czesc_II", 2, 234, 520, (361, 346, 331, 316) if b else (370, 355, 339, 324))
+    przy_podpisie("dokonanie_oceny.oceniajacy", 2, 302.5 if b else 311, (101, 251) if b else (103, 253))
+    przy_podpisie("zapoznanie.oceniany", 2, 233 if b else 242.5, (82, 195, 307) if b else (84, 196, 309))
 
-    def przypisy_strony(self, od: int, do: int) -> None:
-        self._elementy.append(Spacer(1, 9))
-        for numer in range(od, do + 1):
-            tresc = self.przypisy[str(numer)]
-            self._elementy.append(self._p(f"{numer}) {tresc}", self._styl_przypisu))
+    doly = (659, 644, 629, 614, 598) if b else (655, 640, 625, 610, 595)
+    for pole, dol, x in zip(
+        ("imie", "nazwisko", "rok_mianowania", "stopien_sluzbowy", "data_przyznania_stopnia"),
+        doly, (235, 235, 266, 235, 282), strict=True,
+    ):
+        wiersz(f"urzednik.{pole}", 3, x, 519, dol)
+    wiersz("wniosek_o_stopien.imie_nazwisko", 3, 79, 500, 515.5 if b else 514, srodek=True)
+    # Krótki wykropkowany fragment na początku ostatniego wiersza zdania.
+    wiersz("wniosek_o_stopien.stopien", 3, 79, 101, 473.3 if b else 471.9, 8, 7, True)
+    wiersz("wniosek_o_stopien.umotywowanie", 3, 78, 518, 219 if b else 228, 229 if b else 219, 10)
+    przy_podpisie("wniosek_o_stopien.oceniajacy", 3, 202.8 if b else 211.3,
+                  (88, 207, 321) if b else (94, 227, 347))
+    return pola
 
-    def pola_osoby(self, tytul: str, prefiks: str, pola: tuple[str, ...]) -> None:
-        klucze = [f"{prefiks}.{pole}" for pole in pola]
-        self.tabela(
-            [[tytul, ""], *[[self.etykieta(klucz), self.wartosc(klucz)] for klucz in klucze]],
-            (175, 305),
-        )
 
-    def dane_osoby(self, tytul: str, prefiks: str) -> None:
-        self.pola_osoby(tytul, prefiks, ("imie", "nazwisko", "komorka_organizacyjna", "stanowisko"))
+def _kratki_wydruku(litera: str, wzor: Mapping[str, Any]) -> dict[str, dict[str, Krzyzyk]]:
+    """Środki komórek w skali 1/3/5/7/9 oraz kratek pojedynczego wyboru."""
+    b = litera == "B"
+    kolumny = (308, 356, 403, 451, 498) if b else (310, 357, 405, 452, 500)
+    obowiazkowe = (597, 574, 550, 527, 503) if b else (596, 573, 550, 526, 503)
+    dodatkowe = (452, 429, 405) if b else (452, 428, 405)
+    kratki = {}
 
-    def podpis_osoby(self, prefiks: str) -> None:
-        klucze = [f"{prefiks}.miejscowosc", f"{prefiks}.data"]
-        imie_lub_pieczatka = f"{prefiks}.imie_nazwisko_lub_pieczatka"
-        if imie_lub_pieczatka in self.pola:
-            klucze.append(imie_lub_pieczatka)
-        podpis = f"{prefiks}.podpis"
-        szerokosci = (112, 80, 168, 120) if len(klucze) == 3 else (168, 144, 168)
-        self.tabela(
-            [
-                [self.etykieta(klucz) for klucz in (*klucze, podpis)],
-                [*["\n" + (self.wartosc(klucz) or _LINIA) for klucz in klucze], "\n" + _LINIA],
-            ],
-            szerokosci,
-        )
+    def skala(y):
+        return {str(pkt): Krzyzyk(1, x, y) for pkt, x in zip(wzor["zakres_punktow"], kolumny, strict=True)}
 
-    def opis(self, klucz: str, puste_wiersze: int) -> None:
-        self.naglowek(self.etykieta(klucz), 3)
-        tresc = self.wartosc(klucz) or "\n".join([_PUSTE_POLE] * puste_wiersze)
-        self._elementy.append(self._p(tresc, self._styl_opisu))
-        self._elementy.append(Spacer(1, 5))
+    for nr, y in enumerate(obowiazkowe, 1):
+        kratki[f"ocena_obowiazkowa.{nr}"] = skala(y)
+    for nr, y in enumerate(dodatkowe, 1):
+        kratki[f"ocena_dodatkowa.{nr}.punkty"] = skala(y)
 
-    def wybor(self, klucz: str, *, etykiety: list[str] | None = None) -> None:
-        warianty = self.pola[klucz]["warianty"]
-        wybrany = self.wartosc(klucz)
-        self.tabela(
-            [etykiety or warianty, [Pole(wybrany == wariant) for wariant in warianty]],
-            [480 / len(warianty)] * len(warianty),
-        )
+    poziomy = next(p["warianty"] for s in wzor["sekcje"] for p in s["pola"] if p["id"] == "poziom")
+    wiersze = (306, 291, 275, 260, 244) if b else (308, 293, 277, 262, 246)
+    kratki["poziom"] = {poziom: Krzyzyk(1, 116 if b else 118, y) for poziom, y in zip(poziomy, wiersze, strict=True)}
+    kratki["wynik"] = {
+        "POZYTYWNA": Krzyzyk(1, 318 if b else 319, 220 if b else 222),
+        "NEGATYWNA": Krzyzyk(1, 504 if b else 505, 220 if b else 222),
+    }
+    kratki["wniosek_o_stopien.status"] = {
+        status: Krzyzyk(2, x, 405 if b else 412)
+        for status, x in zip(("TAK", "NIE", "NIE DOTYCZY"), (165, 263, 511) if b else (166, 264, 512), strict=True)
+    }
+    return kratki
 
-    def czesc_i(self, litera: str, zalacznik: int) -> None:
-        self.akapit(f"Załącznik nr {zalacznik} · Dz. U. z 2016 r. poz. 470")
-        self.naglowek(f"ARKUSZ {litera} · OCENA OKRESOWA")
-        self.akapit("Urzędnika służby cywilnej lub pracownika służby cywilnej [1]")
-        self.naglowek("Część I", 2)
-        self.tabela([["Nazwa urzędu", self.wartosc("nazwa_urzedu")]], (175, 305))
-        self.dane_osoby("Dane ocenianego", "oceniany")
-        self.dane_osoby("Dane oceniającego", "oceniajacy.czesc_I")
 
-        self.naglowek("Kryteria oceny i termin sporządzenia oceny", 3)
-        termin = "termin_sporzadzenia_oceny"
-        dodatkowe = [self.wartosc(f"kryterium_dodatkowe.{nr}") for nr in range(1, 4)]
-        prawa_kolumna = [*dodatkowe, self.etykieta(termin), self.wartosc(termin)]
-        self.tabela(
-            [
-                ["Kryteria obowiązkowe", "Kryteria dodatkowe wybrane przez oceniającego (nie więcej niż 3) [3]"],
-                *[
-                    [self.etykieta(f"kryterium_obowiazkowe.{nr}"), pole]
-                    for nr, pole in enumerate(prawa_kolumna, 1)
-                ],
-            ],
-            (240, 240),
-        )
-        oswiadczenie = self.pola["potwierdzenie_kryteriow.oswiadczenie"]["etykieta"]
-        self.akapit(oswiadczenie.replace("zagadnień),", "zagadnień [4],"))
-        self.podpis_osoby("potwierdzenie_kryteriow.oceniajacy")
-        self.podpis_osoby("potwierdzenie_kryteriow.oceniany")
-        self.przypisy_strony(1, 4)
+def _wpisy_osoby(pole: PoleWzoru, tekst: str) -> list[tuple[PoleWzoru, str]]:
+    # Wiersz danych osobowych ma 15 pt. Dwie linie po 7 pt mieszczą się w nim
+    # z interlinią 7 pt, np. przy pełnej nazwie departamentu i wydziału z QNT.
+    linie = _wiersze(tekst, _font(), MIN_ROZMIAR, pole.x1 - pole.x0)
+    if len(linie) != 2:
+        return [(pole, tekst)]
+    return [
+        (replace(pole, y0=y, y1=y + 7, rozmiar=MIN_ROZMIAR), linia)
+        for linia, y in zip(linie, (pole.y0 + 6.5, pole.y0 - 0.5), strict=True)
+    ]
 
-    def czesc_ii_ocena(self) -> None:
-        self.naglowek("Część II", 2)
-        daty = ("rozmowa_oceniajaca.data", "okres_oceny.od", "okres_oceny.do")
-        self.tabela(
-            [[self.etykieta(klucz) for klucz in daty], [self.wartosc(klucz) for klucz in daty]],
-            (240, 120, 120),
-        )
-        poziomy = self.pola["poziom"]["warianty"]
-        wiersze = [[
-            "Kryteria obowiązkowe\nOcena cząstkowa [8]",
-            *[f"{punkty} pkt\n{poziom}" for punkty, poziom in zip(self.punkty, poziomy, strict=True)],
-        ]]
-        for nr in range(1, 6):
-            klucz = f"ocena_obowiazkowa.{nr}"
-            wiersze.append([self.pola[klucz]["etykieta"], *self.punkty_kryterium(klucz)])
-        wiersze.append(["Kryteria dodatkowe wybrane przez oceniającego [9]", *[""] * len(self.punkty)])
-        for nr in range(1, 4):
-            klucz = f"ocena_dodatkowa.{nr}"
-            wiersze.append([self.wartosc(f"{klucz}.kryterium"), *self.punkty_kryterium(f"{klucz}.punkty")])
-        self.tabela(wiersze, (175, 61, 61, 61, 61, 61))
-        self.tabela([[self.etykieta("srednia"), self.wartosc("srednia")]], (365, 115))
 
-        self.naglowek("Przyznanie oceny", 3)
-        poziom = self.wartosc("poziom")
-        self.tabela(
-            [
-                ["Znak X", "Średnia arytmetyczna", self.etykieta("poziom")],
-                *[
-                    [Pole(poziom == etykieta), przedzial, etykieta]
-                    for przedzial, etykieta in zip(_PRZEDZIALY_SREDNIEJ, poziomy, strict=True)
-                ],
-            ],
-            (55, 195, 230),
-        )
-        self.naglowek(self.pola["wynik"]["etykieta"], 3)
-        self.wybor("wynik", etykiety=["POZYTYWNA [10]", "NEGATYWNA [11]"])
-        self.przypisy_strony(5, 11)
+def _wiersze_opisu(tekst: str, font: str, rozmiar: float, szerokosc: float) -> list[str]:
+    linie = []
+    for linia in _wiersze(tekst, font, rozmiar, szerokosc):
+        if stringWidth(linia, font, rozmiar) > szerokosc:
+            # Samo łamanie na spacjach nie dzieli np. długiego identyfikatora sprawy.
+            linie.extend(fragment for _, fragment in wordSplit(linia, szerokosc, font, rozmiar))
+        else:
+            linie.append(linia)
+    return linie
 
-    def punkty_kryterium(self, klucz: str) -> list[Pole]:
-        wybrane = self.wartosc(klucz)
-        return [Pole(wybrane == str(punkty)) for punkty in self.punkty]
 
-    def czesc_ii_potwierdzenie(self) -> None:
-        self.naglowek("Część II · ciąg dalszy", 2)
-        self.opis("uzasadnienie", 5)
-        self.opis("wnioski_iprz", 4)
-        self.naglowek("Dane dotyczące poprzedniej oceny okresowej urzędnika służby cywilnej", 3)
-        poprzednia = ("poprzednia_ocena.wynik", "poprzednia_ocena.poziom", "poprzednia_ocena.data")
-        self.tabela(
-            [[self.etykieta(klucz) for klucz in poprzednia], [self.wartosc(klucz) for klucz in poprzednia]],
-            (115, 200, 165),
-        )
-        self.naglowek(self.etykieta("wniosek_o_stopien.status"), 3)
-        self.wybor("wniosek_o_stopien.status", etykiety=[
-            "TAK", "NIE", "NIE DOTYCZY (oceniany jest pracownikiem służby cywilnej)",
-        ])
-        self.dane_osoby("Dane oceniającego", "oceniajacy.czesc_II")
-        self.podpis_osoby("dokonanie_oceny.oceniajacy")
-        self.akapit(self.etykieta("zapoznanie.oswiadczenie"))
-        self.podpis_osoby("zapoznanie.oceniany")
-        self.naglowek("Pouczenie", 3)
-        pouczenie = self.pola["pouczenie"]["etykieta"]
-        self.akapit(pouczenie.removesuffix(").") + " [17].")
-        self.przypisy_strony(12, 17)
+def _wpis_opisu(pole: PoleWzoru, tekst: str) -> tuple[PoleWzoru, str]:
+    font = _font()
+    szerokosc = pole.x1 - pole.x0
+    linie = _wiersze_opisu(tekst, font, MIN_ROZMIAR, szerokosc)
+    pojemnosc = int((pole.y1 - pole.y0) // (MIN_ROZMIAR * INTERLINIA))
+    if len(linie) <= pojemnosc:
+        if any(stringWidth(w, font, pole.rozmiar) > szerokosc for w in tekst.split()):
+            return replace(pole, rozmiar=MIN_ROZMIAR), "\n".join(linie)
+        return pole, tekst
 
-    def czesc_iii(self) -> None:
-        self.naglowek("Część III", 2)
-        self.akapit(
-            "Wniosek jest wypełniany i dołączany do arkusza oceny okresowej ocenianego tylko "
-            "w sytuacji skorzystania przez oceniającego z możliwości przewidzianej w art. 89 ust. 1 "
-            "ustawy z dnia 21 listopada 2008 r. o służbie cywilnej. [18]"
-        )
-        self.pola_osoby("Dane urzędnika służby cywilnej", "urzednik", (
-            "imie", "nazwisko", "rok_mianowania", "stopien_sluzbowy", "data_przyznania_stopnia",
-        ))
-        self.naglowek("Wniosek o przyznanie urzędnikowi służby cywilnej kolejnego stopnia służbowego", 3)
-        nazwisko = self.wartosc("wniosek_o_stopien.imie_nazwisko") or _LINIA
-        stopien = self.wartosc("wniosek_o_stopien.stopien") or _LINIA
-        self.akapit(
-            f"W związku z uzyskaniem przez Panią/Pana {nazwisko} pozytywnej oceny okresowej, "
-            "na podstawie art. 89 ust. 1 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej "
-            f"wnioskuję o przyznanie {stopien} stopnia służbowego."
-        )
-        self.opis("wniosek_o_stopien.umotywowanie", 12)
-        self.podpis_osoby("wniosek_o_stopien.oceniajacy")
-        self.przypisy_strony(18, 18)
+    # wypelnij() dopisuje odsyłacz na dole pola, a kontynuację składa czcionką
+    # 10 pt od x=70. Zostawiamy wiersz na odsyłacz i łamiemy resztę do marginesu A4.
+    koniec = pojemnosc - 1
+    dalsze = [w for linia in linie[koniec:] for w in _wiersze_opisu(linia, font, 10, A4[0] - 140)]
+    return pole, "\n".join([*linie[:koniec], "", *dalsze])
 
 
 def arkusz_pdf(
@@ -259,42 +154,28 @@ def arkusz_pdf(
     wersja: str,
     tylko_czesc_i: bool = False,
 ) -> bytes:
-    """Składa druk B albo C z wartości przygotowanych przez proces oceny.
-
-    ``tylko_czesc_i`` drukuje samą część I do podpisu po rozmowie na początku okresu
-    (rozp. 2016 § 5 ust. 3 i § 6 ust. 2–3).
-    """
+    """Nadrukuj dane na wybranych stronach załącznika nr 3 (B) lub 4 (C)."""
     litera = _LITERY[wzor["id"]]
-    if tylko_czesc_i:
-        sekcje = wzor["sekcje"][:1]
-    else:
-        sekcje = wzor["sekcje"] if drukuj_czesc_iii else wzor["sekcje"][:2]
-    pola = {
-        pole["id"]: wartosci.get(pole["id"])
-        for sekcja in sekcje
-        for pole in sekcja["pola"]
-        if pole["rodzaj"] not in {"tekst_staly", "miejsce_na_podpis_odreczny"}
-    }
-    dokument = _Arkusz(
-        wzor,
-        pola,
-        Stopka(
-            wersja,
-            hash_tresci({
-                "wzor": wzor["zrodlo"], "czesc_iii": drukuj_czesc_iii, "wartosci": pola,
-                **({"tylko_czesc_i": True} if tylko_czesc_i else {}),
-            }),
-            KOMUNIKAT_PODPIS,
-        ),
-    )
-    dokument.czesc_i(litera, wzor["zrodlo"]["zalacznik"])
-    if tylko_czesc_i:
-        return dokument.bajty()
-    dokument.nowa_strona()
-    dokument.czesc_ii_ocena()
-    dokument.nowa_strona()
-    dokument.czesc_ii_potwierdzenie()
-    if drukuj_czesc_iii:
-        dokument.nowa_strona()
-        dokument.czesc_iii()
-    return dokument.bajty()
+    strony = (0,) if tylko_czesc_i else range(4 if drukuj_czesc_iii else 3)
+    pola = _pola_wydruku(litera)
+    kratki = _kratki_wydruku(litera, wzor)
+    wpisy, zaznaczenia, nazwy = [], [], {}
+    for sekcja in wzor["sekcje"]:
+        for definicja in sekcja["pola"]:
+            klucz = definicja["id"]
+            tekst = wartosci.get(klucz)
+            if not tekst:
+                continue
+            if klucz in pola and pola[klucz].strona in strony:
+                if definicja["rodzaj"] == "data":
+                    tekst = date.fromisoformat(tekst).strftime("%d.%m.%Y")
+                if klucz.startswith(("oceniany.", "oceniajacy.")):
+                    wpisy.extend(_wpisy_osoby(pola[klucz], tekst))
+                elif definicja["rodzaj"] == "tekst_wielowierszowy":
+                    wpisy.append(_wpis_opisu(pola[klucz], tekst))
+                else:
+                    wpisy.append((pola[klucz], tekst))
+                nazwy[pola[klucz]] = definicja["etykieta"]
+            elif klucz in kratki and tekst in kratki[klucz]:
+                zaznaczenia.append(kratki[klucz][tekst])
+    return wypelnij(f"arkusz_{litera}.pdf", wpisy, zaznaczenia, strony=strony, nazwy_pol=nazwy)
