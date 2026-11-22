@@ -190,7 +190,12 @@ export function KartaPracownika({
               onEtap={prowadzi ? otworzEtap : undefined}
               wToku={wToku !== null}
             />
-            <WynikiKryteriow ocena={dane.ocena} />
+            <OcenyKryteriow
+              ocena={dane.ocena}
+              osoba={osoba}
+              mapa={dane.mapa}
+              pierwsza={(dane.cykl?.sciezka ?? dane.proces?.sciezka) === "pierwsza"}
+            />
             {/* Karol 22.11: opis stanowiska (co oceniamy) przed celami rozwojowymi. */}
             {dane.analiza?.osp && <OpisStanowiska osp={dane.analiza.osp} />}
             {cele}
@@ -412,7 +417,6 @@ function Cykl({
       )}
       {/* Pierwsza ocena nie ma samooceny ani wcześniejszych ocen (Karol 22.11: „po co te wszystkie?”). */}
       {sciezka !== "pierwsza" && <LiniaSamooceny ocena={dane.ocena} />}
-      {sciezka !== "pierwsza" && <PoprzednieOceny osoba={osoba} mapa={dane.mapa} />}
     </div>
   );
 }
@@ -482,35 +486,73 @@ function SzczegolyEtapu({
 }
 
 /**
- * Poprzednie oceny z kartoteki QNT; oceny cząstkowe ostatniej okresowej tylko dla przełożonego (mapa).
- * Na ścieżce pierwszej oceny rekord `pierwsza_ocena` opisuje bieżącą służbę przygotowawczą, nie poprzednią ocenę.
+ * Oceny kryteriów (zgłoszenie 100): linia poprzedniej oceny z kartoteki QNT i paski – bieżącej oceny, gdy przełożony już
+ * zdecydował o punktach, inaczej ostatniej oceny okresowej (punkty tylko dla przełożonego, mapa). Bez danych – nic.
  */
-function PoprzednieOceny({ osoba, mapa }: { osoba: Pracownik; mapa: MapaKompetencji | null }) {
-  const o = osoba.ostatnia_ocena_okresowa;
-  const p = osoba.pierwsza_ocena;
+function OcenyKryteriow({
+  ocena,
+  osoba,
+  mapa,
+  pierwsza,
+}: {
+  ocena: StanOceny | null;
+  osoba: Pracownik;
+  mapa: MapaKompetencji | null;
+  pierwsza: boolean;
+}) {
+  const o = pierwsza ? null : osoba.ostatnia_ocena_okresowa;
+  const p = pierwsza ? null : osoba.pierwsza_ocena;
+  const biezace = ocena?.kryteria.filter((k) => k.decyzja) ?? [];
+  const poprzednieSlupki = o && biezace.length === 0 ? <OcenyCzastkowe mapa={mapa} osoba={osoba} bezNaglowka /> : null;
+  if (!o && !p && biezace.length === 0) return null;
+  const max = ocena ? Math.max(...ocena.skala.punkty) : 9;
   return (
-    <div className="poprzednie">
-      <span className="kafel-etykieta">Poprzednie oceny · kartoteka QNT</span>
-      {o && (
-        <p className="zero">
-          Ocena okresowa <span className={`status ${o.wynik}`}>{o.wynik}</span>{" "}
-          <span className="meta">sporządzona {data(o.data)}</span>
-        </p>
+    <div className="sekcja oceny-kryteriow">
+      <h2>Oceny kryteriów</h2>
+      {(o || p) && (
+        <div className="poprzednie">
+          {o && (
+            <p className="zero">
+              Poprzednia ocena okresowa <span className={`status ${o.wynik}`}>{o.wynik}</span>{" "}
+              <span className="meta">sporządzona {data(o.data)}</span>
+            </p>
+          )}
+          {p && (
+            <p className="zero">
+              Pierwsza ocena{" "}
+              <span className="meta">
+                {p.egzamin_sluzba_przygotowawcza === "zaliczony"
+                  ? "egzamin ze służby przygotowawczej zaliczony"
+                  : p.egzamin_sluzba_przygotowawcza === "brak"
+                    ? "egzamin ze służby przygotowawczej jeszcze niezdany"
+                    : "służba przygotowawcza nie dotyczy"}
+              </span>
+            </p>
+          )}
+        </div>
       )}
-      {o && <OcenyCzastkowe mapa={mapa} osoba={osoba} bezNaglowka />}
-      {p && (
-        <p className="zero">
-          Pierwsza ocena{" "}
-          <span className="meta">
-            {p.egzamin_sluzba_przygotowawcza === "zaliczony"
-              ? "egzamin ze służby przygotowawczej zaliczony"
-              : p.egzamin_sluzba_przygotowawcza === "brak"
-                ? "egzamin ze służby przygotowawczej jeszcze niezdany"
-                : "służba przygotowawcza nie dotyczy"}
-          </span>
-        </p>
+      {biezace.length > 0 && (
+        <>
+          <span className="kafel-etykieta">Bieżąca ocena, skala 1–{max} pkt</span>
+          <ul className="slupki">
+            {biezace.map((k) => (
+              <li key={k.kompetencja_id}>
+                <span className="nazwa-slupka">{nazwaKryterium(k.nazwa)}</span>
+                <span className="tor" title={`${nazwaKryterium(k.nazwa)}: ${k.decyzja!.punkty} z ${max} pkt`}>
+                  <span className="wypelnienie" style={{ width: `${(k.decyzja!.punkty / max) * 100}%` }} />
+                </span>
+                <strong className="wartosc-slupka">{k.decyzja!.punkty}</strong>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
-      {!o && !p && <p className="meta zero">Brak wcześniejszych ocen.</p>}
+      {poprzednieSlupki && (
+        <>
+          <span className="kafel-etykieta">Poprzednia ocena, skala 1–9 pkt</span>
+          {poprzednieSlupki}
+        </>
+      )}
     </div>
   );
 }
@@ -521,9 +563,6 @@ function OpisStanowiska({ osp }: { osp: NonNullable<AnalizaKroku1["osp"]> }) {
   return (
     <div className={`sekcja opis-stanowiska${caly ? "" : " skrocone"}`}>
       <h2>Opis stanowiska</h2>
-      <p className="meta zero">
-        Opis stanowiska pracy z kadr · {osp.zadania_dominujace.length} zadania dominujące
-      </p>
       <span className="kafel-etykieta">Cel stanowiska</span>
       <p className="zero cel-stanowiska">{osp.cel.tekst}</p>
       <span className="kafel-etykieta">Zadania dominujące</span>
@@ -667,31 +706,5 @@ function LiniaSamooceny({ ocena }: { ocena: StanOceny | null }) {
         "Samoocena przekazana, bez rozbieżności do omówienia."
       )}
     </p>
-  );
-}
-
-/** Punkty kryteriów po decyzji przełożonego, na skali arkusza. Bez decyzji sekcji nie ma. */
-function WynikiKryteriow({ ocena }: { ocena: StanOceny | null }) {
-  const z = ocena?.kryteria.filter((k) => k.decyzja) ?? [];
-  if (!ocena || z.length === 0) return null;
-  const max = Math.max(...ocena.skala.punkty);
-  return (
-    <div className="sekcja">
-      <h2>Oceny kryteriów</h2>
-      <p className="meta zero">
-        Decyzje przełożonego, skala 1–{max} pkt · {z.length} z {ocena.kryteria.length} kryteriów
-      </p>
-      <ul className="slupki">
-        {z.map((k) => (
-          <li key={k.kompetencja_id}>
-            <span className="nazwa-slupka">{nazwaKryterium(k.nazwa)}</span>
-            <span className="tor" title={`${nazwaKryterium(k.nazwa)}: ${k.decyzja!.punkty} z ${max} pkt`}>
-              <span className="wypelnienie" style={{ width: `${(k.decyzja!.punkty / max) * 100}%` }} />
-            </span>
-            <strong className="wartosc-slupka">{k.decyzja!.punkty}</strong>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

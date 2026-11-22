@@ -19,7 +19,7 @@ button.etap:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2
 
 /* Arkusz jako dopisek w tytule oceny, poprzednie oceny pod etapami. */
 .arkusz-dopisek { color: var(--k-text-muted); font-weight: var(--f-regular); }
-.poprzednie { display: flex; flex-direction: column; gap: var(--o-8); padding-top: var(--o-16); border-top: 1px solid var(--k-line-subtle); }
+.poprzednie { display: flex; flex-direction: column; gap: var(--o-4); }
 
 /* Opis stanowiska skrócony: cel i każde zadanie w dwóch liniach (wzór kroku 1, #46). */
 .opis-stanowiska.skrocone .cel-stanowiska,
@@ -54,3 +54,11 @@ button.etap:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2
 .szczegoly-etapu .link { justify-self: start; }
 @media (max-width: 760px) { .szczegoly-etapu dl > div { grid-template-columns: 1fr; gap: 0; } }
 @media (prefers-reduced-motion: reduce) { .cykl .etapy .strzalka { transition: none; } }
+
+/* Rytm dołu karty (zgłoszenie 100, rada 22.11): 32 px pod nagłówkiem osoby, 48 px między sekcjami, 16 px nagłówek → treść.
+   Sekcje oddziela światło, nie kreska (cele to <section>, globalnie z linią nad sobą). */
+.karta .dwie { margin-top: var(--o-32); }
+.karta .sekcje-karty { gap: var(--o-48); }
+.karta .sekcje-karty > .sekcja, .karta .sekcje-karty > section { gap: var(--o-16); }
+.karta .sekcje-karty > section { border-top: 0; padding-top: 0; margin-bottom: 0; }
+.oceny-kryteriow .kafel-etykieta { margin-top: var(--o-8); }
