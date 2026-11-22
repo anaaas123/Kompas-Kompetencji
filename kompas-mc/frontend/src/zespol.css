@@ -1,4 +1,4 @@
-/* Zespół (#58): pasek etapów, oś terminów, profil kompetencji, mini paski komórek. Tylko tokeny --k-*, --t-*, --o-*, --r-*.
+/* Zespół (#58, #84): liczby, struktura, oś terminów, kompetencje; profil kompetencji pulpitu. Tylko tokeny --k-*, --t-*, --o-*, --r-*.
    Kolor niesie znaczenie i zawsze stoi przy liczbie albo tekście: etap cyklu, po terminie, poniżej/powyżej oczekiwań. */
 
 .naglowek-widoku .wiersz-tytulu { align-items: center; flex-wrap: wrap; }
@@ -26,7 +26,6 @@ section.etapy-terminy { margin-bottom: 0; display: flex; flex-direction: column;
 .pasek-klik > button:active { background: none; }
 .pasek-klik > button:active .odcinek { opacity: 0.64; }
 .udzialy button.pozycja-legendy { min-height: 44px; }
-.pozycja-opis .mini-pasek { display: inline-flex; vertical-align: middle; margin-left: var(--o-8); }
 
 /* Oś terminów: strefa po terminie z lewej, linia „dziś”, miesiące pod osią, punkt = osoba w dniu terminu. */
 .os-terminow { position: relative; }
@@ -117,4 +116,121 @@ button.punkt-osi:focus-visible { outline: 2px solid var(--k-focus); outline-offs
 @media (prefers-reduced-motion: reduce) {
   .pasek-klik .odcinek, .znak-punktu { transition: none; }
   button.punkt-osi:active .znak-punktu { transform: none; }
+}
+
+/* Ekran Zespół (#84): nagłówek z zakresem, rząd trzech liczb, struktura, terminy, kompetencje.
+   style.css ładuje się po tym pliku, stąd selektory z klasą .zespol (mocniejsze niż ogólne button, th, td). */
+.zespol .wiersz-tytulu { flex-wrap: wrap; align-items: center; row-gap: var(--o-8); }
+.zespol button.pobierz-csv { min-height: 32px; text-decoration: none; }
+.zespol section.sekcja-zespolu { margin-bottom: 0; display: flex; flex-direction: column; gap: var(--o-16); }
+.zespol .sekcja-zespolu p { margin: 0; }
+
+/* Trzy liczby w zakresie: liczba dominuje, etykieta obok; klik otwiera Pracowników z filtrem. */
+.zespol .liczby-zespolu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--o-12); }
+.zespol .liczba-zespolu {
+  display: flex; align-items: baseline; gap: var(--o-12); min-height: 56px; padding: var(--o-12) var(--o-16);
+  border: 0; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text-secondary);
+  font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-weight: var(--f-medium); text-align: left; white-space: normal;
+}
+.zespol .liczba-zespolu strong {
+  color: var(--k-text); font-size: var(--t-value-r); line-height: var(--t-value-l); font-weight: var(--f-semibold);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.zespol .liczba-zespolu strong.zle { color: var(--k-danger-text); }
+.zespol .liczba-zespolu strong.uwaga { color: var(--k-attention-text); }
+.zespol button.liczba-zespolu:active { background: var(--k-wiersz-pressed); }
+.zespol button.liczba-zespolu:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+
+/* Struktura: departament → wydział → osoby. Nagłówek komórki ustawia zakres strony. */
+/* Szerokości z treści: imię i nazwisko, plakietka i ocena w jednej linii, stanowisko ustępuje miejsca. */
+.zespol table.struktura { margin: 0; }
+.zespol .struktura thead th {
+  padding: 0 var(--o-12) var(--o-8); border-bottom: 1px solid var(--k-line); border-radius: 0; background: none;
+  color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-medium);
+}
+.zespol .struktura thead th:first-child { padding-left: var(--o-24); }
+.zespol .struktura tr.wiersz-departamentu th { padding: var(--o-16) 0 var(--o-4); border-radius: 0; background: none; }
+.zespol .struktura tr.wiersz-wydzialu th { padding: var(--o-4) 0 0; border-radius: 0; background: none; }
+.zespol button.zakres {
+  display: flex; align-items: center; gap: var(--o-12); width: 100%; min-height: 44px; padding: var(--o-8) var(--o-12);
+  border: 0; border-radius: var(--r-wiersz); background: var(--k-wiersz); color: var(--k-text);
+  font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-weight: var(--f-semibold); text-align: left; white-space: normal;
+}
+.zespol tr.wiersz-wydzialu button.zakres { min-height: 40px; padding-left: var(--o-24); background: none; font-weight: var(--f-medium); }
+.zespol button.zakres:active { background: var(--k-wiersz-pressed); }
+.zespol button.zakres .nazwa-zakresu { flex: 1; min-width: 0; }
+.zespol button.zakres .liczba-zakresu {
+  flex: none; color: var(--k-text-muted); font-size: var(--t-small-r); line-height: var(--t-small-l);
+  font-weight: var(--f-regular); font-variant-numeric: tabular-nums;
+}
+.zespol button.zakres .ikona { color: var(--k-link); }
+.zespol .struktura tr.wiersz-osoby > * {
+  padding: var(--o-8) var(--o-12); border-bottom: 1px solid var(--k-line-subtle); border-radius: 0; background: none;
+  vertical-align: middle; text-align: left; color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l);
+  font-weight: var(--f-regular);
+}
+.zespol .struktura tr.wiersz-osoby > th { padding-left: var(--o-24); white-space: nowrap; }
+.zespol .struktura tr.wiersz-osoby > td:nth-child(3), .zespol .struktura tr.wiersz-osoby > td:last-child { white-space: nowrap; }
+.zespol .struktura tr.wiersz-osoby button.link,
+.zespol .tabela-kompetencji tbody th button.link {
+  min-height: 24px; text-align: left; white-space: normal; text-decoration: none; font-weight: var(--f-semibold);
+}
+.zespol .struktura tr.wiersz-osoby button.link { font-size: var(--t-ui-r); line-height: var(--t-ui-l); white-space: nowrap; }
+.zespol .plakietka {
+  display: inline-block; padding: var(--o-2) var(--o-8); border-radius: var(--r-pill); background: var(--k-neutral-bg); color: var(--k-text);
+  font-size: var(--t-small-r); line-height: var(--t-small-l);
+}
+.zespol .plakietka.po-terminie { background: var(--k-danger-bg); color: var(--k-danger-text); font-weight: var(--f-medium); }
+.zespol .struktura .negatywna { color: var(--k-danger-text); font-weight: var(--f-medium); }
+.zespol .struktura .bez-oceny { color: var(--k-text-muted); }
+.zespol .linia-ocen { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.zespol .linia-ocen strong { color: var(--k-text); font-variant-numeric: tabular-nums; }
+.zespol .linia-ocen button.pozycja-legendy { display: inline-flex; gap: var(--o-4); }
+
+/* Terminy: legenda etapów w wierszu tytułu (klik otwiera Pracowników z filtrem etapu). */
+.zespol .sekcja-zespolu .legenda { gap: var(--o-4) var(--o-16); }
+
+/* Kompetencje: tabela osoby × kryteria, przyklejona kolumna osoby, siedem równych kolumn, średnia w pierwszym wierszu. */
+.zespol .tabela-kompetencji { overflow-x: auto; }
+.zespol .tabela-kompetencji:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
+.zespol .tabela-kompetencji table { margin: 0; table-layout: fixed; min-width: 720px; }
+.zespol .tabela-kompetencji .kol-osoby { width: 232px; }
+.zespol .tabela-kompetencji thead th {
+  padding: var(--o-8); border-radius: 0; vertical-align: bottom; text-align: center; white-space: normal;
+  color: var(--k-text-secondary); font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-medium);
+}
+.zespol .naglowek-kryterium { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; hyphens: manual; }
+.zespol .tabela-kompetencji thead th:first-child,
+.zespol .tabela-kompetencji tbody th { position: sticky; left: 0; z-index: 1; text-align: left; padding-left: var(--o-12); }
+.zespol .tabela-kompetencji tbody th {
+  padding: var(--o-4) var(--o-12); border-bottom: 1px solid var(--k-line-subtle); border-radius: 0; background: var(--k-canvas);
+  color: var(--k-text); font-size: var(--t-small-r); line-height: var(--t-small-l); font-weight: var(--f-semibold); white-space: normal;
+}
+.zespol .tabela-kompetencji tbody th .meta { display: block; font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-regular); }
+.zespol .tabela-kompetencji td {
+  padding: var(--o-8); border-bottom: 1px solid var(--k-line-subtle); text-align: center; vertical-align: middle; color: var(--k-text);
+  font-size: var(--t-ui-r); line-height: var(--t-ui-l); font-weight: var(--f-semibold); font-variant-numeric: tabular-nums;
+}
+.zespol .tabela-kompetencji td.ponizej { background: var(--k-attention-bg); color: var(--k-attention-text); }
+.zespol .tabela-kompetencji td.powyzej { background: var(--k-success-bg); color: var(--k-success-text); }
+.zespol .tabela-kompetencji td.poza-arkuszem { color: var(--k-text-muted); font-weight: var(--f-regular); }
+.zespol .tabela-kompetencji tr.srednia > * { border-bottom: 1px solid var(--k-line); }
+.zespol .tabela-kompetencji tr.srednia td strong { display: block; }
+.zespol .tabela-kompetencji tr.srednia td strong.ponizej { color: var(--k-attention-text); }
+.zespol .tabela-kompetencji tr.srednia td strong.powyzej { color: var(--k-success-text); }
+.zespol .tabela-kompetencji tr.srednia td .meta { display: block; font-size: var(--t-micro-r); line-height: var(--t-micro-l); font-weight: var(--f-regular); }
+.zespol .bez-punktow button.link { font-size: inherit; line-height: inherit; }
+.zespol .podstawa-kompetencji { display: flex; flex-wrap: wrap; align-items: center; gap: var(--o-4) var(--o-8); }
+
+@container (max-width: 760px) {
+  .zespol .liczby-zespolu { grid-template-columns: minmax(0, 1fr); }
+  .zespol .tabela-kompetencji .kol-osoby { width: 200px; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .zespol button.liczba-zespolu:not(:disabled):hover, .zespol button.zakres:not(:disabled):hover { background: var(--k-wiersz-hover); }
+  .zespol tr.wiersz-wydzialu button.zakres:not(:disabled):hover { background: var(--k-wiersz); }
+  .zespol button.pobierz-csv:not(:disabled):hover,
+  .zespol .struktura button.link:not(:disabled):hover,
+  .zespol .tabela-kompetencji button.link:not(:disabled):hover { color: var(--k-link); text-decoration: underline; }
 }
