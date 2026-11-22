@@ -217,6 +217,27 @@ export function BladPola({ cel }: { cel: string }) {
   return brak ? <span className="blad">{brak.opis ?? "Uzupełnij pole."}</span> : null;
 }
 
+export function PoleOpisowe({ id, etykieta, wartosc, wymagane, blokada, wiersze, onZmiana }: {
+  id: string;
+  etykieta: string;
+  wartosc: string | null;
+  wymagane?: boolean;
+  blokada: boolean;
+  wiersze: number;
+  onZmiana: (tekst: string) => void;
+}) {
+  const brak = useContext(Rozwiniecia).braki.find((b) => b.cel === id);
+  return (
+    <div className="k7-pole-opisowe">
+      <label htmlFor={id}>{etykieta}</label>
+      <textarea id={id} rows={wiersze} value={wartosc ?? ""} required={wymagane} readOnly={blokada}
+        aria-invalid={!!brak} aria-describedby={brak ? id + "-blad" : undefined}
+        onChange={(e) => onZmiana(e.target.value)} />
+      {brak && <span className="blad" id={id + "-blad"}>{brak.opis ?? "Uzupełnij pole."}</span>}
+    </div>
+  );
+}
+
 const Rozwiniecia = createContext({ braki: [] as Brak[], otwarte: new Set<string>(), przelacz: (_id: string) => {} });
 
 export function Sekcja({ id, tytul, children }: { id: string; tytul: string; children: ReactNode }) {
@@ -319,11 +340,11 @@ export function Podsumowanie({
         </section>
       )}
       <div className="dwie">
-        <aside className="sekcja k7-boczna">{bok}</aside>
         <div className="sekcja k7-tresc">
           {dzieci}
           <div className="k7-akcje">{akcje}</div>
         </div>
+        <aside className="sekcja k7-boczna">{bok}</aside>
       </div>
       <div className="oc-nawigacja k7-pasek">
         <button type="button" className="link" onClick={onWstecz}>
@@ -353,9 +374,19 @@ export function Werdykt({
   onZmienOcene,
 }: {
   wynik: WynikOkresowy["obliczenie"] | null;
-  warunki: { opis: string; spelniony: boolean; zrodlo: SourceRef; szczegoly?: string; slad?: string }[];
+  warunki: { opis: string; spelniony: boolean; zrodlo: SourceRef; szczegoly?: string }[];
   onZmienOcene?: () => void;
 }) {
+  const zrodla = new Map<string, SourceRef>();
+  for (const { zrodlo } of warunki) {
+    const klucz = JSON.stringify([zrodlo.kategoria, zrodlo.doc_id, zrodlo.lokalizator, zrodlo.strona]);
+    const poprzednie = zrodla.get(klucz);
+    if (!poprzednie) zrodla.set(klucz, zrodlo);
+    else if (zrodlo.cytat_dosłowny && !poprzednie.cytat_dosłowny?.includes(zrodlo.cytat_dosłowny)) {
+      const fragmenty = [poprzednie.cytat_dosłowny, zrodlo.cytat_dosłowny].filter(Boolean);
+      zrodla.set(klucz, { ...poprzednie, cytat_dosłowny: fragmenty.join(" […] ") });
+    }
+  }
   return (
     <>
       <div className={`k7-werdykt ${wynik?.wynik ?? ""}`} role="status">
@@ -381,17 +412,18 @@ export function Werdykt({
                   <Ikona nazwa={w.spelniony ? "ok" : "krzyz"} />
                 </span>
                 <div>
-                  {opisObliczenia(w.opis)}
-                  {w.szczegoly && <p>{w.szczegoly}</p>}
-                  {w.slad && <details><summary>Ślad obliczenia</summary>{opisObliczenia(w.slad)}</details>}
-                  <Zrodla adnotacje={[w.zrodlo]} />
-                  {!w.spelniony && onZmienOcene && (
-                    <button type="button" className="link" onClick={onZmienOcene}>Zmień ocenę</button>
-                  )}
+                  {opisObliczenia(w.opis).replace(". Próg ", " przy progu ").replace(/\.$/, "")}{w.szczegoly && ` (${w.szczegoly})`}.
                 </div>
               </li>
             ))}
           </ul>
+          <details>
+            <summary>Podstawa prawna</summary>
+            <Zrodla adnotacje={[...zrodla.values()]} />
+          </details>
+          {warunki.some((w) => !w.spelniony) && onZmienOcene && (
+            <button type="button" className="link" onClick={onZmienOcene}>Zmień ocenę</button>
+          )}
         </div>
       )}
     </>
@@ -457,8 +489,7 @@ interface FormularzOkresowej {
   blokada: boolean;
 }
 
-export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznanie, children }: FormularzOkresowej & {
-  children: ReactNode;
+export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznanie }: FormularzOkresowej & {
   onZmienOcene?: () => void;
   /** Data zapoznania i „Zakończ ocenę” po zatwierdzeniu arkusza (§ 12 ust. 1). */
   zapoznanie?: ReactNode;
@@ -466,39 +497,24 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznani
   const o = wynik.obliczenie;
   const minimum = Math.min(...wynik.oceny_czastkowe.map((k) => k.punkty));
   const wypiszPunkty = (oceny: WynikOkresowy["oceny_czastkowe"]) => oceny.map((k) => `${nazwaKryterium(k.nazwa)}: ${k.punkty} pkt`).join(", ");
-  const warunki = o.slad.flatMap(({ regula, opis }) => {
+  const warunki = o.slad.flatMap(({ regula }) => {
     const spelniony = regula.id !== o.regula_rozstrzygajaca.id || o.wynik === "pozytywna";
     if (regula.id === "negatywna-za-ocene-czastkowa") {
       return [{
         opis: spelniony ? "Żadne kryterium nie otrzymało najniższej oceny." : "Co najmniej jedno kryterium otrzymało najniższą ocenę.",
         spelniony, zrodlo: regula.zrodlo,
         szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe.filter((k) => k.punkty === minimum)),
-        slad: opis,
       }];
     }
     if (regula.id !== "negatywna-za-poziom" && regula.id !== "pozytywna") return [];
     return [{
       opis: regula.id === "pozytywna" ? "Warunki pozytywnej oceny są spełnione." : `Ogólny poziom: ${o.poziom}.`,
-      spelniony, zrodlo: regula.zrodlo, szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe), slad: opis,
+      spelniony, zrodlo: regula.zrodlo, szczegoly: spelniony ? undefined : wypiszPunkty(wynik.oceny_czastkowe),
     }];
   });
   return (
     <>
       <Werdykt wynik={o} warunki={warunki} onZmienOcene={onZmienOcene} />
-      <label className="etykieta">
-        Uzasadnienie {wynik.uzasadnienie_wymagane ? "(wymagane)" : "(opcjonalnie)"}
-        <textarea
-          id="uzasadnienie"
-          rows={3}
-          disabled={blokada}
-          required={wynik.uzasadnienie_wymagane}
-          value={f.uzasadnienie ?? ""}
-          onChange={(e) => ustaw({ uzasadnienie: e.target.value })}
-        />
-      </label>
-      <BladPola cel="uzasadnienie" />
-      {wynik.podstawa_uzasadnienia && <Zrodla adnotacje={[wynik.podstawa_uzasadnienia]} />}
-      {children}
       {wynik.czesc_iii.dostepna ? (
         <div>
           <label className="zaznacz">
@@ -510,9 +526,8 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznani
             />
             Wnioskuję o kolejny stopień służbowy (część III)
           </label>
-          <Zrodla adnotacje={[wynik.czesc_iii.adnotacja]} />
           {f.dolacz_wniosek_o_stopien && !wynik.czesc_iii.dolaczana &&
-            <p className="meta">Zapisz szkic, aby uzupełnić pola wniosku w części III arkusza.</p>}
+            <p className="meta">Uzupełnij część III po zapisaniu szkicu.</p>}
         </div>
       ) : (
         <p>{o.wynik === "negatywna" ? "Przy ocenie negatywnej nie dołącza się części III." :
@@ -520,12 +535,7 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznani
       )}
       <section className="sekcja">
         <h2>Zapoznanie z oceną</h2>
-        <p>Niezwłocznie zapoznaj ocenianego z oceną (§ 12).</p>
-        <p>Oceniany może wnieść sprzeciw do dyrektora generalnego urzędu w ciągu 7 dni od zapoznania się z oceną.
-          Sprzeciw rozpatruje się w ciągu 14 dni od jego wniesienia.</p>
-        {wynik.terminy.termin_sprzeciwu?.slad.filter((s) => s.regula.id === "okresowa.termin.sprzeciw-7")
-          .map((s) => <Zrodla key={s.regula.id} adnotacje={[s.regula.zrodlo]} />)}
-        <small>Poradnik KPRM dotyczący ocen okresowych, s. 32–33.</small>
+        <p>Sprzeciw do dyrektora generalnego w 7 dni od zapoznania (art. 83 ust. 1 ustawy o służbie cywilnej).</p>
         {zapoznanie}
       </section>
     </>
@@ -665,7 +675,6 @@ export function DaneOkresowej({ wynik, f, ustaw, blokada, children }: FormularzO
         <details>
           <summary>Jak policzono wynik</summary>
           <Slad slad={wynik.obliczenie.slad} />
-          <Zrodla adnotacje={[wynik.obliczenie.regula_rozstrzygajaca.zrodlo]} />
         </details>
       </Sekcja>
     </>

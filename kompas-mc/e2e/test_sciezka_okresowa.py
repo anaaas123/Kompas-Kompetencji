@@ -267,7 +267,7 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     s.krok("II-ocena-na-pismie")
     # Braki jak użytkownik: pozycja z „Co jeszcze trzeba” rozwija sekcję i ustawia fokus w polu.
     co_trzeba = page.locator("section:has(h2:has-text('Co jeszcze trzeba'))")
-    for brak, wartosc in (("wnioski dotyczące indywidualnego programu", IPRZ), ("poziom poprzedniej oceny", "na poziomie oczekiwań")):
+    for brak, wartosc in (("Wnioski do indywidualnego programu rozwoju zawodowego", IPRZ), ("poziom poprzedniej oceny", "na poziomie oczekiwań")):
         pozycja = co_trzeba.get_by_role("button", name=re.compile(brak))
         if pozycja.count():
             pozycja.click()

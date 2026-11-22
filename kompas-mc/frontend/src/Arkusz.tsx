@@ -20,7 +20,7 @@ import {
   type PoleArkusza,
 } from "./api";
 import { nazwaKryterium } from "./Krok1";
-import { PropozycjeRozwoju } from "./Wnioski";
+import { PropozycjeZwarte } from "./Wnioski";
 import { Zwijane } from "./Zwijane";
 import {
   BladPola,
@@ -30,6 +30,7 @@ import {
   Naglowek,
   Podsumowanie,
   PoleDaty,
+  PoleOpisowe,
   Sekcja,
   Wczytywanie,
   Werdykt,
@@ -79,14 +80,12 @@ export function Pole({
   edycja: boolean;
   onZmiana: (v: string | null) => void;
 }) {
-  const przypisy = p.przypisy.length > 0 && <sup className="meta"> {p.przypisy.join(", ")}</sup>;
   // Tekst stały wzoru (oświadczenie, nazwa kryterium) bywa jednocześnie etykietą i wartością: pokazujemy go raz.
   const tenSamTekst = !edycja && (p.wartosc ?? "").trim().toLowerCase() === p.etykieta.trim().toLowerCase();
   if (tenSamTekst) {
     return (
       <div className="pole-arkusza">
         <Wartosc p={p} />
-        {przypisy}
       </div>
     );
   }
@@ -101,10 +100,7 @@ export function Pole({
   return (
     <div className="pole-arkusza">
       <label className="etykieta">
-        <span>
-          {p.etykieta}
-          {przypisy}
-        </span>
+        {p.etykieta}
         {edycja &&
           (p.rodzaj === "tekst_wielowierszowy" ? (
             <textarea
@@ -127,7 +123,7 @@ export function Pole({
   );
 }
 
-type Formularz = Pick<ArkuszOkresowy, "sekcje" | "przypisy" | "braki">;
+type Formularz = Pick<ArkuszOkresowy, "sekcje" | "braki">;
 type Wartosci = Record<string, string | null>;
 
 export async function pobierzPrzelozonego(token: string, osoba: Pracownik, zalogowanyId?: string | null) {
@@ -172,6 +168,8 @@ function nazwaSekcji(p: PoleArkusza, sekcja: string) {
   return sekcja;
 }
 
+const ETYKIETA_IPRZ = "Wnioski do indywidualnego programu rozwoju zawodowego";
+
 export function brakiPol(
   formularz: Formularz,
   pola: Wartosci,
@@ -192,7 +190,7 @@ export function brakiPol(
       const bledy = zSerwera.filter((b) => b.id === p.id);
       const wymagane = p.wymagane || bledy.some((b) => b.komunikat.startsWith("Uzupełnij pole"));
       const brak = { id: p.id, etykieta: p.etykieta, komunikat: "Uzupełnij pole." };
-      const miejsce = { ...cel, tekst, ...(p.edytowalne ? {} : powiazanie(brak)) };
+      const miejsce = { ...cel, tekst: p.id === "wnioski_iprz" ? ETYKIETA_IPRZ : tekst, ...(p.edytowalne ? {} : powiazanie(brak)) };
       if (p.edytowalne && p.rodzaj === "data" && !poprawnaData(wartosc)) {
         lista.push({ ...miejsce, opis: "Wpisz istniejącą datę w formacie RRRR-MM-DD." });
       } else if (wymagane && !wartosc?.trim()) {
@@ -292,9 +290,10 @@ export function DatyWzoru({ formularz, wartosci, edycja, ustaw }: EdycjaPol & { 
   );
 }
 
-export function PolaWzoru({ formularz, ustawWiele, ...edycja }: EdycjaPol & {
+export function PolaWzoru({ formularz, ustawWiele, maWynik = true, ...edycja }: EdycjaPol & {
   formularz: Formularz;
   ustawWiele: (pola: Wartosci) => void;
+  maWynik?: boolean;
 }) {
   const miejsca = edytowalnePola(formularz).filter((p) => p.id.endsWith(".miejscowosc"));
   const wartosc = (p: PoleArkusza) => p.id in edycja.wartosci ? edycja.wartosci[p.id] : p.wartosc;
@@ -317,22 +316,15 @@ export function PolaWzoru({ formularz, ustawWiele, ...edycja }: EdycjaPol & {
       )}
       <Sekcja id="pola" tytul="Pola arkusza">
         {formularz.sekcje.map((s, i) => {
-          const pola = s.pola.filter((p) => p.widoczne && p.id !== "wnioski_iprz" && p.id !== "wnioski_rozwojowe" && !miejsca.includes(p) && !dataDoKorekty(p));
+          const pola = s.pola.filter((p) => p.widoczne && !miejsca.includes(p) && !dataDoKorekty(p)
+            && p.id !== "wnioski_iprz" && p.id !== "wnioski_rozwojowe"
+            && !(maWynik && (p.id === "uzasadnienie" || p.id === "pouczenie")));
           return s.widoczna && pola.length > 0 && (
             <Sekcja key={s.tytul + i} id={"pola/" + i} tytul={s.tytul}>
               <PolaSekcji pola={pola} {...edycja} />
             </Sekcja>
           );
         })}
-      </Sekcja>
-      <Sekcja id="przypisy" tytul="Przypisy wzoru">
-        <ol className="slad">
-          {Object.entries(formularz.przypisy).map(([nr, tekst]) => (
-            <li key={nr} value={Number(nr)}>
-              {tekst}
-            </li>
-          ))}
-        </ol>
       </Sekcja>
     </>
   );
@@ -451,7 +443,7 @@ export function Arkusz({
       </div>
     );
 
-  let formularz: Formularz = arkusz ?? { sekcje: [], braki: [], przypisy: {} };
+  let formularz: Formularz = arkusz ?? { sekcje: [], braki: [] };
   if (wynik?.czesc_iii.dolaczana && f && !f.dolacz_wniosek_o_stopien) {
     const sekcje = formularz.sekcje.filter((s) => !s.pola.some((p) => p.id === "wniosek_o_stopien.stopien"));
     const ids = new Set(sekcje.flatMap((s) => s.pola.map((p) => p.id)));
@@ -583,16 +575,8 @@ export function Arkusz({
     ustaw: (id: string, v: string | null) => setZmiany((p) => ({ ...p, [id]: v })),
   };
   const datyWzoru = <DatyWzoru formularz={formularz} {...edycjaPol} />;
-  const poleWnioskow = wnioski && (
-    <div id="pole-wnioski_iprz" tabIndex={-1}>
-      <Pole p={wnioski} wartosc={"wnioski_iprz" in pola ? pola.wnioski_iprz : wnioski.wartosc} edycja={wnioski.edytowalne && edycjaPol.edycja}
-        onZmiana={(v) => edycjaPol.ustaw("wnioski_iprz", v)} />
-      <BladPola cel="pole-wnioski_iprz" />
-      {moznaProwadzic && <Sekcja id="propozycje" tytul="Propozycje rozwoju">
-        <PropozycjeRozwoju token={token} procesId={proces.id} />
-      </Sekcja>}
-    </div>
-  );
+  const wartoscWnioskow = wnioski && wnioski.id in pola ? pola[wnioski.id] : wnioski?.wartosc ?? null;
+  const ustawWnioski = (tekst: string) => edycjaPol.ustaw("wnioski_iprz", tekst || null);
   const ezd = arkusz?.rejestracja_ezd;
   // Zakończenie (§ 12 ust. 1): datę zapoznania wpisuje się po podpisie ocenianego na wydruku, więc pole startuje puste.
   const zapoznanie = zakonczenie ? (
@@ -623,11 +607,24 @@ export function Arkusz({
         onWstecz={onWstecz}
         dzieci={
           <>
+            {daneWyniku && <PoleOpisowe id="uzasadnienie"
+              etykieta={`Uzasadnienie oceny ${daneWyniku.wynik.uzasadnienie_wymagane ? "(wymagane)" : "(opcjonalnie)"}`}
+              wartosc={daneWyniku.f.uzasadnienie} wymagane={daneWyniku.wynik.uzasadnienie_wymagane}
+              blokada={daneWyniku.blokada} wiersze={3} onZmiana={(tekst) => daneWyniku.ustaw({ uzasadnienie: tekst })} />}
+            {wnioski && (
+              <div className="sekcja">
+                <PoleOpisowe id="pole-wnioski_iprz" etykieta={ETYKIETA_IPRZ} wartosc={wartoscWnioskow}
+                  blokada={!edycjaPol.edycja || !wnioski.edytowalne} wiersze={5} onZmiana={ustawWnioski} />
+                {edycja && wnioski.edytowalne && <PropozycjeZwarte token={token} procesId={proces.id}
+                  wartosc={wartoscWnioskow} blokada={czekam} onZmiana={ustawWnioski} />}
+              </div>
+            )}
             {daneWyniku ? <DaneOkresowej {...daneWyniku}>{datyWzoru}</DaneOkresowej> :
               <Sekcja id="daty" tytul="Daty (z wcześniejszych kroków)">{datyWzoru}</Sekcja>}
             {arkusz && (
               <PolaWzoru
                 formularz={formularz}
+                maWynik={!!daneWyniku}
                 {...edycjaPol}
                 ustawWiele={(v) => setZmiany((p) => ({ ...p, ...v }))}
               />
@@ -637,7 +634,7 @@ export function Arkusz({
         bok={
           <>
             {daneWyniku ? (
-              <BokOkresowej {...daneWyniku} onZmienOcene={edycja ? onZmienOcene : undefined} zapoznanie={zapoznanie}>{poleWnioskow}</BokOkresowej>
+              <BokOkresowej {...daneWyniku} onZmienOcene={edycja ? onZmienOcene : undefined} zapoznanie={zapoznanie} />
             ) : (
               <>
                 <Werdykt wynik={null} warunki={[]} />
@@ -645,7 +642,6 @@ export function Arkusz({
                   {bladWynikuApi}
                   {edycja && onZmienOcene && <button className="link" type="button" onClick={onZmienOcene}>Wróć do ocen cząstkowych</button>}
                 </p>
-                {poleWnioskow}
               </>
             )}
             {zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
@@ -702,7 +698,7 @@ export function Arkusz({
                 Pobierz zawiadomienie § 8 (PDF)
               </button>
             )}
-            {edycja && (
+            {edycja && zatwierdzony && (
               <button
                 type="button"
                 className="link"
@@ -724,7 +720,6 @@ export function Arkusz({
                 {ezd.sha256_pdf.slice(0, 12)}…
               </p>
             )}
-            {(ruszonePola || ruszonyWynik) && edycja && <span className="meta">Masz niezapisane zmiany w arkuszu.</span>}
           </>
         }
         glowna={
