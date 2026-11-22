@@ -51,7 +51,8 @@ const PODPOWIEDZI_PIERWSZA = [
 const INDEKS_ETAPU: Record<EtapOsoby["etap"], number> = { kryteria: 0, okres: 1, ocena: 2, brak_danych: -1 };
 
 const PODPOWIEDZI: Record<EtapOsoby["etap"], string[]> = {
-  kryteria: ["Jak ustalić kryteria oceny okresowej?", "Ile kryteriów dodatkowych można wybrać?", "Kiedy przeprowadza się rozmowę wstępną?"],
+  // Rozmowa wstępna to pierwsza ocena (§ 3 rozp. 2015); przy okresowej pytanie o termin kryteriów (§ 7 rozp. 2016, FAQ).
+  kryteria: ["Jak ustalić kryteria oceny okresowej?", "Ile kryteriów dodatkowych można wybrać?", "W jakim czasie od poprzedniej oceny ustala się kryteria?"],
   okres: ["Co zrobić, gdy zmienia się oceniający?", "Kiedy można przesunąć termin oceny?", "Jak dokumentować przykłady zachowań?"],
   ocena: ["Co omawia się na rozmowie oceniającej?", "Kiedy ocena okresowa jest negatywna?", "Ile dni ma pracownik na sprzeciw od oceny okresowej?"],
   brak_danych: ["Kto podlega ocenie okresowej?", "Kto podlega pierwszej ocenie?", "Co zrobić, gdy brakuje danych kadrowych?"],
