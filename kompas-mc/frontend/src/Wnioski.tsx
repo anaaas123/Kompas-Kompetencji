@@ -79,17 +79,72 @@ export function Wnioski({
   );
 }
 
-export function PropozycjeRozwoju({ token, procesId }: { token: string; procesId: number }) {
+function usePropozycje(token: string, procesId: number) {
   const [dane, setDane] = useState<WnioskiProcesu | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
 
   useEffect(() => {
     let aktywny = true;
+    setDane(null);
+    setBlad(null);
     pobierzWnioski(token, procesId)
       .then((d) => { if (aktywny) setDane(d); })
       .catch((err) => { if (aktywny) setBlad(opisBledu(err)); });
     return () => { aktywny = false; };
   }, [token, procesId]);
+
+  return { dane, blad };
+}
+
+export function PropozycjeZwarte({ token, procesId, wartosc, onZmiana, blokada }: {
+  token: string;
+  procesId: number;
+  wartosc: string | null;
+  onZmiana: (tekst: string) => void;
+  blokada: boolean;
+}) {
+  const { dane, blad } = usePropozycje(token, procesId);
+  if (blad) return <p className="blad" role="alert">{blad}</p>;
+  if (!dane?.propozycje.dostepne) return null;
+  const lista = dane.propozycje.propozycje;
+  const propozycje = [
+    ...lista.filter((p) => p.typ === "OBSZAR_ROZWOJOWY"),
+    ...lista.filter((p) => p.typ === "MOCNA_STRONA"),
+  ].slice(0, 4);
+  if (!propozycje.length) return null;
+
+  function dodaj(tekst: string) {
+    const separator = wartosc && !wartosc.endsWith("\n") ? "\n" : "";
+    onZmiana((wartosc ?? "") + separator + tekst);
+  }
+
+  return (
+    <div className="k7-propozycje">
+      <h2>Propozycje rozwoju</h2>
+      <ul>
+        {propozycje.map((p, i) => {
+          const nazwa = p.wskaznik || nazwaKryterium(p.kompetencja);
+          const forma = p.formy[0]?.nazwa;
+          const tekst = forma ? `${nazwa} — ${forma}` : nazwa;
+          const id = "k7-propozycja-" + i;
+          return (
+            <li key={JSON.stringify([p.kompetencja, p.wskaznik_id ?? p.wskaznik])}>
+              <span className="k7-propozycja" id={id} title={tekst}>
+                <span>{nazwa}</span>{forma && <span> — {forma}</span>}
+              </span>
+              <button type="button" className="link" aria-describedby={id} disabled={blokada} onClick={() => dodaj(tekst)}>
+                Dodaj do wniosków
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+export function PropozycjeRozwoju({ token, procesId }: { token: string; procesId: number }) {
+  const { dane, blad } = usePropozycje(token, procesId);
 
   if (blad) return <p className="blad" role="alert">{blad}</p>;
   if (!dane) return <p className="meta">Wczytuję propozycje…</p>;

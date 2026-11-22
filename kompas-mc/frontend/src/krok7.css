@@ -28,6 +28,16 @@
 .k7 .k7-braki > button { align-self: start; color: var(--k-link); }
 .k7 .k7-braki .lista button.pozycja { min-height: 44px; padding: var(--o-8) var(--o-16); }
 .k7 .k7-braki .pozycja-opis { max-width: 75ch; font-size: var(--t-small-r); line-height: var(--t-small-l); }
+.k7-pole-opisowe { display: grid; gap: var(--o-4); }
+.k7-pole-opisowe label, .k7-propozycje h2 {
+  color: var(--k-text); font-size: var(--t-section-r); line-height: var(--t-section-l); font-weight: var(--f-semibold);
+}
+.k7-propozycje ul { list-style: none; padding: 0; margin: var(--o-4) 0 0; }
+.k7-propozycje li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--o-8); }
+.k7-propozycje li + li { border-top: 1px solid var(--k-line); }
+.k7-propozycja { display: flex; align-items: baseline; min-width: 0; gap: var(--o-4); }
+.k7-propozycja > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k7-propozycja > span + span { flex: none; max-width: 50%; color: var(--k-text-secondary); }
 .k7-boczna { gap: var(--o-16); }
 .k7-miejsca > label.etykieta, .k7-boczna label.etykieta { display: flex; flex-direction: column; gap: var(--o-4); }
 .k7-werdykt { padding: var(--o-16) var(--o-24); background: var(--k-wiersz); border-radius: var(--r-card); }
@@ -38,7 +48,6 @@
 .k7 .k7-warunki li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--o-8); padding: var(--o-4) 0; background: none; }
 .k7-tak { color: var(--k-success-text); }
 .k7-nie { color: var(--k-danger-text); }
-.k7 .k7-warunki .zrodla { margin: 0; }
 .k7 .k7-terminy { width: 100%; }
 .k7-terminy td:last-child { white-space: nowrap; vertical-align: top; font-variant-numeric: tabular-nums; }
 .k7-akcje { display: flex; align-items: center; flex-wrap: wrap; gap: var(--o-8) var(--o-16); }

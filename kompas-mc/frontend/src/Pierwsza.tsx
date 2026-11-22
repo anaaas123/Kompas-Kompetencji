@@ -14,7 +14,7 @@ import {
   type Termin,
 } from "./api";
 import { DatyWzoru, PolaWzoru, bladArkusza, brakiPol, pobierzPrzelozonego, podpowiedziPol } from "./Arkusz";
-import { PropozycjeRozwoju } from "./Wnioski";
+import { PropozycjeZwarte } from "./Wnioski";
 import { Zrodla, nazwaKryterium } from "./Krok1";
 import { Wybor } from "./Ocena";
 import {
@@ -22,6 +22,7 @@ import {
   Naglowek,
   Podsumowanie,
   PoleDaty,
+  PoleOpisowe,
   Sekcja,
   Slad,
   TabelaTerminow,
@@ -153,6 +154,7 @@ function Formularz({
   const [czekam, setCzekam] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
   const ustaw = (z: Partial<DanePierwszej>) => setD((p) => ({ ...p, ...z }));
+  const ustawWnioski = (tekst: string) => ustaw({ wnioski_rozwojowe: tekst || null });
   const egz = d.egzamin;
   const prz = d.przedluzenie;
   const ustawPrz = (z: Partial<PrzedluzeniePierwszej>) =>
@@ -251,6 +253,7 @@ function Formularz({
     }),
     (b) => {
       if (b.id === "uzasadnienie") return { cel: "uzasadnienie", grupa: undefined };
+      if (b.id === "wnioski_rozwojowe") return { cel: "wnioski_rozwojowe", grupa: undefined };
       if (b.id === "sprawozdanie")
         return { cel: d.sprawozdanie_niezlozone ? "sprawozdanie" : "sprawozdanie-zadania", grupa: "raport" };
       if (b.id === "egzamin") return { cel: "egzamin", grupa: "egzamin-sekcja" };
@@ -261,6 +264,7 @@ function Formularz({
       const k = dataPola(p.id);
       if (k && p.id.endsWith(".data") && (d[k] !== poczatkowe[k] || !p.wartosc)) return d[k];
       if (p.id === "uzasadnienie") return d.uzasadnienie;
+      if (p.id === "wnioski_rozwojowe") return d.wnioski_rozwojowe;
       if (p.id === "egzamin") return egz?.wynik;
       if (p.id.endsWith(".imie_nazwisko_lub_pieczatka") && !p.wartosc) {
         const osoba = p.id.includes(".kierujacy.") ? "kierujacy_komorka" : p.id.includes(".przelozony.") ? "bezposredni_przelozony" : "oceniany";
@@ -359,6 +363,17 @@ function Formularz({
       onWstecz={onWstecz}
       dzieci={
         <>
+          <PoleOpisowe id="uzasadnienie" etykieta={`Uzasadnienie oceny ${uzasadnienieWymagane ? "(wymagane)" : "(opcjonalnie)"}`}
+            wartosc={d.uzasadnienie} wymagane={uzasadnienieWymagane} blokada={!edycja || czekam} wiersze={3}
+            onZmiana={(tekst) => ustaw({ uzasadnienie: tekst || null })} />
+          {stan.wnioski_dostepne && (
+            <div className="sekcja">
+              <PoleOpisowe id="wnioski_rozwojowe" etykieta="Wnioski rozwojowe" wartosc={d.wnioski_rozwojowe}
+                blokada={!edycja || czekam} wiersze={5} onZmiana={ustawWnioski} />
+              {edycja && <PropozycjeZwarte token={token} procesId={stan.proces_id}
+                wartosc={d.wnioski_rozwojowe} blokada={czekam} onZmiana={ustawWnioski} />}
+            </div>
+          )}
           <TabelaTerminow terminy={terminy} slad={t.slad}>
             {typeof t.data_rozmowy_wstepnej === "string" && (
               <p>Rozmowa wstępna odbyła się {data(t.data_rozmowy_wstepnej)}.</p>
@@ -525,12 +540,7 @@ function Formularz({
               .
             </p>
             <Zrodla adnotacje={stan.mapowanie.adnotacje} />
-            {stan.obliczenie && (
-              <>
-                <Slad slad={stan.obliczenie.slad} />
-                <Zrodla adnotacje={[stan.obliczenie.regula_rozstrzygajaca.zrodlo]} />
-              </>
-            )}
+            {stan.obliczenie && <Slad slad={stan.obliczenie.slad} />}
           </Sekcja>
         </>
       }
@@ -539,37 +549,6 @@ function Formularz({
           <Werdykt wynik={stan.obliczenie} warunki={warunki} onZmienOcene={edycja ? onZmienOcene : undefined} />
           {!stan.obliczenie && (
             <p className="meta">Do wyliczenia wyniku potrzebne są oceny cząstkowe, dane sprawozdania i egzaminu.</p>
-          )}
-          <label className="etykieta">
-            Uzasadnienie {uzasadnienieWymagane ? "(wymagane)" : "(opcjonalnie)"}
-            <textarea
-              id="uzasadnienie"
-              rows={3}
-              required={uzasadnienieWymagane}
-              disabled={!edycja || czekam}
-              value={d.uzasadnienie ?? ""}
-              onChange={(e) => ustaw({ uzasadnienie: e.target.value || null })}
-            />
-          </label>
-          <BladPola cel="uzasadnienie" />
-          <Zrodla adnotacje={[stan.podstawa_uzasadnienia]} />
-          {stan.wnioski_dostepne && (
-            <div>
-              <label className="etykieta">
-                Wnioski rozwojowe
-                <textarea
-                  rows={3}
-                  disabled={!edycja || czekam}
-                  id="wnioski_rozwojowe"
-                  value={d.wnioski_rozwojowe ?? ""}
-                  onChange={(e) => ustaw({ wnioski_rozwojowe: e.target.value || null })}
-                />
-              </label>
-              {edycja && <Sekcja id="propozycje" tytul="Propozycje rozwoju">
-                <PropozycjeRozwoju token={token} procesId={stan.proces_id} />
-              </Sekcja>}
-              <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
-            </div>
           )}
           {/* Pierwsza ocena kończy się arkuszem; dalej kadry: umowa na czas nieokreślony albo mianowanie, przy negatywnej rozwiązanie umowy. */}
           {zatwierdzony && <p className="sukces">Arkusz zatwierdzony. Dalej: decyzja kadrowa (umowa/mianowanie).</p>}
@@ -586,7 +565,6 @@ function Formularz({
               <span className="meta">Arkusz uzupełnia przełożony.</span>
             )}
           </div>
-          {ruszone && <span className="meta">Masz niezapisane zmiany. Zapisz szkic, żeby przeliczyć wynik i terminy.</span>}
           {stan.formularz.pdf_dostepny && edycja && !zatwierdzony && (
             <button type="button" className="link" disabled={!pdf} onClick={() => pobierz("arkusz.pdf")}>
               Pobierz zapisany arkusz (PDF)
