@@ -147,6 +147,22 @@ def _etykieta(trasa: object, metoda: str, sciezka: str) -> tuple[str, str]:
     return kod, ETYKIETY.get(kod, _ZAPAS.get(metoda, "Czynność w aplikacji"))
 
 
+def _szablon_trasy(scope: dict) -> str | None:
+    """Pełny szablon trasy („/api/pracownicy/{osoba_id}”). FastAPI 0.16x zostawia w ``scope["route"]`` trasy
+    dołączonej przez ``include_router(prefix=…)`` ścieżkę bez prefiksu (logowanie: „/auth/login”), więc prefiks
+    odtwarzamy z faktycznej ścieżki żądania."""
+    trasa = scope.get("route")
+    szablon = getattr(trasa, "path", None)
+    if not szablon:
+        return None
+    try:
+        konkretna = trasa.path_format.format(**(scope.get("path_params") or {}))
+    except (AttributeError, KeyError, IndexError, ValueError):
+        return szablon
+    pelna = scope.get("path", "")
+    return pelna[: len(pelna) - len(konkretna)] + szablon if pelna.endswith(konkretna) else szablon
+
+
 def zainstaluj(app: FastAPI, auth: Autoryzacja) -> None:
     """Warstwa HTTP rejestru; czyta ``app.state.dziennik`` i ``app.state.baza`` utworzone przy starcie."""
 
@@ -162,7 +178,7 @@ def zainstaluj(app: FastAPI, auth: Autoryzacja) -> None:
             return odpowiedz
         finally:
             trasa = request.scope.get("route")
-            sciezka = getattr(trasa, "path", None)
+            sciezka = _szablon_trasy(request.scope)
             if sciezka and czy_rejestrowac(request.method, sciezka, status):
                 parametry = {k: str(v)[:64] for k, v in (request.scope.get("path_params") or {}).items()}
                 akcja, etykieta = _etykieta(trasa, request.method, sciezka)

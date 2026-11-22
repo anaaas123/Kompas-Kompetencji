@@ -23,6 +23,7 @@ from .ocena_api import _wczytaj_dane
 from .procesy import ProcesOceny, wczytaj_proces
 from .pseudonimizacja import Pseudonimizator
 from .qnt import MockQnt
+from .rejestr import ustaw_osobe
 from .rozwoj import DaneRozwoju, OcenaWskaznika, zaproponuj
 from .samoocena import wczytaj as wczytaj_samoocene
 
@@ -104,6 +105,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         cel = c.wczytaj(request.app.state.baza, cel_id)
         if cel is None:
             raise HTTPException(404, "Nie ma takiego celu")
+        ustaw_osobe(request, cel.osoba_id)  # rejestr: „Dotyczy” także przy zmianie, zatwierdzeniu i statusie celu
         return cel, aktor(uz, osoba(cel.osoba_id))
 
     def wykonaj(request: Request, uz: Uzytkownik, cel_id: int, zmiana) -> c.Cel:
