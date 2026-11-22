@@ -66,7 +66,8 @@ def test_termin_w_czesci_i_rowny_oblicz_terminy(api_arkusza, ustawienia):
     pdf = klient.get(f"{proces}/arkusz-okresowy/czesc-i/pdf", headers=h)
     assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
     tekst = _tekst(pdf.content)
-    assert "ARKUSZ C" in tekst and "Część I" in tekst and "Część II" not in tekst
+    assert len(PdfReader(BytesIO(pdf.content)).pages) == 1
+    assert "ARKUSZ C" in tekst and "CZĘŚĆ I" in tekst and "CZĘŚĆ II" not in tekst
     assert termin.data.strftime("%d.%m.%Y") in tekst
     assert "Potwierdzamy" in tekst
 

@@ -1,148 +1,113 @@
-"""Wydruk pierwszej oceny według załącznika nr 2 do rozporządzenia z 2015 r."""
+"""Nadruk wartości pierwszej oceny na załączniku nr 2 do rozporządzenia z 2015 r."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from dataclasses import replace
+from datetime import date
 from typing import Any
 
-from kompas_core.pdf import Pole, Stopka, hash_tresci
-from reportlab.platypus import KeepTogether
-
-from .arkusz_pdf import _Arkusz
-from .arkusze import KOMUNIKAT_PODPIS
+from .wzor_druk import MIN_ROZMIAR, Krzyzyk, Pole, _font, _wiersze, wypelnij
 
 
-_SKALA_PIERWSZEJ_OCENY = {
-    3: "3 punkty\nponiżej oczekiwań",
-    5: "5 punktów\nna poziomie oczekiwań",
-    7: "7 punktów\npowyżej oczekiwań",
+def _dane_osoby(prefiks: str, dolne_krawedzie: tuple[int, ...]) -> dict[str, Pole]:
+    kolumna = ("imie", "nazwisko", "komorka_organizacyjna", "stanowisko")
+    return {
+        f"{prefiks}.{klucz}": Pole(0, 228, y, 537, y + 13, 9.5)
+        for klucz, y in zip(kolumna, dolne_krawedzie, strict=True)
+    }
+
+
+def _potwierdzenie(prefiks: str, strona: int, y: float) -> dict[str, Pole]:
+    # Wolne miejsce pomiędzy poprzednim wierszem a kropkami. Podpis jest odręczny.
+    if strona == 0:
+        return {
+            f"{prefiks}.miejscowosc": Pole(0, 58, y, 150, y + 10, 8),
+            f"{prefiks}.data": Pole(0, 174, y, 266, y + 10, 8),
+        }
+    return {
+        f"{prefiks}.miejscowosc": Pole(strona, 59, y, 150, y + 10, 8),
+        f"{prefiks}.data": Pole(strona, 155, y, 224, y + 10, 8),
+        f"{prefiks}.imie_nazwisko_lub_pieczatka": Pole(strona, 251, y, 408, y + 10, 8),
+    }
+
+
+# Punkty PDF względem lewego dolnego rogu. Daty przedziałów są nad legendą „od … – do …”.
+_POLA = {
+    "nazwa_urzedu": Pole(0, 228, 641, 537, 654, 9.5),
+    **_dane_osoby("oceniany", (605, 590, 575, 559)),
+    "oceniany.data_nawiazania_stosunku_pracy": Pole(0, 303, 543, 490, 556, 9.5),
+    **_dane_osoby("bezposredni_przelozony", (506, 491, 476, 460)),
+    **_dane_osoby("kierujacy_komorka", (425, 409, 394, 379)),
+    "rozmowa_wstepna.data": Pole(0, 303, 323, 490, 340),
+    "termin_sprawozdania.od": Pole(0, 428, 300, 479, 316, 9.5, True),
+    "termin_sprawozdania.do": Pole(0, 487, 300, 537, 316, 9.5, True),
+    "okres_pierwszej_oceny.od": Pole(0, 428, 272, 479, 285, 9.5, True),
+    "okres_pierwszej_oceny.do": Pole(0, 487, 272, 537, 285, 9.5, True),
+    **_potwierdzenie("potwierdzenie_rozmowy_wstepnej.przelozony", 0, 212),
+    **_potwierdzenie("potwierdzenie_rozmowy_wstepnej.oceniany", 0, 178),
+    "rozmowa_oceniajaca.data": Pole(1, 304, 732, 491, 750),
+    **_potwierdzenie("potwierdzenie_rozmowy_oceniajacej.przelozony", 1, 697),
+    **_potwierdzenie("potwierdzenie_rozmowy_oceniajacej.oceniany", 1, 655),
+    "ocena_laczna": Pole(1, 327, 451, 537, 465, 10, True),
+    "uzasadnienie": Pole(2, 58, 588, 537, 747),
+    "wnioski_rozwojowe": Pole(2, 58, 463, 537, 541),
+    **_potwierdzenie("dokonanie_oceny.przelozony", 2, 410),
+    **_potwierdzenie("dokonanie_oceny.kierujacy", 2, 368),
+    **_potwierdzenie("zapoznanie.oceniany", 2, 288),
+}
+
+_KRATKI = {
+    **{
+        f"ocena_czastkowa.{nr}": {
+            "3": Krzyzyk(1, 271.5, y), "5": Krzyzyk(1, 379.5, y), "7": Krzyzyk(1, 487.5, y),
+        }
+        for nr, y in enumerate((547, 529, 511, 493, 476), 1)
+    },
+    "egzamin": {"TAK": Krzyzyk(1, 169, 401), "NIE": Krzyzyk(1, 315, 401), "NIE DOTYCZY": Krzyzyk(1, 514, 401)},
+    "sprawozdanie_w_terminie": {"TAK": Krzyzyk(1, 272, 357.5), "NIE": Krzyzyk(1, 514, 357.5)},
+    "wynik": {"POZYTYWNA": Krzyzyk(1, 272, 314.5), "NEGATYWNA": Krzyzyk(1, 514, 314.5)},
 }
 
 
-class _ArkuszPierwszejOceny(_Arkusz):
-    def __init__(
-        self, wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], stopka: Stopka
-    ) -> None:
-        super().__init__(wzor, wartosci, stopka)
-        self._styl_komorki.fontSize = 8.8
-        self._styl_opisu.fontSize = 9.5
-        self._styl_opisu.leading = 12.5
-
-    def czesc_ogolna(self, zalacznik: int) -> None:
-        self.akapit(f"Załącznik nr {zalacznik} · Dz. U. z 2015 r. poz. 1144")
-        self.naglowek("ARKUSZ PIERWSZEJ OCENY W SŁUŻBIE CYWILNEJ")
-        self.naglowek("Część ogólna", 2)
-        self.tabela([[self.etykieta("nazwa_urzedu"), self.wartosc("nazwa_urzedu")]], (175, 305))
-        self.pola_osoby("Dane ocenianego", "oceniany", (
-            "imie", "nazwisko", "komorka_organizacyjna", "stanowisko", "data_nawiazania_stosunku_pracy",
-        ))
-        self.dane_osoby("Dane bezpośredniego przełożonego", "bezposredni_przelozony")
-        self.dane_osoby("Dane kierującego komórką organizacyjną", "kierujacy_komorka")
-
-    def rozmowa_wstepna(self) -> None:
-        self.naglowek("Rozmowa wstępna", 2)
-        klucz = "rozmowa_wstepna.data"
-        self.tabela(
-            [
-                [self.etykieta(klucz), self.wartosc(klucz)],
-                [
-                    "Termin wyznaczony na złożenie sprawozdania dotyczącego zadań "
-                    "realizowanych przez ocenianego w trakcie przepracowanego okresu",
-                    self.przedzial_dat("termin_sprawozdania"),
-                ],
-                [
-                    "Okres, w którym powinna zostać dokonana pierwsza ocena w służbie cywilnej",
-                    self.przedzial_dat("okres_pierwszej_oceny"),
-                ],
-            ],
-            (295, 185),
-        )
-        self.akapit(self.etykieta("potwierdzenie_rozmowy_wstepnej.oswiadczenie"))
-        self.podpis_osoby("potwierdzenie_rozmowy_wstepnej.przelozony")
-        self.podpis_osoby("potwierdzenie_rozmowy_wstepnej.oceniany")
-        self.przypisy_strony(1, 1)
-
-    def przedzial_dat(self, prefiks: str) -> str:
-        od = self.wartosc(f"{prefiks}.od") or "................"
-        do = self.wartosc(f"{prefiks}.do") or "................"
-        return f"od {od}  do {do}"
-
-    def rozmowa_oceniajaca(self) -> None:
-        self.naglowek("Rozmowa oceniająca", 2)
-        klucz = "rozmowa_oceniajaca.data"
-        self.tabela([[self.etykieta(klucz), self.wartosc(klucz)]], (295, 185))
-        oswiadczenie = self.pola["potwierdzenie_rozmowy_oceniajacej.oswiadczenie"]["etykieta"]
-        self.akapit(oswiadczenie.removesuffix(").") + " [2].")
-        self.podpis_osoby("potwierdzenie_rozmowy_oceniajacej.przelozony")
-        self.podpis_osoby("potwierdzenie_rozmowy_oceniajacej.oceniany")
-
-    def ocena_czastkowa(self) -> None:
-        self.naglowek(
-            "Ocena postawy ocenianego, jego zaangażowania i postępów w pracy, relacji "
-            "ze współpracownikami oraz terminowości wykonywania zadań",
-            2,
-        )
-        self.tabela(
-            [
-                ["Elementy oceny [3]\nOcena cząstkowa", *[_SKALA_PIERWSZEJ_OCENY[pkt] for pkt in self.punkty]],
-                *[
-                    [pole["etykieta"], *self.punkty_kryterium(klucz)]
-                    for klucz, pole in self.pola.items()
-                    if pole["rodzaj"] == "wybor_punktow"
-                ],
-            ],
-            (234, 82, 82, 82),
-        )
-        klucz = "ocena_laczna"
-        self.tabela([[self.etykieta(klucz), self.wartosc(klucz)]], (234, 246))
-
-    def pierwsza_ocena(self) -> None:
-        self.naglowek("Pierwsza ocena w służbie cywilnej", 2)
-        self.akapit(self.pola["egzamin"]["etykieta"])
-        self.wybor_w_wierszu("egzamin", ("TAK", "NIE", "NIE DOTYCZY [5]"))
-        self.akapit(self.etykieta("sprawozdanie_w_terminie"))
-        self.wybor_w_wierszu("sprawozdanie_w_terminie")
-        self.wybor_w_wierszu("wynik", ("POZYTYWNA [6]", "NEGATYWNA"))
-        self.przypisy_strony(2, 6)
-
-    def wybor_w_wierszu(self, klucz: str, etykiety: tuple[str, ...] | None = None) -> None:
-        warianty = self.pola[klucz]["warianty"]
-        wybrany = self.wartosc(klucz)
-        wiersz: list[str | Pole] = []
-        for etykieta, wariant in zip(etykiety or warianty, warianty, strict=True):
-            wiersz.extend((etykieta, Pole(wybrany == wariant)))
-        szerokosci = (480 / len(warianty) - 34, 34) * len(warianty)
-        self.tabela([wiersz], szerokosci)
-
-    def uzasadnienie_i_potwierdzenie(self, drukuj_wnioski: bool) -> None:
-        self.opis("uzasadnienie", 9)
-        if drukuj_wnioski:
-            self.opis("wnioski_rozwojowe", 5)
-        self.naglowek("Potwierdzenie dokonania pierwszej oceny w służbie cywilnej", 3)
-        self.podpis_osoby("dokonanie_oceny.przelozony")
-        self.podpis_osoby("dokonanie_oceny.kierujacy")
-        self.akapit(self.etykieta("zapoznanie.oswiadczenie"))
-        self.podpis_osoby("zapoznanie.oceniany")
-        poczatek_pouczenia = len(self._elementy)
-        self.naglowek("Pouczenie", 3)
-        self.akapit(
-            "Po umożliwieniu ocenianemu zapoznania się z oceną oryginał arkusza wraz ze "
-            "sprawozdaniem i pismami dotyczącymi zmienianych terminów włącza się do akt osobowych "
-            "ocenianego, a kopię arkusza przekazuje się ocenianemu (§ 11 ust. 2 rozporządzenia "
-            "z dnia 23 lipca 2015 r.)."
-        )
-        self.przypisy_strony(7, 8 if drukuj_wnioski else 7)
-        self._elementy[poczatek_pouczenia:] = [KeepTogether(self._elementy[poczatek_pouczenia:])]
+def _wydruk(
+    wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], *, drukuj_wnioski: bool, strony: Sequence[int],
+) -> bytes:
+    wpisy = []
+    nazwy_pol = {}
+    krzyzyki = []
+    for sekcja in wzor["sekcje"]:
+        for definicja in sekcja["pola"]:
+            klucz = definicja["id"]
+            wartosc = wartosci.get(klucz)
+            if not wartosc or (klucz == "wnioski_rozwojowe" and not drukuj_wnioski):
+                continue
+            if klucz in _KRATKI:
+                kratka = _KRATKI[klucz].get(wartosc)
+                if kratka and kratka.strona in strony:
+                    krzyzyki.append(kratka)
+                continue
+            pole = _POLA.get(klucz)
+            if pole and pole.strona in strony:
+                if definicja["rodzaj"] == "data":
+                    wartosc = date.fromisoformat(wartosc).strftime("%d.%m.%Y")
+                if klucz.endswith(".komorka_organizacyjna"):
+                    wpisy.extend(_wpisy_komorki(pole, wartosc))
+                else:
+                    wpisy.append((pole, wartosc))
+                nazwy_pol[pole] = definicja["etykieta"]
+    return wypelnij("arkusz_pierwszej.pdf", wpisy, krzyzyki, strony=strony, nazwy_pol=nazwy_pol)
 
 
-def _pola(wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], drukuj_wnioski: bool) -> dict[str, str | None]:
-    return {
-        pole["id"]: wartosci.get(pole["id"])
-        for sekcja in wzor["sekcje"]
-        for pole in sekcja["pola"]
-        if pole["rodzaj"] not in {"tekst_staly", "miejsce_na_podpis_odreczny"}
-        and (drukuj_wnioski or pole["id"] != "wnioski_rozwojowe")
-    }
+def _wpisy_komorki(pole: Pole, nazwa: str) -> list[tuple[Pole, str]]:
+    # Długi wpis „Departament / Wydział” potrzebuje dwóch linii w wierszu o wysokości 15 pt.
+    # Zwykła interlinia wzor_druk wynosi 8,4 pt przy czcionce 7 pt.
+    linie = _wiersze(nazwa, _font(), MIN_ROZMIAR, pole.x1 - pole.x0)
+    if len(linie) != 2:
+        return [(pole, nazwa)]
+    gora = replace(pole, y0=pole.y0 + 6.5, y1=pole.y1 + 0.5, rozmiar=MIN_ROZMIAR)
+    dol = replace(pole, y0=pole.y0 - 0.5, y1=pole.y0 + 6.5, rozmiar=MIN_ROZMIAR)
+    return [(gora, linie[0]), (dol, linie[1])]
 
 
 def arkusz_pierwszej_oceny_pdf(
@@ -152,36 +117,10 @@ def arkusz_pierwszej_oceny_pdf(
     drukuj_wnioski: bool,
     wersja: str,
 ) -> bytes:
-    """Składa gotowe wartości procesu w arkusz pierwszej oceny do wydruku."""
-    pola = _pola(wzor, wartosci, drukuj_wnioski)
-    dokument = _ArkuszPierwszejOceny(
-        wzor, pola, Stopka(
-            wersja,
-            hash_tresci({"wzor": wzor["zrodlo"], "drukuj_wnioski": drukuj_wnioski, "wartosci": pola}),
-            KOMUNIKAT_PODPIS,
-        ),
-    )
-    dokument.czesc_ogolna(wzor["zrodlo"]["zalacznik"])
-    dokument.rozmowa_wstepna()
-    dokument.nowa_strona()
-    dokument.rozmowa_oceniajaca()
-    dokument.ocena_czastkowa()
-    dokument.pierwsza_ocena()
-    dokument.nowa_strona()
-    dokument.uzasadnienie_i_potwierdzenie(drukuj_wnioski)
-    return dokument.bajty()
+    """Pełny arkusz wraz z potwierdzeniem zapoznania się z oceną."""
+    return _wydruk(wzor, wartosci, drukuj_wnioski=drukuj_wnioski, strony=(0, 1, 2))
 
 
 def rozmowa_wstepna_pdf(wzor: Mapping[str, Any], wartosci: Mapping[str, str | None], *, wersja: str) -> bytes:
-    """Część ogólna i sekcja „Rozmowa wstępna” arkusza do podpisu po rozmowie wstępnej (rozp. 2015 § 3–4)."""
-    pola = _pola(wzor, wartosci, drukuj_wnioski=False)
-    dokument = _ArkuszPierwszejOceny(
-        wzor, pola, Stopka(
-            wersja,
-            hash_tresci({"wzor": wzor["zrodlo"], "czesc": "rozmowa_wstepna", "wartosci": pola}),
-            KOMUNIKAT_PODPIS,
-        ),
-    )
-    dokument.czesc_ogolna(wzor["zrodlo"]["zalacznik"])
-    dokument.rozmowa_wstepna()
-    return dokument.bajty()
+    """Pierwsza strona arkusza do podpisu po rozmowie wstępnej."""
+    return _wydruk(wzor, wartosci, drukuj_wnioski=False, strony=(0,))

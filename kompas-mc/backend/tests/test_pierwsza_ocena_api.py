@@ -1,6 +1,7 @@
 """Pierwsza ocena od pełnych decyzji kroku 5 do arkusza i zawiadomienia."""
 
 from dataclasses import replace
+from datetime import date
 from decimal import Decimal
 from io import BytesIO
 
@@ -144,8 +145,14 @@ def test_wynik_formularz_i_pdf(api_pierwszej, punkty, zlozenie, wynik, srednia, 
         znajdz_font()
     except FileNotFoundError:
         pytest.skip("brak fontu TTF z polskimi znakami")
-    tekst = _tekst_pdf(klient.get(f"{url}/arkusz.pdf", headers=h))
-    assert all(f in tekst for f in ("ARKUSZ PIERWSZEJ OCENY", "Łucja", "Wygenerowanie PDF", "Pouczenie"))
+    wydruk = klient.get(f"{url}/arkusz.pdf", headers=h)
+    tekst = _tekst_pdf(wydruk)
+    assert len(PdfReader(BytesIO(wydruk.content)).pages) == 3
+    assert all(f in tekst for f in ("ARKUSZ PIERWSZEJ OCENY", "Łucja", "Wójcik-Demo", "20.11.2026"))
+    assert format(Decimal(srednia).normalize(), "f").replace(".", ",") in tekst.split()
+    assert "Wygenerowanie PDF" not in tekst and "SHA-256" not in tekst
+    if wynik == "negatywna":
+        assert dane["uzasadnienie"] in tekst
     assert ("Doskonalenie prowadzenia" in tekst) == (wynik == "pozytywna")
     assert "sprzeciw do dyrektora" not in tekst
     nowa = (3 if punkty[0] == 7 else 7)
@@ -215,7 +222,11 @@ def test_rozmowa_wstepna_pdf_po_zapisie_terminu_sprawozdania(api_pierwszej):
     _json(klient.put(f"{proces}/pierwsza-ocena", headers=h, json=dane))
     r = klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=h)
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
-    tekst = " ".join(s.extract_text() for s in PdfReader(BytesIO(r.content)).pages)
-    assert "Rozmowa wstępna" in tekst and "16.03.2026" in tekst and "15.11.2026" in tekst
-    assert "Rozmowa oceniająca" not in tekst, "tylko część ogólna i rozmowa wstępna"
+    strony = PdfReader(BytesIO(r.content)).pages
+    assert len(strony) == 1
+    tekst = " ".join(strony[0].extract_text().split())
+    assert all(f in tekst for f in ("CZĘŚĆ OGÓLNA", "ROZMOWA WSTĘPNA", "Kamińska-Demo", "16.03.2026", "15.11.2026"))
+    for klucz in ("pierwsza_ocena_od", "pierwsza_ocena_do"):
+        assert date.fromisoformat(stan["terminy"][klucz]["data"]).strftime("%d.%m.%Y") in tekst
+    assert "ROZMOWA OCENIAJĄCA" not in tekst and "Wygenerowanie PDF" not in tekst
     assert klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=_login(klient, "oceniany")).status_code == 403

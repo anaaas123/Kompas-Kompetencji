@@ -168,13 +168,16 @@ def test_pelna_sciezka_pdf_i_mock_ezd(api_arkusza, arkusz, osoba, login):
         pytest.skip("brak fontu TTF z polskimi znakami")
     pdf = klient.get(f"{url}/pdf", headers=h)
     assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
-    tekst = " ".join(" ".join(page.extract_text().split()) for page in PdfReader(BytesIO(pdf.content)).pages)
+    strony = PdfReader(BytesIO(pdf.content)).pages
+    assert len(strony) == (4 if arkusz == "C" else 3)
+    tekst = " ".join(" ".join(page.extract_text().split()) for page in strony)
     for fragment in (
-        f"ARKUSZ {arkusz}", "OCENA OKRESOWA", "20.11.2026", "POZYTYWNA", "Podpis oceniającego",
-        "Wygenerowanie PDF", "7 dni", "Rozwinąć umiejętności",
+        f"ARKUSZ {arkusz}", "OCENA OKRESOWA", "20.11.2026", "Marta", "Kowalczyk-Demo",
+        "7,00", "7 dni", "Rozwinąć umiejętności",
     ):
         assert fragment in tekst
-    assert ("Część III" in tekst) == (arkusz == "C")
+    assert ("CZĘŚĆ III" in tekst) == (arkusz == "C")
+    assert KOMUNIKAT_PODPIS not in tekst and "SHA-256" not in tekst
     rejestracja = _json(klient.post(f"{url}/ezd", headers=h))
     assert rejestracja["numer_sprawy"].startswith("EZD-MC-") and rejestracja["mock"] is True
     assert sha256(pdf.content).hexdigest() == rejestracja["sha256_pdf"]

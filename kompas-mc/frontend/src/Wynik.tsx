@@ -112,6 +112,22 @@ export function zapiszPlik(plik: Blob, nazwa: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Otwiera PDF w nowej karcie do wydruku. Kartę otwiera od razu w kliknięciu, żeby przeglądarka jej nie zablokowała;
+ *  bez nowej karty plik się pobiera. Podpis jest odręczny na wydruku. */
+export async function drukujDoPodpisu(plik: () => Promise<Blob>, nazwa: string) {
+  const okno = window.open("", "_blank");
+  try {
+    const tresc = await plik();
+    if (!okno) return zapiszPlik(tresc, nazwa);
+    const url = URL.createObjectURL(tresc);
+    okno.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    okno?.close();
+    throw err;
+  }
+}
+
 export function bladWyniku(err: unknown): string {
   const d = err instanceof BladApi ? (err.detail as { komunikat?: string } | null) : null;
   if (d?.komunikat) return d.komunikat;
@@ -250,7 +266,7 @@ export function Podsumowanie({
   glowna: ReactNode;
   onWstecz: () => void;
   blad: string | null;
-  podpis: string;
+  podpis?: string;
 }) {
   const cele = new Set<string>();
   const braki = wszystkieBraki.filter((b) => {
@@ -323,7 +339,7 @@ export function Podsumowanie({
           <span role="status">
             {pierwszy && `Brakuje: ${braki.length} · ${pierwszy.tekst}`}
           </span>
-          <span className="meta">{podpis} Podpisy złóż odręcznie na wydruku.</span>
+          {podpis && <span className="meta">{podpis}</span>}
         </div>
         {glowna}
       </div>
