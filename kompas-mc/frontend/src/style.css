@@ -283,7 +283,6 @@ html.motyw-przejscie, html.motyw-przejscie * {
 
 /* Treść zadania pkt 2: bez smartfonów (#77). Do 760 px tylko ekran „Kompas działa na komputerze”;
    aplikacja i logowanie są ukryte. Samym CSS, więc zmiana szerokości okna działa bez przeładowania. */
-.tylko-komputer { display: none; }
 @media (max-width: 760px) {
   #root > :not(.tylko-komputer) { display: none; }
   .tylko-komputer {

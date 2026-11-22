@@ -38,7 +38,7 @@ def test_smartfon_widzi_tylko_informacje_o_komputerze(przegladarka, tryb):
 
     page.set_viewport_size({"width": 1024, "height": 768})
     expect(page.locator('input[aria-label="Login"]')).to_be_visible()
-    expect(page.get_by_role("heading", name="Kompas działa na komputerze")).to_be_hidden()
+    expect(page.locator(".tylko-komputer")).to_have_count(0)
 
     page.fill('input[aria-label="Login"]', "przelozony1")
     page.fill('input[aria-label="Hasło"]', "demo")
