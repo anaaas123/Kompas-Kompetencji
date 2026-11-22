@@ -398,25 +398,25 @@ function EkranTematu({
   const zadaniaOsp = temat === "obowiazki" ? wszystkie.map((t) => (t.split(ZADANIE)[1] ?? "").replace(/^„|”\.?$/g, "")).filter(Boolean) : [];
   const zakres = (plan?.zakres ?? []).filter((z) => ZAKRES_TEMATU[temat].test(z.id));
   // Szkic informacji zwrotnej liczony przy wejściu na „Rozwój”, czyli już po ocenie wskaźników (#72 pkt 5).
-  // Zapisuje się raz jako punkt wyjścia; dalej przełożony go poprawia.
-  const szkicZapisany = rozmowa?.mocne_strony != null || rozmowa?.obszary_rozwoju != null;
+  // To podpowiedź: do zapisu (i arkusza) trafia dopiero po „Wstaw szkic do pól” albo własnym wpisie.
+  const [szkic, setSzkic] = useState<{ mocne: string; obszary: string } | null>(null);
+  const polaPuste = !rozmowa?.mocne_strony && !rozmowa?.obszary_rozwoju;
   useEffect(() => {
-    if (temat !== "rozwoj" || szkicZapisany || tylkoOdczyt) return;
+    if (temat !== "rozwoj" || tylkoOdczyt) return;
     let zyje = true;
     przygotujRozmowe(token, procesId, {})
       .then((p) => {
         if (zyje)
-          onZapisz({
-            mocne_strony: p.informacja_zwrotna.mocne_strony.join("\n"),
-            obszary_rozwoju: p.informacja_zwrotna.obszary_rozwoju.join("\n"),
+          setSzkic({
+            mocne: p.informacja_zwrotna.mocne_strony.join("\n"),
+            obszary: p.informacja_zwrotna.obszary_rozwoju.join("\n"),
           });
       })
       .catch(() => undefined);
     return () => {
       zyje = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [temat, szkicZapisany]);
+  }, [temat, tylkoOdczyt, token, procesId]);
 
   return (
     <div className="oc-ekran">
@@ -468,14 +468,28 @@ function EkranTematu({
       />
       {temat === "rozwoj" && (
         <>
+          {szkic && polaPuste && (szkic.mocne || szkic.obszary) && (
+            <div className="oc-szkic">
+              <p className="oc-pytanie-tytul">Podpowiedź z Twoich ocen wskaźników</p>
+              <p className="meta">Nie trafi do arkusza, dopóki jej nie wstawisz. Po wstawieniu możesz ją zmienić.</p>
+              <ul className="oc-pytania">
+                {[...szkic.mocne.split("\n"), ...szkic.obszary.split("\n")].filter(Boolean).map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <button type="button" className="jasny" onClick={() => onZapisz({ mocne_strony: szkic.mocne, obszary_rozwoju: szkic.obszary })}>
+                Wstaw szkic do pól
+              </button>
+            </div>
+          )}
           <PoleRozmowy
-            etykieta="Mocne strony (szkic z Twoich ocen)"
+            etykieta="Mocne strony (opcjonalnie)"
             wartosc={rozmowa?.mocne_strony ?? ""}
             tylkoOdczyt={tylkoOdczyt}
             onZapisz={(t) => onZapisz({ mocne_strony: t })}
           />
           <PoleRozmowy
-            etykieta="Obszary rozwoju (szkic z Twoich ocen)"
+            etykieta="Obszary rozwoju (opcjonalnie)"
             wartosc={rozmowa?.obszary_rozwoju ?? ""}
             placeholder="Brak wskaźników poniżej oczekiwań. Dopisz, jeśli coś wyszło w rozmowie."
             tylkoOdczyt={tylkoOdczyt}

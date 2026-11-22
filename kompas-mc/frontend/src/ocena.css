@@ -176,3 +176,7 @@ label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var
 .k2-pasek:has(.czesc-i) { position: static; }
 .czesc-i h2 { scroll-margin-top: var(--o-24); }
 .czesc-i h2:focus { outline: none; }
+
+/* Podpowiedź szkicu informacji zwrotnej: widoczna, ale nie zapisana, dopóki przełożony jej nie wstawi. */
+.oc-szkic { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.oc-szkic p { margin: 0; }
