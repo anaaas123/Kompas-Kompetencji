@@ -72,10 +72,9 @@ def test_pytania_do_mentorow_widoczne_i_powiazane(klient):
     assert all(p["dotyczy"] in ids and p["pytanie"].strip() for p in pytania)
 
 
-def test_tresc_zadania_jest_w_korpusie_ale_nie_w_asystencie(klient):
+def test_tresc_zadania_jest_w_korpusie_ale_nie_w_asystencie(klient, naglowek):
     zrodla = {d["doc_id"]: d for d in klient.get("/api/zrodla").json()["dokumenty"]}
     assert zrodla["zadanie-mc"]["w_asystencie"] is False
-    r = klient.post(
-        "/api/asystent", json={"pytanie": "Baza powinna obejmować ustawę o służbie cywilnej"}
+    r = klient.post("/api/asystent", headers=naglowek("przelozony1"), json={"pytanie": "Baza powinna obejmować ustawę o służbie cywilnej"}
     ).json()
     assert all(c["doc_id"] != "zadanie-mc" for c in r["cytaty"])

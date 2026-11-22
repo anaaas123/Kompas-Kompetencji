@@ -44,10 +44,14 @@ async function json<T>(r: Response): Promise<T> {
 
 export const pobierzZrodla = () => fetch("/api/zrodla").then((r) => json<Zrodla>(r));
 
+/** Klucz sesji w sessionStorage (App). Asystent czyta stąd token, bez przekazywania go przez komponenty. */
+export const KLUCZ_SESJI = "kompas-mc-sesja";
+const tokenSesji = () => (JSON.parse(sessionStorage.getItem(KLUCZ_SESJI) ?? "null") as { token?: string } | null)?.token ?? "";
+
 export const pytajAsystenta = (pytanie: string, sciezka: Sciezka | null) =>
   fetch("/api/asystent", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...autoryzacja(tokenSesji()) },
     body: JSON.stringify({ pytanie, sciezka }),
   }).then((r) => json<OdpowiedzAsystenta>(r));
 

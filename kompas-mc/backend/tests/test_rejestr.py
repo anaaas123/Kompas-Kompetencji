@@ -75,7 +75,7 @@ def test_tylko_hr_filtry_i_csv_bez_formul(klient):
 
 
 def test_asystent_zapisuje_tryb_bez_tresci(klient):
-    r = klient.post("/api/asystent", json={"pytanie": "Kiedy przeprowadza się rozmowę wstępną?"})
+    r = klient.post("/api/asystent", headers=_h(klient, "przelozony1"), json={"pytanie": "Kiedy przeprowadza się rozmowę wstępną?"})
     assert r.status_code == 200
     wpis = next(w for w in _wpisy(klient) if w["trasa"] == "/api/asystent")
     assert {"tryb", "dostawca", "walidacja"} <= set(wpis["szczegoly"])

@@ -5,8 +5,11 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import yaml
-from fastapi import FastAPI, Request
-from kompas_core.auth import Autoryzacja, Dziennik, KonfiguracjaRol
+from collections import defaultdict, deque
+from time import monotonic
+
+from fastapi import FastAPI, HTTPException, Request
+from kompas_core.auth import Autoryzacja, Dziennik, KonfiguracjaRol, Uzytkownik
 from kompas_core.llm import DziennikJsonl
 from pydantic import BaseModel, Field
 
@@ -62,6 +65,8 @@ class PytanieAsystenta(BaseModel):
     pytanie: str = Field(min_length=1, max_length=1000)
     sciezka: Sciezka | None = None
 
+
+LIMIT_ASYSTENTA, LIMIT_ASYSTENTA_S = 40, 600  # pytań na konto w oknie 10 minut
 
 def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     ust = ustawienia or Ustawienia.ze_srodowiska()
@@ -205,9 +210,21 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
         """Propozycje obszarów i form rozwoju (krok 8). Treści wniosków nie generuje."""
         return zaproponuj(dane, request.app.state.rozwoj)
 
+    # Helix G3 (Grok, 3): serwer jest publiczny, a model płatny – asystent tylko po zalogowaniu i z limitem na konto
+    # (hasła demo są jawne). ponytail: limit w pamięci procesu, jeden proces API; wspólny licznik przy skalowaniu.
+    pytania: dict[str, deque[float]] = defaultdict(deque)
+
     @app.post("/api/asystent")
-    def asystent(request: Request, body: PytanieAsystenta) -> OdpowiedzAsystenta:
+    def asystent(
+        request: Request, body: PytanieAsystenta, uz: Uzytkownik = auth.wymagaj("asystent.pytaj")
+    ) -> OdpowiedzAsystenta:
         """Pytanie do asystenta formalnego."""
+        teraz, kolejka = monotonic(), pytania[uz.login]
+        while kolejka and teraz - kolejka[0] > LIMIT_ASYSTENTA_S:
+            kolejka.popleft()
+        if len(kolejka) >= LIMIT_ASYSTENTA:
+            raise HTTPException(429, f"Limit pytań do asystenta: {LIMIT_ASYSTENTA} na {LIMIT_ASYSTENTA_S // 60} minut. Spróbuj za chwilę.")
+        kolejka.append(teraz)
         wynik = request.app.state.asystent.odpowiedz(body.pytanie, body.sciezka)
         # Rejestr operacji: tryb i dostawca odpowiedzi oraz wynik walidacji cytatów, bez treści pytania i odpowiedzi.
         ustaw_szczegoly(

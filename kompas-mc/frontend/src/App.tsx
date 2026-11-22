@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { pobierzZrodla, type Zrodla } from "./api";
+import { KLUCZ_SESJI, pobierzZrodla, type Zrodla } from "./api";
 import { Logowanie, type Sesja } from "./Konto";
 import { Krok1 } from "./Krok1";
 import { Krok2 } from "./Krok2";
@@ -23,7 +23,6 @@ import { MojaSamoocena } from "./Samoocena";
 import { ListaPracownikow } from "./ListaPracownikow";
 import type { FiltrPracownikow } from "./zespol-dane";
 
-const KLUCZ_SESJI = "kompas-mc-sesja";
 
 type Etap = "krok2" | "ocena" | "wynik" | "arkusz" | "wnioski";
 
