@@ -109,8 +109,7 @@ def test_samoocena_od_pracownika_do_kroku_3(przegladarka, proces):
     page.locator(".lista button.pozycja", has_text="Zielińska").first.click()
     page.locator(".ramka.nastepny button").click()
     expect(page.get_by_text("Pracownik przekazał samoocenę")).to_be_visible()
-    # Rozmowa zaczyna się od obowiązków (§ 10 pkt 1); pierwszy wskaźnik jest na drugim ekranie.
-    page.get_by_role("button", name="Dalej: Wykorzystywanie wiedzy i doskonalenie zawodowe").click()
+    # Rozmowa zaczyna się od pierwszego wskaźnika; zadania z OSP są w podpowiedzi przy wskaźniku.
     rozbieznosc = page.locator(".porownanie.rozbieznosc").first
     expect(rozbieznosc).to_be_visible()
     expect(rozbieznosc).to_contain_text("Samoocena 9")

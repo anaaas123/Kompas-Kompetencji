@@ -5,7 +5,7 @@ Karta → krok 1 → kryteria z jednym dodatkowym → PDF części I → „Zapi
 
 Część II („Zakończ ocenę”, § 10–11): Anna Zielińska-Demo (P-101, przełożony 1) jest w oknie oceny końcowej bez
 procesu w aplikacji, więc „Zakończ ocenę” zaczyna od kroku 1. Krok 1 → kryteria (jedno dodatkowe) → karta →
-„Zakończ ocenę” → rozmowa oceniająca jednym przebiegiem (obowiązki, wskaźniki z wyborem zachowania, rozwój) →
+„Zakończ ocenę” → rozmowa oceniająca jednym przebiegiem (wskaźniki z wyborem zachowania, rozwój) →
 podsumowanie z punktami po rozmowie (sugestia raz przyjęta, raz zmieniona z uzasadnieniem) → „Zakończ rozmowę” →
 część 3 „Ocena na piśmie” (wnioski IPRZ, poziom poprzedniej oceny) → zatwierdzenie → PDF → EZD próbnie →
 zakończenie z datą zapoznania (§ 12) → karta z „Rozpocznij ocenę” i nową oceną w „Poprzednich ocenach”.
@@ -131,7 +131,6 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     expect(start.get_by_role("button", name=re.compile("ocena okresowa", re.I))).to_have_attribute("aria-pressed", "true")
     s.krok("I-krok1")
     start.get_by_role("button", name="Rozpocznij ocenę").click()
-    page.get_by_role("button", name="Dalej: krok 2").click()
 
     _kryteria_z_jednym_dodatkowym(page)
     s.krok("I-krok2-kryteria")
@@ -170,17 +169,15 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
         expect(page.locator("form.k1-start")).to_be_visible()
         s.krok("II-krok1")
         page.locator("form.k1-start").get_by_role("button", name="Rozpocznij ocenę").click()
-        page.get_by_role("button", name="Dalej: krok 2").click()
         dodatkowe = _kryteria_z_jednym_dodatkowym(page)
         s.krok("II-krok2-kryteria")
         page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
         # Koniec okresu: kryteria przepisane z podpisanej części I, data jej zapoznania z początku okresu.
-        expect(page.get_by_role("heading", name="Zakończ część I arkusza")).to_be_visible()
+        # Jedno kliknięcie: zapis daty z podpisanej części I i od razu rozmowa oceniająca (Karol 22.11, 02:04).
+        expect(page.get_by_role("heading", name="Kryteria z części I arkusza")).to_be_visible()
         page.get_by_label("Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)").fill("2024-12-20")
-        page.get_by_role("button", name="Zapisz i zakończ część I").click()
-        expect(page.get_by_role("heading", name="Część I arkusza zakończona")).to_be_visible()
         s.krok("II-czesc-I-przepisana")
-        page.get_by_role("button", name="Dalej: rozmowa oceniająca").click()
+        page.get_by_role("button", name="Zapisz i przejdź do rozmowy oceniającej").click()
         expect(rozmowa).to_be_visible()
         s.krok("II-rozmowa-wejscie")
 
@@ -210,11 +207,10 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
                 page.wait_for_load_state("networkidle")
                 s.krok("II-wskaznik-1")
         else:
+            # Tematy rozmowy bez wskaźników: cele (jeśli wyznaczono) i rozwój; zadania z OSP są przy wskaźnikach.
             nr_tematu += 1
-            if nr_tematu == 1:
-                page.get_by_label("Notatka z rozmowy (opcjonalnie)").fill("Omówiliśmy trzy zadania z opisu stanowiska.")
-                s.krok("II-temat-obowiazki")
-            if page.get_by_label("Mocne strony (szkic z Twoich ocen)").count():
+            if page.get_by_label("Mocne strony").count():
+                page.get_by_label("Kierunki rozwoju i potrzeby (opcjonalnie)").fill("Szkolenie z prawa UE w 2027 r.")
                 s.krok("II-temat-rozwoj")
         # Czekamy na zmianę licznika „N z M”, żeby nie kliknąć dwa razy w ten sam ekran.
         przed = page.locator(".oc-licznik").inner_text()

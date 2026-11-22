@@ -82,10 +82,7 @@ export function PoprzedniaOcena({ token, osoba }: { token: string; osoba: Pracow
               </li>
             ))}
           </ul>
-          <p className="meta">
-            Średnia {srednia.toFixed(2).replace(".", ",")} pkt z {punkty.length} kryteriów · arkusz z akt osobowych
-            (§ 12 ust. 2 rozporządzenia z 2016 r.) · dane demo
-          </p>
+          <p className="meta">Średnia {srednia.toFixed(2).replace(".", ",")} pkt</p>
         </>
       )}
     </div>
