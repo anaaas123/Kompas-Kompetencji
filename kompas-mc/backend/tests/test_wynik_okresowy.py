@@ -166,3 +166,20 @@ def test_zawiadomienie_pdf_dopiero_po_zapisie_zmiany_terminu(api_wyniku):
     assert pdf.headers["content-disposition"].startswith("attachment;")
     tekst = PdfReader(BytesIO(pdf.content)).pages[0].extract_text()
     assert all(pole in tekst for pole in ("30.06.2027", "24.06.2027", "18.11.2026", "§ 8"))
+
+
+def test_zmiana_terminu_trafia_do_cyklu_i_panelu_hr(api_wyniku):
+    """Helix G3, pkt 5 (zgłoszenie 124): zmiana terminu zapisana w ocenie na piśmie przesuwa termin także
+    na pulpicie i karcie (/api/cykl) oraz w panelu HR, a nie tylko w wyniku."""
+    klient, naglowek = api_wyniku
+    h = naglowek("przelozony1")
+    proces, kryteria = _przygotuj_proces(klient, h, "P-105")
+    _zapisz_punkty(klient, h, proces, kryteria, (5, 5, 5, 5, 5))
+    _json(klient.put(f"{proces}/wynik-okresowy", headers=h, json={"zmiana_terminu": {
+        "nowy_termin": "2026-12-15", "data_zawiadomienia": "2026-11-18", "przyczyna": "wniosek_ocenianego",
+    }}))
+    cykl = {e["osoba_id"]: e for e in _json(klient.get("/api/cykl", headers=h))}
+    assert cykl["P-105"]["termin"]["data"] == "2026-12-15"
+    pid = int(proces.rsplit("/", 1)[1])
+    hr = next(p for p in _json(klient.get("/api/hr/procesy", headers=naglowek("hr"))) if p["proces_id"] == pid)
+    assert "2026-12-15" in str(hr) and "2026-12-03" not in str(hr), hr

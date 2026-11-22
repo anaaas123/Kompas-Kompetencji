@@ -22,9 +22,20 @@ from pydantic import BaseModel, Field
 from .hr import Termin
 from .krok1 import Sciezka
 from .pierwsza_ocena import ZapisDanychPierwszej, uzupelnij_z_kadr
-from .procesy import _KOLUMNY, ProcesOceny, _z_wiersza, dzien_urzedowy, dzien_ustalenia_kryteriow
+from .procesy import (
+    _KOLUMNY,
+    ProcesOceny,
+    _z_wiersza,
+    dzien_urzedowy,
+    dzien_ustalenia_kryteriow,
+)
 from .qnt import MockQnt, Pracownik
-from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
+from .terminy_okresowej import (
+    DaneTerminow,
+    KonfiguracjaTerminow,
+    dane_terminow_procesu,
+    oblicz_terminy,
+)
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
 
 Etap = Literal["kryteria", "okres", "ocena", "brak_danych"]
@@ -67,12 +78,18 @@ def _wynik(
 
 def etap_okresowej(
     p: Pracownik, proces: ProcesOceny | None, konf: KonfiguracjaTerminow, dzis: date, od_kiedy: date,
+    zapis_wyniku: str | None = None,
 ) -> EtapOsoby:
     """``od_kiedy``: od tego dnia aplikacja prowadzi oceny (stan danych kadrowych). Wcześniejszy termin
     kryteriów dotrzymano poza aplikacją (ta sama zasada co w ``hr.terminy_z_regul``); późniejszy pilnujemy."""
     ustalone = dzien_ustalenia_kryteriow(proces.krok2) if proces and proces.krok2 else None
     zapoznanie = proces.krok2.zapoznanie if proces and proces.krok2 else None
-    t = oblicz_terminy(p, DaneTerminow(data_ustalenia_kryteriow=ustalone, data_zapoznania_z_kryteriami=zapoznanie), konf)
+    # Zapisana w ocenie na piśmie zmiana terminu (§ 8) przesuwa termin także tu, nie tylko w wyniku (zgłoszenie 124).
+    try:
+        dane = dane_terminow_procesu(zapis_wyniku, data_ustalenia_kryteriow=ustalone, data_zapoznania_z_kryteriami=zapoznanie)
+    except ValueError:
+        dane = DaneTerminow(data_ustalenia_kryteriow=ustalone, data_zapoznania_z_kryteriami=zapoznanie)
+    t = oblicz_terminy(p, dane, konf)
     ocena = t.termin_sporzadzenia_oceny or t.termin_bazowy
     termin_oceny = _termin("sporządzenie oceny na piśmie", ocena) if ocena else None
 
@@ -122,10 +139,10 @@ def etap_pierwszej(
 def etap_osoby(
     p: Pracownik, sciezka: Sciezka | None, proces: ProcesOceny | None, zapis_pierwszej: str | None,
     konf_okresowej: KonfiguracjaTerminow, konf_pierwszej: KonfiguracjaTerminowPierwszej, dzis: date,
-    od_kiedy: date,
+    od_kiedy: date, zapis_wyniku: str | None = None,
 ) -> EtapOsoby:
     if sciezka == "okresowa":
-        return etap_okresowej(p, proces, konf_okresowej, dzis, od_kiedy)
+        return etap_okresowej(p, proces, konf_okresowej, dzis, od_kiedy, zapis_wyniku)
     if sciezka == "pierwsza":
         return etap_pierwszej(p, proces, zapis_pierwszej, konf_pierwszej, dzis, konf_okresowej.okno_oceny_koncowej.liczba)
     return _wynik(p, None, "brak_danych", "Ustal ścieżkę oceny", None, dzis, proces,
@@ -146,15 +163,17 @@ def router(
         dzis = f() if f else date.today()
         baza: sqlite3.Connection = request.app.state.baza
         w_toku = {}
-        for w in baza.execute(f"SELECT {_KOLUMNY}, pierwsza_ocena FROM procesy WHERE status = 'W_TOKU'"):
-            w_toku[w[1]] = (_z_wiersza(w[:-1]), w[-1])
+        for w in baza.execute(f"SELECT {_KOLUMNY}, pierwsza_ocena, wynik_okresowy FROM procesy WHERE status = 'W_TOKU'"):
+            w_toku[w[1]] = (_z_wiersza(w[:-2]), w[-2], w[-1])
         rekordy = [p.model_dump() for p in qnt.pracownicy]
         wynik = []
         for rek in auth.filtruj(uz, "pracownik", rekordy, "ocena.czytaj"):
             p = qnt.pracownik(rek["osoba_id"])
-            proces, zapis = w_toku.get(p.osoba_id, (None, None))
+            proces, zapis, zapis_wyniku = w_toku.get(p.osoba_id, (None, None, None))
             sciezka = proces.sciezka if proces else sciezka_osoby(p)
-            wynik.append(etap_osoby(p, sciezka, proces, zapis, konf_okresowej, konf_pierwszej, dzis, qnt.dzis_demo))
+            wynik.append(etap_osoby(
+                p, sciezka, proces, zapis, konf_okresowej, konf_pierwszej, dzis, qnt.dzis_demo, zapis_wyniku,
+            ))
         return wynik
 
     return r

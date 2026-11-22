@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 from typing import Literal
@@ -272,3 +273,17 @@ def oblicz_terminy(
     wynik.slad = tuple(slad)
     wynik.braki = tuple(braki)
     return wynik
+
+
+def dane_terminow_procesu(zapis_wyniku: str | None, **z_kroku_2: date | None) -> DaneTerminow:
+    """Dane terminów procesu z zapisu oceny na piśmie (zmiana terminu i stanowiska, daty), uzupełnione datami
+    z kroku 2, gdy zapis ich nie ma. Jedno źródło dla wyniku, cyklu i panelu HR (Helix G3, pkt 5, zgłoszenie 124).
+    Błąd kolejności dat: ``ValueError`` jak przy ``DaneTerminow``."""
+    dane: dict = {}
+    if zapis_wyniku:
+        zapisane = json.loads(zapis_wyniku).get("dane") or {}
+        dane = {k: v for k, v in zapisane.items() if k in DaneTerminow.model_fields and v is not None}
+    for pole, wartosc in z_kroku_2.items():
+        if wartosc is not None:
+            dane.setdefault(pole, wartosc)
+    return DaneTerminow.model_validate(dane)
