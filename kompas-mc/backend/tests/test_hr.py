@@ -159,3 +159,19 @@ def test_terminy_z_regul_oceny_okresowej(ustawienia, tmp_path_factory):
     assert w["P-102"]["najblizszy_termin"]["data"] == "2026-11-23" and w["P-102"]["zagrozony"]
     assert w["P-101"]["najblizszy_termin"]["nazwa"] == "sporządzenie oceny na piśmie"
     assert w["P-101"]["najblizszy_termin"]["data"] >= "2026-12-02" and not w["P-101"]["zagrozony"]
+
+
+def test_przypomnienie_z_odmiana_i_data_jak_na_ekranie():
+    """Przegląd zrzutów 22.11: „upływa za 1 dni” i data ISO w treści przypomnienia."""
+    from kompas_mc.hr import WierszPanelu, propozycja
+
+    def tresc(za: int) -> str:
+        w = WierszPanelu(
+            proces_id=1, osoba_id="P-1", osoba="A B", stanowisko="radca", przelozony_id="P-0", sciezka="okresowa",
+            arkusz="C", krok=1, status="W_TOKU", najblizszy_termin=Termin(nazwa="x", data=date(2026, 11, 23)),
+            dni_do_terminu=za, zagrozony=True,
+        )
+        return propozycja(w).tresc
+
+    assert tresc(1).endswith("(23.11.2026) upływa za 1 dzień.")
+    assert tresc(5).endswith("upływa za 5 dni.") and tresc(-1).endswith("minął 1 dzień temu.")
