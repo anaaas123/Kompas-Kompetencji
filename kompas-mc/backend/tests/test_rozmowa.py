@@ -11,6 +11,7 @@ from kompas_core.zrodla.cli import main as waliduj
 
 from kompas_mc.app import utworz_aplikacje
 from kompas_mc.ustawienia import KATALOG_MC
+from test_ocena import _proces_z_krokiem2
 
 
 @pytest.fixture(scope="module")
@@ -293,3 +294,76 @@ def test_kazdy_nieoceniony_wskaznik_ma_swoje_pytanie(klient, naglowek):
     nieocenione = {w["wskaznik_id"] for k in stan["kryteria"] for w in k["wskazniki"] if w["ocena"] is None}
     z_pytaniem = {q["powiazanie"]["wskaznik_id"] for q in plan["pytania"] if q["powiazanie"]["typ"] == "wskaznik"}
     assert nieocenione and nieocenione <= z_pytaniem
+
+
+class _AtrapaPodpowiedzi:
+    """Dostawca LLM w teście: pytanie z cytatem z opisu wskaźnika; zapisuje, co dostał."""
+
+    nazwa = "atrapa"
+    model = "test"
+    tryb = Tryb.NA_ZYWO
+
+    def __init__(self, tresc="Kiedy w tym okresie było to widać?"):
+        self.zapytania = []
+        self.tresc = tresc
+
+    def odpowiedz(self, zapytanie):
+        self.zapytania.append(zapytanie)
+        f = zapytanie.fragmenty[0]
+        return Odpowiedz(cytaty=[Cytat(fragment_id=f.id, cytat=f.tekst[:40])], tresc=self.tresc)
+
+
+def test_podpowiedz_ai_przy_wskazniku_bez_danych_osobowych(klient, naglowek):
+    """Karol 22.11: podpowiedź przy wskaźniku z modelu (Scaleway); kontekst bez imion, 404 dla obcego wskaźnika."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    wid = proces["krok2"]["kryteria"][0]["wskazniki"][0]["id"]
+    llm = klient.app.state.cele_llm
+    atrapa, poprzedni = _AtrapaPodpowiedzi(), llm.dostawcy
+    llm.dostawcy = [atrapa]
+    try:
+        url = f"/api/procesy/{proces['id']}/rozmowa/podpowiedz"
+        r = klient.post(url, json={"wskaznik_id": wid}, headers=h)
+        assert r.status_code == 200, r.text
+        assert r.json()["pytanie"] == "Kiedy w tym okresie było to widać?" and r.json()["dostawca"] == "atrapa"
+        pracownik = klient.get("/api/pracownicy/P-103", headers=h).json()
+        tekst = atrapa.zapytania[0].pytanie
+        assert pracownik["nazwisko"] not in tekst and pracownik["imie"] not in tekst
+        assert klient.post(url, json={"wskaznik_id": "nie-ma"}, headers=h).status_code == 404
+        # Model nie podsuwa oceny ani punktów: taka odpowiedź nie trafia na ekran (zostaje szablon).
+        llm.dostawcy = [_AtrapaPodpowiedzi("Proponuję 7 pkt, bo przykład jest mocny.")]
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=h).json()["pytanie"] is None
+        llm.dostawcy = []
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=h).json()["pytanie"] is None
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=naglowek("hr")).status_code == 403
+    finally:
+        llm.dostawcy = poprzedni
+
+
+@pytest.mark.parametrize(
+    "tekst,ocena",
+    [
+        ("Proponuję 3 pkt za to kryterium.", True),
+        ("Sugeruję ocenić to na poziomie oczekiwań.", True),
+        ("To poziom 7.", True),
+        ("Powinien otrzymać ocenę powyżej oczekiwań.", True),
+        ("Jak wyglądała realizacja tego zadania w okresie oceny?", False),
+        ("Standard to poziom „na poziomie oczekiwań”: jak to wyglądało u Ciebie?", False),
+        ("W razie oceny negatywnej przysługuje sprzeciw w 7 dni.", False),
+        # Przykłady icc-8a (22.11): odwołania do przepisów przechodzą, propozycje oceny nie.
+        ("Zgodnie z § 10 ust. 1 pkt 2 rozporządzenia omawia się cele.", False),
+        ("Art. 81 ust. 1 pkt 3 ustawy dotyczy oceny.", False),
+        ("Zakres rozmowy opisuje § 3 pkt 1 poradnika.", False),
+        ("Sugeruję ocenę negatywną.", True),
+        ("Proponuję wynik pozytywny oceny okresowej.", True),
+        ("Oceniany zasługuje na poziom powyżej oczekiwań.", True),
+        ("Ocena: 7.", True),
+        ("Moim zdaniem siedem punktów będzie właściwe.", True),
+        ("Warto dać mu 7.", True),
+    ],
+)
+def test_tekst_modelu_nie_podsuwa_oceny(tekst, ocena):
+    """icc-8a 22.11: core sprawdza tylko cytaty; propozycja punktów albo poziomu nie może trafić na ekran."""
+    from kompas_mc.asystent import proponuje_ocene
+
+    assert proponuje_ocene(tekst) is ocena

@@ -141,7 +141,7 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
   text-align: left; white-space: normal; font-weight: var(--f-regular);
   transition: background-color var(--ruch-szybki) var(--ruch-krzywa), border-color var(--ruch-szybki) var(--ruch-krzywa), transform var(--ruch-wcisniecie-czas) var(--ruch-krzywa);
 }
-.oc-punkty button.oc-punkt[aria-checked="true"] { border-color: var(--k-link); background: var(--k-surface); }
+.oc-punkty button.oc-punkt[aria-checked="true"] { border-color: var(--k-link); background: var(--k-info-bg); }
 .oc-punkty button.oc-punkt:active { background: var(--k-wiersz-pressed); transform: scale(var(--ruch-wcisniecie-skala)); }
 .oc-punkty button.oc-punkt:disabled { color: var(--k-text); cursor: default; }
 .oc-punkt-liczba { display: flex; align-items: center; gap: var(--o-4); font-weight: var(--f-semibold); font-variant-numeric: tabular-nums; }
@@ -149,7 +149,7 @@ label.etykieta.oc-uwagi { display: flex; flex-direction: column; gap: var(--o-8)
 .oc-punkt-opis { color: var(--k-text-secondary); font-size: var(--t-small-r); line-height: var(--t-small-l); }
 @media (hover: hover) and (pointer: fine) {
   .oc-punkty button.oc-punkt:not(:disabled):hover { background: var(--k-wiersz-hover); }
-  .oc-punkty button.oc-punkt[aria-checked="true"]:not(:disabled):hover { background: var(--k-surface); }
+  .oc-punkty button.oc-punkt[aria-checked="true"]:not(:disabled):hover { background: var(--k-info-bg); }
 }
 .oc-punkty button.oc-punkt:focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 @media (max-width: 760px) { .oc-punkty { grid-template-columns: minmax(0, 1fr); } }
@@ -182,7 +182,7 @@ label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var
 .oc-szkic p { margin: 0; }
 
 /* Sugestia w podsumowaniu: widoczna ramka i znacznik, dopóki przełożony nie wybierze punktów. */
-.oc-punkty button.oc-punkt.sugerowany:not([aria-checked="true"]) { border: 1px dashed var(--k-link); background: var(--k-info-bg); }
+.oc-punkty button.oc-punkt.sugerowany:not([aria-checked="true"]) { border: 1px dashed var(--k-link); }
 .oc-punkt.sugerowany .znacznik { color: var(--k-link); }
 .oc-przyjmij { display: flex; align-items: center; justify-content: space-between; gap: var(--o-16); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-info-bg); }
 .oc-przyjmij p { margin: 0; }
@@ -191,3 +191,4 @@ label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var
 .oc-naglowek-wiersz h1 { margin: 0; }
 .oc-zasady { padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
 .oc-pytanie-akcje { display: flex; flex-wrap: wrap; gap: var(--o-16); }
+.oc-informacja { display: flex; flex-direction: column; gap: var(--o-16); }

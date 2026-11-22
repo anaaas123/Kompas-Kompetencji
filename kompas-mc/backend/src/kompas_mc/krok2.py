@@ -125,10 +125,14 @@ class WyborKroku2(BaseModel):
     zapoznanie: date | None = None
     """Data rozmowy z § 5 ust. 1 i zapoznania ocenianego z kryteriami (§ 6 ust. 2): zakończenie części I.
     Nowy zapis kryteriów ją kasuje, bo część I trzeba wtedy podpisać od nowa."""
+    ustalenia: str | None = Field(default=None, max_length=2000)
+    """Oczekiwania i cele na okres z rozmowy na początku okresu (§ 5 ust. 1 pkt 3–4), każdy cel w wierszu;
+    wracają w rozmowie oceniającej jako temat „Cele” (§ 10 pkt 2)."""
 
 
 class ZapisZapoznania(BaseModel):
     data: date
+    ustalenia: str | None = Field(default=None, max_length=2000)
 
 
 class PropozycjaKroku2(BaseModel):

@@ -334,6 +334,9 @@ def zbuduj_stan(
     model: ModelKompetencji,
     konf: KonfiguracjaOceny,
 ) -> StanOceny:
+    # Decyzje sprzed ponownego zapisu kryteriów nie liczą się (jak w wyniku okresowym): inaczej ekran
+    # pokazywał 5/5, a wynik odmawiał (Helix G3 #6, 22.11).
+    decyzje = aktualne_decyzje(wybor, decyzje)
     kryteria: list[KryteriumOceny] = []
     ostrzezenia: list[str] = []
     dla_rozwoju: list[WskaznikDlaRozwoju] = []

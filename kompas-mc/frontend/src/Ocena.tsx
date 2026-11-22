@@ -3,6 +3,7 @@ import {
   BladApi,
   pobierzOcene,
   pobierzKrok2,
+  pobierzPodpowiedz,
   przygotujRozmowe,
   zapiszDecyzje,
   zapiszRozmowe,
@@ -96,6 +97,9 @@ const etykietaKafla = (etykieta: string) => {
 };
 
 /** Jeden wskaźnik (układ makiety v2): zadania z OSP, przypomnienie z pytaniem, pięć równych kafli z opisem, przykład. */
+// Podpowiedzi AI raz na wskaźnik w procesie: powrót do ekranu nie pyta modelu drugi raz.
+const podpowiedziAi = new Map<string, Promise<string | null>>();
+
 function EkranWskaznika({
   kr,
   w,
@@ -124,6 +128,21 @@ function EkranWskaznika({
   const [uwagi, setUwagi] = useState(w.ocena?.uwagi ?? "");
   const [dopytaj, setDopytaj] = useState(false);
   const [czat, setCzat] = useState(false);
+  const [ai, setAi] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (tylkoOdczyt) return;
+    const klucz = `${procesId}:${w.wskaznik_id}`;
+    if (!podpowiedziAi.has(klucz))
+      podpowiedziAi.set(
+        klucz,
+        pobierzPodpowiedz(token, procesId, w.wskaznik_id).then((p) => p.pytanie, () => null),
+      );
+    let zyje = true;
+    podpowiedziAi.get(klucz)?.then((p) => zyje && setAi(p));
+    return () => {
+      zyje = false;
+    };
+  }, [token, procesId, w.wskaznik_id, tylkoOdczyt]);
   const przyklady = w.ocena?.przyklady ?? [];
   // Zablokowane tylko w odczycie: „disabled” na czas zapisu zrzucałby fokus klawiatury na początek strony.
   const zablokowane = tylkoOdczyt;
@@ -151,9 +170,19 @@ function EkranWskaznika({
               Zadanie z opisu stanowiska: {zadania.map((z) => z.tekst).join(" · ")}
             </p>
           )}
-          {pytania.slice(0, 1).map((p) => (
-            <p key={p}>{p}</p>
-          ))}
+          {ai ? (
+            <>
+              <p>{ai}</p>
+              <p className="meta">Podpowiedź AI (model w UE, bez danych osobowych). Sprawdź ją przed zadaniem pytania.</p>
+            </>
+          ) : (
+            <>
+              {pytania.slice(0, 1).map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+              {ai === undefined && !tylkoOdczyt && <p className="meta">Asystent AI przygotowuje podpowiedź do tego wskaźnika…</p>}
+            </>
+          )}
           <div className="oc-pytanie-akcje">
             {pytania.length > 1 && (
               <button type="button" className="link oc-brak" aria-expanded={dopytaj} onClick={() => setDopytaj((v) => !v)}>
@@ -274,6 +303,7 @@ function OcenaKryterium({
   const s = kr.sugestia;
   const d = kr.decyzja;
   const [uzasadnienie, setUzasadnienie] = useState(d?.uzasadnienie ?? "");
+  const [pokaz, setPokaz] = useState(false);
   const sugerowane = punktySugestii(s);
   const inna = d !== null && !zgodnaZSugestia(s, d.punkty);
 
@@ -285,14 +315,21 @@ function OcenaKryterium({
           Wróć do wskaźników
         </button>
       </div>
-      <ul className="oc-podstawa">
-        {kr.wskazniki.map((w) => (
-          <li key={w.wskaznik_id}>
-            <span>{w.nazwa}</span>
-            <span className="oc-poziom">{stanWskaznika(w) || "nie oceniono"}</span>
-          </li>
-        ))}
-      </ul>
+      <button type="button" className="link oc-brak" aria-expanded={pokaz} onClick={() => setPokaz((v) => !v)}>
+        {pokaz
+          ? "Ukryj wskaźniki"
+          : `Poziomy z rozmowy: ${kr.wskazniki.map((w) => (w.ocena?.brak_podstaw ? "brak podstaw" : w.ocena?.poziom ?? "–")).join(" · ")}`}
+      </button>
+      <Zwijane otwarte={pokaz}>
+        <ul className="oc-podstawa">
+          {kr.wskazniki.map((w) => (
+            <li key={w.wskaznik_id}>
+              <span>{w.nazwa}</span>
+              <span className="oc-poziom">{stanWskaznika(w) || "nie oceniono"}</span>
+            </li>
+          ))}
+        </ul>
+      </Zwijane>
       <p className="oc-sugestia">
         {sugerowane ? (
           <>
@@ -410,10 +447,13 @@ function EkranTematu({
   const ZADANIE = " Zadanie z opisu stanowiska: ";
   const pytania = temat === "obowiazki" && wszystkie[0]?.includes(ZADANIE) ? [wszystkie[0].split(ZADANIE)[0]] : wszystkie;
   const zadaniaOsp = temat === "obowiazki" ? wszystkie.map((t) => (t.split(ZADANIE)[1] ?? "").replace(/^„|”\.?$/g, "")).filter(Boolean) : [];
+  // Cele z części I (§ 10 pkt 2) na ekranie obowiązków: pytanie o realizację każdego celu.
+  const pytaniaCele = temat === "obowiazki" ? (plan?.pytania ?? []).filter((q) => tematPytania(q.id) === "cele").map((q) => q.tresc) : [];
   const zakres = (plan?.zakres ?? []).filter((z) => ZAKRES_TEMATU[temat].test(z.id));
   // Szkic informacji zwrotnej liczony przy wejściu na „Rozwój”, czyli już po ocenie wskaźników (#72 pkt 5).
   // To podpowiedź: do zapisu (i arkusza) trafia dopiero po „Wstaw szkic do pól” albo własnym wpisie.
   const [szkic, setSzkic] = useState<{ mocne: string; obszary: string } | null>(null);
+  const [informacja, setInformacja] = useState(Boolean(rozmowa?.mocne_strony || rozmowa?.obszary_rozwoju));
   const polaPuste = !rozmowa?.mocne_strony && !rozmowa?.obszary_rozwoju;
   useEffect(() => {
     if (temat !== "rozwoj" || tylkoOdczyt) return;
@@ -457,6 +497,16 @@ function EkranTematu({
           </ul>
         </div>
       )}
+      {pytaniaCele.length > 0 && (
+        <div className="oc-lista-zadan">
+          <p className="etykieta">Cele z części I</p>
+          <ul className="oc-pytania">
+            {pytaniaCele.map((q) => (
+              <li key={q}>{q}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {pytania.length > 0 && (
         <div className="oc-pytanie">
           <Ikona nazwa="pytanie" rozmiar={20} />
@@ -474,14 +524,22 @@ function EkranTematu({
           </div>
         </div>
       )}
-      <PoleRozmowy
-        etykieta={temat === "rozwoj" ? "Kierunki rozwoju i potrzeby (opcjonalnie)" : "Notatka z rozmowy (opcjonalnie)"}
-        wartosc={rozmowa?.notatki?.[temat] ?? ""}
-        tylkoOdczyt={tylkoOdczyt}
-        onZapisz={(t) => onZapisz({ notatki: { [temat]: t } })}
-      />
+      {temat !== "obowiazki" && (
+        <PoleRozmowy
+          etykieta={temat === "rozwoj" ? "Kierunki rozwoju i potrzeby (opcjonalnie)" : "Notatka z rozmowy (opcjonalnie)"}
+          wartosc={rozmowa?.notatki?.[temat] ?? ""}
+          tylkoOdczyt={tylkoOdczyt}
+          onZapisz={(t) => onZapisz({ notatki: { [temat]: t } })}
+        />
+      )}
       {temat === "rozwoj" && (
         <>
+          {/* Rada 22.11: jedno główne pole; informacja zwrotna (mocne strony, obszary rozwoju) rozwijana. */}
+          <button type="button" className="link oc-brak" aria-expanded={informacja} onClick={() => setInformacja((v) => !v)}>
+            {informacja ? "Ukryj informację zwrotną" : "Informacja zwrotna: mocne strony i obszary rozwoju"}
+          </button>
+          <Zwijane otwarte={informacja}>
+            <div className="oc-informacja">
           {szkic && polaPuste && (szkic.mocne || szkic.obszary) && (
             <div className="oc-szkic">
               <p className="oc-pytanie-tytul">Podpowiedź z Twoich ocen wskaźników</p>
@@ -509,6 +567,8 @@ function EkranTematu({
             tylkoOdczyt={tylkoOdczyt}
             onZapisz={(t) => onZapisz({ obszary_rozwoju: t })}
           />
+            </div>
+          </Zwijane>
         </>
       )}
       {blad && <p className="blad">{blad}</p>}
@@ -520,9 +580,9 @@ function EkranTematu({
 /* Rozmowa oceniająca jest jednym przebiegiem (§ 10 rozp. 2016): obowiązki, kryteria (tu wybór poziomów),
    cele, rozwój; ocena na piśmie (krok 7) powstaje z wniosków rozmowy (§ 11 ust. 2). Karol 23:50. */
 type Temat = "obowiazki" | "sprawozdanie" | "cele" | "rozwoj";
-const NAZWA_TEMATU: Record<Temat, string> = { obowiazki: "Obowiązki", sprawozdanie: "Sprawozdanie", cele: "Cele", rozwoj: "Rozwój" };
+const NAZWA_TEMATU: Record<Temat, string> = { obowiazki: "Obowiązki i cele", sprawozdanie: "Sprawozdanie", cele: "Cele", rozwoj: "Rozwój" };
 const TYTUL_TEMATU: Record<Temat, string> = {
-  obowiazki: "Główne obowiązki w okresie oceny",
+  obowiazki: "Obowiązki i cele z okresu oceny",
   sprawozdanie: "Sprawozdanie i egzamin",
   cele: "Cele z początku okresu",
   rozwoj: "Rozwój i informacja zwrotna",
@@ -545,10 +605,12 @@ type Krok = { typ: "temat"; temat: Temat } | { typ: "wskaznik"; kr: number; w: n
 
 const kroki = (dane: StanOceny, plan: PlanRozmowy | null): Krok[] => {
   const jest = (t: Temat) => (plan?.pytania ?? []).some((q) => tematPytania(q.id) === t);
+  // Obowiązki i cele (§ 10 pkt 1–2) jednym ekranem na początku, bez pustej notatki (Karol 02:04, rada 02:50).
   return [
+    ...(jest("obowiazki") ? [{ typ: "temat", temat: "obowiazki" } as Krok] : []),
     ...(jest("sprawozdanie") ? [{ typ: "temat", temat: "sprawozdanie" } as Krok] : []),
     ...dane.kryteria.flatMap((kr, i) => kr.wskazniki.map((_, j): Krok => ({ typ: "wskaznik", kr: i, w: j }))),
-    ...(jest("cele") ? [{ typ: "temat", temat: "cele" } as Krok] : []),
+    ...(jest("cele") && !jest("obowiazki") ? [{ typ: "temat", temat: "cele" } as Krok] : []),
     { typ: "temat", temat: "rozwoj" },
     { typ: "podsumowanie" },
   ];
@@ -559,7 +621,8 @@ function etykietaDalej(k: Krok | undefined, dane: StanOceny): string {
   if (k.typ === "podsumowanie") return "Dalej: podsumowanie";
   if (k.typ === "temat") return `Dalej: ${NAZWA_TEMATU[k.temat].toLowerCase()}`;
   if (k.w === 0) return `Dalej: ${nazwaKryterium(dane.kryteria[k.kr].nazwa)}`;
-  return `Dalej: wskaźnik ${k.w + 1} z ${dane.kryteria[k.kr].wskazniki.length}`;
+  // Jeden licznik na ekranie (nad paskiem); w obrębie kryterium sam „Dalej” (Helix G2, 22.11).
+  return "Dalej";
 }
 
 /** Postęp jak w formularzach administracji: „Kryterium X z N”, cienki pasek z odcinkiem na każdy wskaźnik
@@ -660,18 +723,23 @@ export function Ocena({
     pobierzOcene(token, proces.id)
       .then(setDane)
       .catch((err) => setBlad(bladZapisu(err)));
-    // Pytania z szablonów rozmowy (konfiguracja/rozmowa.yaml); plan niczego nie zapisuje.
-    if (moznaProwadzic) {
-      przygotujRozmowe(token, proces.id, {})
-        .then(setPlan)
-        .catch(() => setPlan(null));
-    }
-    // Powiązanie wskaźnik ↔ zadania z OSP (krok 2, dobór zespołu zatwierdzany przez przełożonego).
+    // Powiązanie wskaźnik ↔ zadania z OSP (krok 2) i cele z części I (§ 5 ust. 1 pkt 4), które wracają
+    // w rozmowie jako temat „Cele” (§ 10 pkt 2); pytania z szablonów rozmowy, plan niczego nie zapisuje.
     pobierzKrok2(token, proces.id)
-      .then((k2) =>
-        setZadania(Object.fromEntries(k2.kryteria.flatMap((k) => k.wskazniki.map((w) => [w.wskaznik_id, w.zadania.map((z) => ({ nr: z.nr, tekst: z.tekst }))])))),
-      )
-      .catch(() => setZadania({}));
+      .then((k2) => {
+        setZadania(Object.fromEntries(k2.kryteria.flatMap((k) => k.wskazniki.map((w) => [w.wskaznik_id, w.zadania.map((z) => ({ nr: z.nr, tekst: z.tekst }))]))));
+        return (k2.wybor?.ustalenia ?? "").split("\n").map((c) => c.trim()).filter(Boolean);
+      })
+      .catch(() => {
+        setZadania({});
+        return [] as string[];
+      })
+      .then((cele) => {
+        if (moznaProwadzic)
+          przygotujRozmowe(token, proces.id, cele.length ? { cele } : {})
+            .then(setPlan)
+            .catch(() => setPlan(null));
+      });
   }, [token, proces.id, moznaProwadzic]);
 
   // Po „Dalej” fokus na tytule nowego ekranu (czytnik ekranu i klawiatura zaczynają od góry).
@@ -798,18 +866,6 @@ export function Ocena({
         <p className="meta">
           Przyznaj punkty za każde kryterium (§ 11 ust. 1 pkt 1). Sugestia wynika z poziomów zaznaczonych w rozmowie; punkty wybierasz Ty.
         </p>
-        {!tylkoOdczyt && doPrzyjecia.length > 0 && (
-          <div className="oc-przyjmij">
-            <p className="meta">
-              {doPrzyjecia.length === 1 ? "1 kryterium ma" : `${doPrzyjecia.length} kryteria mają`} jedną sugestię. Możesz przyjąć je
-              jednym kliknięciem i zmienić pojedyncze punkty.
-            </p>
-            <button type="button" className="jasny" disabled={czekam === "sugestie"} onClick={przyjmijSugestie}>
-              {czekam === "sugestie" ? "Zapisuję…" : `Przyjmij sugestie (${doPrzyjecia.length})`}
-            </button>
-          </div>
-        )}
-        {bledy.sugestie && <p className="blad">{bledy.sugestie}</p>}
         {dane.kryteria.map((kr, i) => {
           const p = poprzednie?.punkty[kr.kompetencja_id];
           return (
@@ -826,6 +882,18 @@ export function Ocena({
             />
           );
         })}
+        {!tylkoOdczyt && doPrzyjecia.length > 0 && (
+          <div className="oc-przyjmij">
+            <p className="meta">
+              Bez punktów, z jedną sugestią:{" "}
+              {doPrzyjecia.map((kr) => `${nazwaKryterium(kr.nazwa)} ${kr.sugestia.punkty} pkt`).join(" · ")}. Remisy wybierasz sam.
+            </p>
+            <button type="button" className="jasny" disabled={czekam === "sugestie"} onClick={przyjmijSugestie}>
+              {czekam === "sugestie" ? "Zapisuję…" : `Przyznaj proponowane punkty (${doPrzyjecia.length})`}
+            </button>
+          </div>
+        )}
+        {bledy.sugestie && <p className="blad">{bledy.sugestie}</p>}
         <p className="meta">
           {kp.kryteria_z_decyzja === kp.kryteria
             ? "Wszystkie kryteria mają punkty. Dalej zobaczysz wynik, średnią i arkusz."
@@ -867,7 +935,7 @@ export function Ocena({
         </div>
         <p className="opis">
           {osoba.imie} {osoba.nazwisko} · {NAZWA_SCIEZKI[dane.sciezka]} · arkusz{" "}
-          {dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz}
+          {dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz} · rozmowa 2 z 2
         </p>
       </div>
       <Zwijane otwarte={metodyka}>
@@ -898,11 +966,6 @@ export function Ocena({
             </button>
           ) : (
             <span />
-          )}
-          {k.typ !== "podsumowanie" && (
-            <span className="meta oc-licznik">
-              {biezacy + 1} z {lista.length - 1}
-            </span>
           )}
           {nastepny ? (
             <button type="button" onClick={() => setKrok(biezacy + 1)}>

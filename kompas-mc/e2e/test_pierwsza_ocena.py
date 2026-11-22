@@ -96,12 +96,15 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     wnioski = "Koordynowanie pracy z interesariuszami."
     while not page.get_by_role("heading", name="Podsumowanie i punkty").is_visible():
+        informacja = page.get_by_role("button", name="Informacja zwrotna: mocne strony i obszary rozwoju")
+        if informacja.count():
+            informacja.click()
         obszary = page.get_by_label("Obszary rozwoju")
         if obszary.count():
             obszary.fill(wnioski)
-        przed = page.locator(".oc-licznik").inner_text()
+        przed = page.locator(".oc-ekran .oc-tytul").first.inner_text()
         page.locator(".oc-nawigacja > button:not(.link)").click()
-        expect(page.locator(".oc-licznik", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
+        expect(page.locator(".oc-ekran .oc-tytul", has_text=re.compile(f"^{re.escape(przed)}$"))).to_have_count(0)
     expect(page.get_by_text("Wszystkie kryteria mają punkty.")).to_be_visible()
     page.get_by_label("Data rozmowy oceniającej").fill("2026-11-18")
     page.get_by_role("button", name="Zakończ rozmowę").click()
