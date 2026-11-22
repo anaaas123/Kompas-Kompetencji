@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from .hr import Termin
 from .krok1 import Sciezka
 from .pierwsza_ocena import ZapisDanychPierwszej, uzupelnij_z_kadr
-from .procesy import _KOLUMNY, ProcesOceny, _z_wiersza, dzien_urzedowy
+from .procesy import _KOLUMNY, ProcesOceny, _z_wiersza, dzien_urzedowy, dzien_ustalenia_kryteriow
 from .qnt import MockQnt, Pracownik
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
@@ -58,7 +58,7 @@ def _wynik(
         osoba_id=p.osoba_id, sciezka=sciezka, etap=etap, czynnosc=czynnosc, termin=termin,
         dni_do_terminu=dni, po_terminie=dni is not None and dni < 0,
         proces_id=proces.id if proces else None,
-        kryteria_ustalone=dzien_urzedowy(proces.krok2.zapisano) if proces and proces.krok2 else None,
+        kryteria_ustalone=dzien_ustalenia_kryteriow(proces.krok2) if proces and proces.krok2 else None,
         braki=list(braki),
     )
 
@@ -68,7 +68,7 @@ def etap_okresowej(
 ) -> EtapOsoby:
     """``od_kiedy``: od tego dnia aplikacja prowadzi oceny (stan danych kadrowych). Wcześniejszy termin
     kryteriów dotrzymano poza aplikacją (ta sama zasada co w ``hr.terminy_z_regul``); późniejszy pilnujemy."""
-    ustalone = dzien_urzedowy(proces.krok2.zapisano) if proces and proces.krok2 else None
+    ustalone = dzien_ustalenia_kryteriow(proces.krok2) if proces and proces.krok2 else None
     zapoznanie = proces.krok2.zapoznanie if proces and proces.krok2 else None
     t = oblicz_terminy(p, DaneTerminow(data_ustalenia_kryteriow=ustalone, data_zapoznania_z_kryteriami=zapoznanie), konf)
     ocena = t.termin_sporzadzenia_oceny or t.termin_bazowy
