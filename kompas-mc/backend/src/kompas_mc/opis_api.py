@@ -26,7 +26,7 @@ from .opis_osoby import NIE_DO_MODELU, OZNACZENIE_OPISU, Fakt, Zdanie, fakty, op
 from .procesy import _KOLUMNY, _z_wiersza
 from .pseudonimizacja import Pseudonimizator
 from .qnt import MockQnt, Pracownik
-from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
+from .samoocena import powod_ukrycia, rozbieznosc, wczytaj as wczytaj_samoocene
 from .terminy_okresowej import KonfiguracjaTerminow
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej
 
@@ -70,8 +70,7 @@ def router(
         if proces is not None and proces.krok2 is not None:
             status, przekazano, pozycje = wczytaj_samoocene(baza, proces.id)
             oceny, decyzje = _wczytaj_dane(baza, proces.id)
-            pracownik_sam = auth.moze(uz, "pracownik", rekord, "samoocena.zapisz")
-            if tresc and not (pracownik_sam and status != "przekazana"):
+            if tresc and powod_ukrycia(auth, uz, rekord, baza, proces) is None:
                 if d := aktualne_decyzje(proces.krok2, decyzje):
                     biezace = (len(proces.krok2.kryteria), {k: x.punkty for k, x in d.items()})
             if status == "przekazana" and auth.moze(uz, "pracownik", rekord, "samoocena.czytaj"):

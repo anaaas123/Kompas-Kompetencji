@@ -199,16 +199,24 @@ def zrzut(pozycje: dict[str, PozycjaSamooceny]) -> dict:
 KOMUNIKAT_PRZED_PRZEKAZANIEM = "Ocena przełożonego będzie widoczna po przekazaniu samooceny."
 
 
+def powod_ukrycia(auth, uz, rekord: dict, baza: sqlite3.Connection, proces) -> str | None:
+    """Jedna reguła dla każdej drogi do treści oceny (ocena, wynik, arkusz, PDF, mapa zespołu, opis osoby):
+    powód, dla którego pracownik (samoocena.zapisz) nie widzi jeszcze ocen przełożonego, albo None.
+    Helix G3 runda 2: reguła była powielona w trzech miejscach i poprawka pierwszej oceny objęła tylko jedno."""
+    if proces.status != "W_TOKU" or not auth.moze(uz, "pracownik", rekord, "samoocena.zapisz"):
+        return None
+    if proces.sciezka == "pierwsza":
+        return "Pierwszą ocenę zobaczysz po jej sporządzeniu na piśmie przez przełożonego."
+    if wczytaj(baza, proces.id)[0] != "przekazana":
+        return KOMUNIKAT_PRZED_PRZEKAZANIEM
+    return None
+
+
 def ukryj_przed_przekazaniem(auth, uz, rekord: dict, baza: sqlite3.Connection, proces) -> None:
     """Pracownik (samoocena.zapisz) zobaczy treść oceny przełożonego dopiero po przekazaniu samooceny (#9),
     żeby jej nie przepisywał; dotyczy każdego odczytu treści (ocena, wynik, arkusz, PDF), nie tylko kroku 3.
     Po zakończeniu oceny (§ 12) pracownik zawsze widzi ocenę i dostaje kopię arkusza."""
     from fastapi import HTTPException
 
-    if proces.status == "W_TOKU" and auth.moze(uz, "pracownik", rekord, "samoocena.zapisz"):
-        # Pierwsza ocena nie ma samooceny: oceniany widzi punkty tylko przez ścieżkę pierwszej oceny, po sporządzeniu
-        # oceny na piśmie (pierwsza_ocena_api), więc przekazanie samooceny nie odsłania tu ocen przełożonego.
-        if proces.sciezka == "pierwsza":
-            raise HTTPException(403, "Pierwszą ocenę zobaczysz po jej sporządzeniu na piśmie przez przełożonego.")
-        if wczytaj(baza, proces.id)[0] != "przekazana":
-            raise HTTPException(403, KOMUNIKAT_PRZED_PRZEKAZANIEM)
+    if powod := powod_ukrycia(auth, uz, rekord, baza, proces):
+        raise HTTPException(403, powod)
