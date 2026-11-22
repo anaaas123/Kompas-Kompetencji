@@ -83,12 +83,17 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
     ) -> StanOceny:
         baza = request.app.state.baza
         metodyka = rejestr(request).przypnij(proces.id)
+        # Warunek statusu w samym UPDATE: zakończenie procesu między odczytem a zapisem daje 409, a nie
+        # zmianę ocen zakończonej oceny (Helix G3 #1, 22.11; wcześniejsza kontrola W_TOKU to tylko odczyt).
         with baza:
-            baza.execute(f"UPDATE procesy SET {kolumna} = ? WHERE id = ?", (wartosc, proces.id))
+            if not baza.execute(
+                f"UPDATE procesy SET {kolumna} = ? WHERE id = ? AND status = 'W_TOKU'", (wartosc, proces.id)
+            ).rowcount:
+                raise HTTPException(409, "Proces nie jest w toku")
         nowy = stan(request, proces)
         krok = max(proces.krok, 5 if nowy.kompletnosc.wszystkie_decyzje else 3)
         with baza:
-            baza.execute("UPDATE procesy SET krok = ? WHERE id = ?", (krok, proces.id))
+            baza.execute("UPDATE procesy SET krok = ? WHERE id = ? AND status = 'W_TOKU'", (krok, proces.id))
         dziennik: Dziennik = request.app.state.dziennik
         dziennik.zapisz(uz.login, "proces", str(proces.id), przed, po, metodyka.id)
         return nowy
@@ -195,7 +200,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         if body.data and nowy.kompletnosc.wszystkie_decyzje:
             baza = request.app.state.baza
             with baza:
-                baza.execute("UPDATE procesy SET krok = MAX(krok, 6) WHERE id = ?", (proces.id,))
+                baza.execute("UPDATE procesy SET krok = MAX(krok, 6) WHERE id = ? AND status = 'W_TOKU'", (proces.id,))
         return nowy
 
     return r

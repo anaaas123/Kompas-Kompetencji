@@ -307,6 +307,8 @@ export interface WyborKroku2 {
   zapisano: string;
   /** Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2): zakończenie części I. */
   zapoznanie?: string | null;
+  /** Oczekiwania i cele na okres (§ 5 ust. 1 pkt 3–4), cel w wierszu. */
+  ustalenia?: string | null;
 }
 
 export interface Krok2 {
@@ -341,11 +343,11 @@ export async function zapiszKrok2(
 }
 
 /** Zakończenie części I: data rozmowy na początku okresu i zapoznania z kryteriami (§ 5 ust. 1, § 6 ust. 2). */
-export async function zapiszZapoznanie(token: string, procesId: number, data: string): Promise<ProcesOceny> {
+export async function zapiszZapoznanie(token: string, procesId: number, data: string, ustalenia?: string): Promise<ProcesOceny> {
   const r = await fetch(`/api/procesy/${procesId}/krok2/zapoznanie`, {
     method: "PUT",
     headers: { "content-type": "application/json", ...autoryzacja(token) },
-    body: JSON.stringify({ data }),
+    body: JSON.stringify({ data, ustalenia: ustalenia?.trim() || null }),
   });
   const tresc = await r.json().catch(() => null);
   if (!r.ok) throw new BladApi(r.status, tresc?.detail);
@@ -551,6 +553,22 @@ async function zapiszOcene(token: string, procesId: number, sciezka: string, dan
 
 export const zapiszWskazniki = (token: string, procesId: number, wskazniki: Record<string, OcenaWskaznika | null>) =>
   zapiszOcene(token, procesId, "wskazniki", { wskazniki });
+
+/** Pytanie do rozmowy przy wskaźniku z modelu (Scaleway, UE); `pytanie: null`, gdy model nie odpowiedział. */
+export async function pobierzPodpowiedz(
+  token: string,
+  procesId: number,
+  wskaznikId: string,
+): Promise<{ pytanie: string | null; dostawca?: string | null }> {
+  const r = await fetch(`/api/procesy/${procesId}/rozmowa/podpowiedz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ wskaznik_id: wskaznikId }),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc;
+}
 
 export const zapiszRozmowe = (token: string, procesId: number, zapis: ZapisRozmowy) =>
   zapiszOcene(token, procesId, "rozmowa", zapis);
