@@ -7,7 +7,7 @@
 | Backend | Python 3.12, **FastAPI** (dokumentacja OpenAPI pod `/docs`), Pydantic, SQLite |
 | Interfejs | **React + TypeScript + Vite**, przeglądarka na komputerze i tablecie (bez smartfonów, zgodnie z zadaniem) |
 | Dokumenty | ReportLab (PDF z polskimi znakami), pypdf i openpyxl (ekstrakcja z PDF, DOCX i XLSX) |
-| AI | BM25 na rdzeniach słów (własna implementacja, bez wektorów); łańcuch dostawców `LlmProvider` z `asystent.yaml`: DeepSeek `deepseek-v4-flash` (API zgodne z OpenAI, klucz `DEEPSEEK_API_KEY`) → Ollama `qwen3:8b` → tryb ekstrakcyjny |
+| AI | BM25 na rdzeniach słów (własna implementacja, bez wektorów); łańcuch dostawców `LlmProvider` z `asystent.yaml`: DeepSeek v4 Flash przez Scaleway Generative APIs w UE (API zgodne z OpenAI, klucz `SCALEWAY_API_KEY`) → Ollama `qwen3:8b` → tryb ekstrakcyjny |
 | Jakość | pytest (300 testów backendu MC, 97 testów core), walidator cytatów `kompas-waliduj` (186 cytatów, 0 błędów); oba uruchamiane ręcznie |
 
 Wszystkie biblioteki są open source i nie wymagają płatnych usług.
@@ -53,7 +53,7 @@ Wszystkie biblioteki są open source i nie wymagają płatnych usług.
 | Autoryzacja | Role z pliku `role.yaml` | Role i podległość z systemu kadrowego, przegląd uprawnień, zasada najmniejszych uprawnień |
 | Dane osobowe | Fikcyjne dane, SQLite bez szyfrowania | Baza z szyfrowaniem w spoczynku i w transmisji (TLS), retencja zgodna z przepisami o aktach osobowych, DPIA, rejestr czynności przetwarzania |
 | Integracje | Mock QNT i mock EZD | Prawdziwe API QNT i EZD, uwierzytelnienie usług (mTLS / klucze), obsługa błędów i kolejki |
-| AI | Łańcuch z `asystent.yaml`: DeepSeek → Ollama → ekstrakcyjny; bez klucza i Ollamy odpowiada tryb ekstrakcyjny | Model hostowany w infrastrukturze MC (dane nie opuszczają urzędu), testy jakości na pytaniach od ekspertów HR, monitorowanie odpowiedzi i logów |
+| AI | Łańcuch z `asystent.yaml`: DeepSeek v4 Flash przez Scaleway (UE) → Ollama → ekstrakcyjny; bez klucza i Ollamy odpowiada tryb ekstrakcyjny | Model hostowany w infrastrukturze MC (dane nie opuszczają urzędu), testy jakości na pytaniach od ekspertów HR, monitorowanie odpowiedzi i logów |
 | Baza wiedzy | Materiały MC i ustawa o służbie cywilnej (tekst jednolity Dz.U. 2026 poz. 590 z ISAP, stan prawny na 14.04.2026) | Aktualizacja ustawy po zmianach (najbliższa: Dz.U. 2026 poz. 26 od 1.01.2027), aktualne poradniki KPRM, proces aktualizacji przepisów z zatwierdzaniem |
 | Metodyka | Mediana i mapowanie 5→3 jako decyzja projektowa | Zatwierdzenie przez właściciela metodyki w MC (w aplikacji: wersja z osobą i datą) |
 | Podpis | PDF do podpisu odręcznego | Ewentualny podpis kwalifikowany lub podpis w EZD, zgodnie z decyzją prawną |

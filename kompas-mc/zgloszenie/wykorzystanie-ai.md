@@ -2,7 +2,7 @@
 
 Model językowy działa przez łańcuch dostawców `LlmProvider` z `kompas-mc/konfiguracja/asystent.yaml` (sekcja `llm.dostawcy`), w tej kolejności:
 
-1. `openai_zgodny`: DeepSeek (`https://api.deepseek.com`), model `deepseek-v4-flash`, klucz ze zmiennej `DEEPSEEK_API_KEY`, timeout 30 s, temperatura 0;
+1. `openai_zgodny`: DeepSeek v4 Flash hostowany w Scaleway Generative APIs w UE (`https://api.scaleway.ai/v1`, model `deepseek-v4-flash-0731`), klucz ze zmiennej `SCALEWAY_API_KEY`, adres z projektem opcjonalnie z `SCALEWAY_BASE_URL`, timeout 30 s, temperatura 0; zapytania nie trafiają bezpośrednio do dostawcy modelu;
 2. `ollama`: model lokalny `qwen3:8b`, timeout 5 s;
 3. `ekstrakcyjny`: bez modelu, fragmenty wybrane wyszukiwaniem BM25 (k = 3).
 

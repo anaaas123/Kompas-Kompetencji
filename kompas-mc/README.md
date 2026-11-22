@@ -60,13 +60,13 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
 
 Pomiar używa niezmienianych zestawów `pytania-kontrolne.yaml` oraz
 `pytania-parafrazy.yaml` (`uv run pytest tests/test_asystent_formalny.py -s`).
-Pełny zestaw testów działa offline, więc tryb DeepSeek (wymaga lokalnego klucza)
+Pełny zestaw testów działa offline, więc tryb z modelem (wymaga klucza Scaleway)
 nie jest w nim uruchamiany; poniższa tabela nie przypisuje mu wyniku bez pomiaru.
 
 | Tryb | Pytania kontrolne: dokument i cytat | Parafrazy: dokument i cytat | Odmowy spoza bazy |
 |---|---:|---:|---:|
 | Ekstrakcyjny | 22/22 | 16/22 | 6/6 kontrolnych, 5/5 parafraz |
-| DeepSeek `deepseek-v4-flash` | do pomiaru z kluczem | do pomiaru z kluczem | do pomiaru z kluczem |
+| DeepSeek v4 Flash przez Scaleway (`deepseek-v4-flash-0731`) | do pomiaru z kluczem | do pomiaru z kluczem | do pomiaru z kluczem |
 
 `GET /api/zrodla` pokazuje dokumenty korpusu, duplikat „Rozporządzenie … (4).pdf” (fragment rozporządzenia z 2016 r., nie osobne źródło) i pliki pominięte.
 
