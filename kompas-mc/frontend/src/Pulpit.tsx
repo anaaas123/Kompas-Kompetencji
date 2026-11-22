@@ -334,7 +334,7 @@ export function Pulpit({
         )}
       </div>
 
-      {mapa && sprawy && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} czesc={zespol ? "szczegoly" : undefined} />}
+      {mapa && sprawy && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} czesc={zespol ? "tabela" : undefined} />}
 
       <div className="pulpit-pasek">
         <form className="pole-zapytania" role="search" onSubmit={wyslij}>

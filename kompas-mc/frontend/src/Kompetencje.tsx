@@ -22,6 +22,9 @@ interface Wniosek {
 }
 
 /** Kryterium do rozwoju: najwięcej osób poniżej oczekiwań (co najmniej 2); mocna strona: najwyższa średnia > 5. */
+/** „u 1 osoby”, „u 2 osób” (dopełniacz po „u”; mianownik „2 osoby” był błędny, G2 22.11). */
+const uOsob = (n: number) => (n === 1 ? "1 osoby" : `${n} osób`);
+
 function wnioski(m: Mapa, osoby: Mapa["osoby"]): { slabe: Wniosek | null; mocne: Wniosek | null } {
   const staty = m.kryteria
     .map((k) => {
@@ -36,12 +39,12 @@ function wnioski(m: Mapa, osoby: Mapa["osoby"]): { slabe: Wniosek | null; mocne:
       slabe && slabe.ponizej >= 2
         ? {
             nazwa: nazwaKryterium(slabe.k.nazwa),
-            tekst: `${slabe.ponizej} z ${osobyTxt(slabe.w.length)} poniżej oczekiwań (średnio ${liczba(srednia(slabe.w))} pkt)`,
+            tekst: `${slabe.ponizej} z ${slabe.w.length} osób poniżej oczekiwań (średnio ${liczba(srednia(slabe.w))} pkt)`,
           }
         : null,
     mocne:
       mocne && srednia(mocne.w) > m.poziom_oczekiwan
-        ? { nazwa: nazwaKryterium(mocne.k.nazwa), tekst: `średnio ${liczba(srednia(mocne.w))} pkt u ${osobyTxt(mocne.w.length)}` }
+        ? { nazwa: nazwaKryterium(mocne.k.nazwa), tekst: `średnio ${liczba(srednia(mocne.w))} pkt u ${uOsob(mocne.w.length)}` }
         : null,
   };
 }
@@ -70,7 +73,7 @@ function ProfilKompetencji({ mapa, osoby, kryteria }: { mapa: Mapa; osoby: Mapa[
           return (
             <li key={k.kompetencja_id}>
               <span className="nazwa-slupka">{nazwa}</span>
-              <span className="tor-profilu" role="img" aria-label={`${nazwa}: średnio ${liczba(sr)} pkt u ${osobyTxt(w.length)}`}>
+              <span className="tor-profilu" role="img" aria-label={`${nazwa}: średnio ${liczba(sr)} pkt u ${uOsob(w.length)}`}>
                 <span className={`wypelnienie-profilu ${t}`} style={{ width: pozycja(sr) }} />
                 <span className="linia-oczekiwan" style={{ left: pozycja(mapa.poziom_oczekiwan) }} />
               </span>
@@ -107,9 +110,9 @@ export function MapaKompetencji({
   /** Osoby w wybranej komórce (zakres Zespołu); mapa pokazuje tylko je. */
   ludzie: Pracownik[];
   onWybierz?: (p: Pracownik) => void;
-  /** Pulpit (zgłoszenie 110): „wnioski” = do rozwoju i mocna strona w prawej kolumnie, „szczegoly” = średnie i tabela pod spodem;
-   *  bez = całość (Zespół). */
-  czesc?: "wnioski" | "szczegoly";
+  /** Pulpit (zgłoszenie 110): „wnioski” = do rozwoju i mocna strona w prawej kolumnie, „tabela” = mapa ciepła osób
+   *  i kryteriów pod spodem (Karol 22:45); średnie na kryterium są tylko w Zespole (G2: bez powtórzeń). Bez = całość. */
+  czesc?: "wnioski" | "tabela";
 }) {
   const poId = new Map(ludzie.map((p) => [p.osoba_id, p]));
   const osoby = mapa.osoby.filter((o) => poId.has(o.osoba_id));
@@ -120,12 +123,12 @@ export function MapaKompetencji({
 
   return (
     <section className={`mapa-kompetencji${czesc ? ` mapa-${czesc}` : ""}`}>
-      <h2>{czesc === "szczegoly" ? "Kompetencje zespołu: kryteria i osoby" : "Kompetencje zespołu"}</h2>
+      <h2>{czesc === "tabela" ? "Mapa kompetencji: osoby i kryteria" : "Kompetencje zespołu"}</h2>
       {osoby.length === 0 ? (
         <p className="meta zero">Nikt w tej komórce nie ma jeszcze oceny z punktami za kryteria.</p>
       ) : (
         <>
-          {czesc !== "szczegoly" && (
+          {czesc !== "tabela" && (
           <div className="wnioski-mapy">
             {slabe && (
               <p className="wniosek do-rozwoju">
@@ -143,7 +146,7 @@ export function MapaKompetencji({
             )}
           </div>
           )}
-          {czesc !== "wnioski" && <ProfilKompetencji mapa={mapa} osoby={osoby} kryteria={kryteria} />}
+          {czesc === undefined && <ProfilKompetencji mapa={mapa} osoby={osoby} kryteria={kryteria} />}
           {czesc !== "wnioski" && (
           <>
           <div className="tabela-mapy" role="region" aria-label="Mapa kompetencji: osoby i kryteria" tabIndex={0}>
