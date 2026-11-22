@@ -70,11 +70,17 @@ class CytatAsystenta(BaseModel):
 # nazwy poziomu skali w zdaniu z propozycją (zadanie MC: „ostateczny poziom oceny zawsze wybiera przełożony”).
 # Core sprawdza tylko cytaty, nie treść (icc-8a, 22.11), więc ta kontrola jest ostatnia przed ekranem.
 _PROPOZYCJA_OCENY = re.compile(
-    r"\b[1-9]\s*(pkt|punkt)"
+    # „3 pkt” jako ocena, ale nie odwołanie „§ 10 ust. 1 pkt 2” (po skrócie stoi numer).
+    r"\b[1-9]\s*(pkt\b|punkt\w*)(?!\s*\d)"
+    r"|\b(jeden|jednego|trzy|trzech|pięć|pięciu|siedem|siedmiu|dziewięć|dziewięciu)\s+punkt"
     r"|\bpoziom\w*\s*(nr\s*)?[1-9]\b"
     r"|\bocen\w*\s+(na\s+)?[1-9]\b"
-    r"|(proponuj|sugeruj|rekomend|zalecam|oceń|przyznaj|należy\s+(przyznać|ocenić)|powin\w+\s+(otrzymać|dostać))"
-    r"[^.?!]{0,80}(poniżej|powyżej|na\s+poziomie)\s+oczekiwań",
+    r"|\bocen\w*\s*[:=]\s*[1-9]"
+    # Czasownik propozycji, a dalej poziom skali, wynik oceny albo wartość punktowa skali.
+    # ponytail: „sugeruję omówić 3 przykłady” też zostanie zablokowane (zostają cytaty); poprawić, gdy będzie się zdarzać.
+    r"|(proponuj|sugeruj|rekomend|zalecam|oceń|przyznaj|zasługuj|wystaw|warto\s+(dać|przyznać|wystawić)"
+    r"|należy\s+(przyznać|ocenić)|powin\w+\s+(otrzymać|dostać))"
+    r"[^.?!]{0,80}((poniżej|powyżej|na\s+poziomie)\s+oczekiwań|pozytywn\w*|negatywn\w*|\b[13579]\b)",
     re.IGNORECASE,
 )
 

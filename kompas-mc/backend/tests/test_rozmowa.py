@@ -350,6 +350,16 @@ def test_podpowiedz_ai_przy_wskazniku_bez_danych_osobowych(klient, naglowek):
         ("Jak wyglądała realizacja tego zadania w okresie oceny?", False),
         ("Standard to poziom „na poziomie oczekiwań”: jak to wyglądało u Ciebie?", False),
         ("W razie oceny negatywnej przysługuje sprzeciw w 7 dni.", False),
+        # Przykłady icc-8a (22.11): odwołania do przepisów przechodzą, propozycje oceny nie.
+        ("Zgodnie z § 10 ust. 1 pkt 2 rozporządzenia omawia się cele.", False),
+        ("Art. 81 ust. 1 pkt 3 ustawy dotyczy oceny.", False),
+        ("Zakres rozmowy opisuje § 3 pkt 1 poradnika.", False),
+        ("Sugeruję ocenę negatywną.", True),
+        ("Proponuję wynik pozytywny oceny okresowej.", True),
+        ("Oceniany zasługuje na poziom powyżej oczekiwań.", True),
+        ("Ocena: 7.", True),
+        ("Moim zdaniem siedem punktów będzie właściwe.", True),
+        ("Warto dać mu 7.", True),
     ],
 )
 def test_tekst_modelu_nie_podsuwa_oceny(tekst, ocena):
