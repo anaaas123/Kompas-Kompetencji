@@ -169,15 +169,18 @@ def test_zawiadomienie_pdf_dopiero_po_zapisie_zmiany_terminu(api_wyniku):
 
 
 def test_zmiana_terminu_trafia_do_cyklu_i_panelu_hr(api_wyniku):
-    """Helix G3, pkt 5 (zgłoszenie 124): zmiana terminu zapisana w ocenie na piśmie przesuwa termin także
-    na pulpicie i karcie (/api/cykl) oraz w panelu HR, a nie tylko w wyniku."""
+    """Helix G3, pkt 5 (zgłoszenie 124, wariant z rundy 2): zmiana terminu zapisana w ocenie na piśmie przesuwa
+    termin także na pulpicie i karcie (/api/cykl) oraz w panelu HR, również gdy data zapoznania z kryteriami
+    w ocenie na piśmie jest starsza niż zapis kroku 2 w aplikacji."""
     klient, naglowek = api_wyniku
     h = naglowek("przelozony1")
     proces, kryteria = _przygotuj_proces(klient, h, "P-105")
     _zapisz_punkty(klient, h, proces, kryteria, (5, 5, 5, 5, 5))
-    _json(klient.put(f"{proces}/wynik-okresowy", headers=h, json={"zmiana_terminu": {
-        "nowy_termin": "2026-12-15", "data_zawiadomienia": "2026-11-18", "przyczyna": "wniosek_ocenianego",
-    }}))
+    # Wariant z rundy 2: data zapoznania z kryteriami sprzed zapisu kroku 2 w aplikacji nie może zgubić zmiany terminu.
+    _json(klient.put(f"{proces}/wynik-okresowy", headers=h, json={
+        "data_zapoznania_z_kryteriami": "2025-01-09",
+        "zmiana_terminu": {"nowy_termin": "2026-12-15", "data_zawiadomienia": "2026-11-18", "przyczyna": "wniosek_ocenianego"},
+    }))
     cykl = {e["osoba_id"]: e for e in _json(klient.get("/api/cykl", headers=h))}
     assert cykl["P-105"]["termin"]["data"] == "2026-12-15"
     pid = int(proces.rsplit("/", 1)[1])

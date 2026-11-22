@@ -284,6 +284,14 @@ def dane_terminow_procesu(zapis_wyniku: str | None, **z_kroku_2: date | None) ->
         zapisane = json.loads(zapis_wyniku).get("dane") or {}
         dane = {k: v for k, v in zapisane.items() if k in DaneTerminow.model_fields and v is not None}
     for pole, wartosc in z_kroku_2.items():
-        if wartosc is not None:
-            dane.setdefault(pole, wartosc)
+        if wartosc is None or pole in dane:
+            continue
+        proba = {**dane, pole: wartosc}
+        try:
+            DaneTerminow.model_validate(proba)
+        except ValueError:
+            # Data z kroku 2 kłóci się z datami z oceny na piśmie (np. zapoznanie sprzed zapisu w aplikacji):
+            # wygrywa zapis oceny na piśmie, tak jak w samym wyniku (Helix G3 runda 2, pkt 5).
+            continue
+        dane = proba
     return DaneTerminow.model_validate(dane)
