@@ -35,21 +35,20 @@ export function dzienZapisu(czas: Date) {
   return czas.toLocaleDateString("sv-SE", { timeZone: "Europe/Warsaw" });
 }
 
-export async function dataRozmowy(token: string, procesId: number) {
-  const stan = await pobierzOcene(token, procesId);
-  const czasy = stan.kryteria.flatMap((k) => k.decyzja ? [Date.parse(k.decyzja.zapisano)] : []).filter(Number.isFinite);
-  return dzienZapisu(czasy.length ? new Date(Math.max(...czasy)) : new Date());
+/** Z rozmowy oceniającej (część 2) do części 3: data rozmowy i wnioski IPRZ z notatki „Rozwój” i obszarów rozwoju. */
+export interface ZRozmowy {
+  data: string;
+  wnioski: string | null;
 }
 
-export function notatkaRozwoju(procesId: number): string | null {
-  try {
-    const notatka = sessionStorage.getItem(`kompas-notatka-${procesId}-rozwoj`);
-    if (notatka?.trim()) return notatka;
-    const szkic = JSON.parse(sessionStorage.getItem(`kompas-szkic-${procesId}`) ?? "null");
-    return typeof szkic?.rozwoj === "string" && szkic.rozwoj.trim() ? szkic.rozwoj : null;
-  } catch {
-    return null;
-  }
+export async function zRozmowy(token: string, procesId: number): Promise<ZRozmowy> {
+  const stan = await pobierzOcene(token, procesId);
+  const czasy = stan.kryteria.flatMap((k) => k.decyzja ? [Date.parse(k.decyzja.zapisano)] : []).filter(Number.isFinite);
+  const wnioski = [stan.rozmowa?.notatki?.rozwoj, stan.rozmowa?.obszary_rozwoju].map((t) => t?.trim()).filter(Boolean).join("\n\n");
+  return {
+    data: stan.rozmowa?.data ?? dzienZapisu(czasy.length ? new Date(Math.max(...czasy)) : new Date()),
+    wnioski: wnioski || null,
+  };
 }
 
 const TERMINY: { klucz: keyof WynikOkresowy["terminy"]; nazwa: string }[] = [
@@ -442,9 +441,11 @@ interface FormularzOkresowej {
   blokada: boolean;
 }
 
-export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, children }: FormularzOkresowej & {
+export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, zapoznanie, children }: FormularzOkresowej & {
   children: ReactNode;
   onZmienOcene?: () => void;
+  /** Data zapoznania i „Zakończ ocenę” po zatwierdzeniu arkusza (§ 12 ust. 1). */
+  zapoznanie?: ReactNode;
 }) {
   const o = wynik.obliczenie;
   const minimum = Math.min(...wynik.oceny_czastkowe.map((k) => k.punkty));
@@ -509,6 +510,7 @@ export function BokOkresowej({ wynik, f, ustaw, blokada, onZmienOcene, children 
         {wynik.terminy.termin_sprzeciwu?.slad.filter((s) => s.regula.id === "okresowa.termin.sprzeciw-7")
           .map((s) => <Zrodla key={s.regula.id} adnotacje={[s.regula.zrodlo]} />)}
         <small>Poradnik KPRM dotyczący ocen okresowych, s. 32–33.</small>
+        {zapoznanie}
       </section>
     </>
   );

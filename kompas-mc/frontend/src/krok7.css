@@ -4,6 +4,8 @@
 .k7 button, .k7 summary, .k7 input:not([type="checkbox"]), .k7 .zaznacz { min-height: 44px; }
 .k7 button.link { min-width: 44px; min-height: 44px; white-space: normal; text-align: left; }
 .k7 .k2-naglowek button, .k7-pasek > .link { display: inline-flex; align-items: center; gap: var(--o-4); }
+/* Powrót na pasku w jednej linii (wygrywa z .k7 button.link). */
+.k7 .k7-pasek > button.link { white-space: nowrap; }
 .k7 summary { align-content: center; cursor: pointer; color: var(--k-link); }
 .k7 :is(button, summary, input, textarea):focus-visible { outline: 2px solid var(--k-focus); outline-offset: 2px; }
 .k7 .k7-rozwin:active, .k7 summary:active { background: var(--k-wiersz-pressed); }

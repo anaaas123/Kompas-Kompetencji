@@ -28,9 +28,9 @@ import {
   Wczytywanie,
   Werdykt,
   data,
-  dataRozmowy,
   dzienZapisu,
-  notatkaRozwoju,
+  type ZRozmowy,
+  zRozmowy,
   poprawnaData,
   zapiszPlik,
   type Brak,
@@ -134,17 +134,17 @@ function Formularz({
   osoba: Pracownik;
   edycja: boolean;
   onWstecz: () => void;
-  rozmowa: string | null;
+  rozmowa: ZRozmowy | null;
   zakonczony: boolean;
   onZapisano: (s: StanPierwszejOceny) => void;
 }) {
   const poczatkowe = daneFormularza(stan, edycja);
   const [d, setD] = useState<DanePierwszej>(() => edycja && !stan.formularz.zatwierdzony ? {
     ...poczatkowe,
-    data_rozmowy_oceniajacej: poczatkowe.data_rozmowy_oceniajacej ?? rozmowa,
+    data_rozmowy_oceniajacej: poczatkowe.data_rozmowy_oceniajacej ?? rozmowa?.data ?? null,
     data_sporzadzenia_oceny: poczatkowe.data_sporzadzenia_oceny ?? dzienZapisu(new Date()),
     wnioski_rozwojowe: stan.wnioski_dostepne && !poczatkowe.wnioski_rozwojowe?.trim()
-      ? notatkaRozwoju(stan.proces_id) : poczatkowe.wnioski_rozwojowe,
+      ? rozmowa?.wnioski ?? null : poczatkowe.wnioski_rozwojowe,
     pola: { ...poczatkowe.pola, ...podpowiedziPol(stan.formularz, przelozony) },
   } : poczatkowe);
   const [braki, setBraki] = useState<BrakArkusza[]>(stan.formularz.braki);
@@ -313,7 +313,7 @@ function Formularz({
       }), zatwierdz);
       const poZapisie = daneFormularza(po, edycja);
       if (!stan.wnioski_dostepne && po.wnioski_dostepne && !po.formularz.zatwierdzony && !poZapisie.wnioski_rozwojowe?.trim()) {
-        poZapisie.wnioski_rozwojowe = notatkaRozwoju(stan.proces_id);
+        poZapisie.wnioski_rozwojowe = rozmowa?.wnioski ?? null;
       }
       setD(poZapisie);
       setSprawdzoneDane(po.dane);
@@ -572,7 +572,8 @@ function Formularz({
               <Zrodla adnotacje={[stan.podstawa_wnioskow]} />
             </div>
           )}
-          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony.</p>}
+          {/* Pierwsza ocena kończy się arkuszem; dalej kadry: umowa na czas nieokreślony albo mianowanie, przy negatywnej rozwiązanie umowy. */}
+          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony. Dalej: decyzja kadrowa (umowa/mianowanie).</p>}
         </>
       }
       akcje={
@@ -621,7 +622,7 @@ function Formularz({
 export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onZmienOcene, zalogowanyId }: Krok7Props) {
   const zakonczony = proces.status !== "W_TOKU";
   const edycja = moznaProwadzic && !zakonczony;
-  const [rozmowa, setRozmowa] = useState<string | null>(null);
+  const [rozmowa, setRozmowa] = useState<ZRozmowy | null>(null);
   const [przelozony, setPrzelozony] = useState<Pracownik>();
   const [stan, setStan] = useState<StanPierwszejOceny | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
@@ -632,7 +633,7 @@ export function Pierwsza({ token, osoba, proces, moznaProwadzic, onWstecz, onZmi
     Promise.all([
       pobierzPierwsza(token, proces.id),
       edycja ? pobierzPrzelozonego(token, osoba, zalogowanyId).catch(() => undefined) : undefined,
-      edycja ? dataRozmowy(token, proces.id).catch(() => null) : null,
+      edycja ? zRozmowy(token, proces.id).catch(() => null) : null,
     ])
       .then(([s, kierownik, dzien]) => {
         if (aktywny) {

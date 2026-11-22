@@ -6,8 +6,9 @@ Karta → krok 1 → kryteria z jednym dodatkowym → PDF części I → „Zapi
 Część II („Zakończ ocenę”, § 10–11): Anna Zielińska-Demo (P-101, przełożony 1) jest w oknie oceny końcowej bez
 procesu w aplikacji, więc „Zakończ ocenę” zaczyna od kroku 1. Krok 1 → kryteria (jedno dodatkowe) → karta →
 „Zakończ ocenę” → rozmowa oceniająca jednym przebiegiem (obowiązki, wskaźniki z wyborem zachowania, rozwój) →
-podsumowanie z punktami po rozmowie (sugestia raz przyjęta, raz zmieniona z uzasadnieniem) → wynik i daty →
-arkusz (miejscowości, data rozmowy, wnioski IPRZ) → zatwierdzenie → PDF → EZD próbnie → wnioski (krok 8) → karta.
+podsumowanie z punktami po rozmowie (sugestia raz przyjęta, raz zmieniona z uzasadnieniem) → „Zakończ rozmowę” →
+część 3 „Ocena na piśmie” (wnioski IPRZ, poziom poprzedniej oceny) → zatwierdzenie → PDF → EZD próbnie →
+zakończenie z datą zapoznania (§ 12) → karta z „Rozpocznij ocenę” i nową oceną w „Poprzednich ocenach”.
 Wersja aplikacji: integracja 8164b92 (rozmowa z gałęzi 46-rozmowa-przebieg).
 
 Świeża baza (KOMPAS_MC_DANE=$(mktemp -d)); zmienne jak w test_samoocena.py, TRYB=dark dla ciemnego motywu.
@@ -254,46 +255,45 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
             page.wait_for_load_state("networkidle")
     expect(page.get_by_text("Wszystkie kryteria mają punkty.")).to_be_visible()
     s.krok("II-podsumowanie-punkty")
-    page.get_by_role("button", name="Dalej: ocena na piśmie").click()
-    expect(page.get_by_role("heading", name="Wynik oceny")).to_be_visible()
-    s.krok("II-wynik")
     dzis = date.today().isoformat()
-    for pole in page.locator(".siatka-dat input").all():
-        if not pole.input_value():
-            pole.fill(dzis)
-    poprzedni = page.get_by_label("Poziom poprzedniej oceny (brak w danych kadrowych)")
-    if poprzedni.count():
-        poprzedni.fill("na poziomie oczekiwań")
-    page.get_by_role("button", name="Zapisz wynik i terminy").click()
-    expect(page.get_by_text("Wynik i dane zapisane.")).to_be_visible()
-    s.krok("II-wynik-zapisany")
-    page.get_by_role("button", name="Dalej: arkusz oceny").click()
-    expect(page.get_by_text(re.compile("Krok 7 z 8 · Arkusz oceny"))).to_be_visible()
-    expect(page.get_by_role("heading", name="Dokument")).to_be_visible(timeout=30_000)
-    s.krok("II-arkusz")
-    arkusz = page.locator(".pola-arkusza")
-    for pole in arkusz.get_by_label("Miejscowość", exact=True).all():
-        pole.fill("Warszawa")
-    arkusz.get_by_label("Data przeprowadzenia rozmowy oceniającej").fill(dzis)
-    arkusz.get_by_label(re.compile("Wnioski dotyczące indywidualnego programu")).fill(IPRZ)
+    expect(page.get_by_label("Data rozmowy oceniającej")).to_have_value(dzis)
+    page.get_by_role("button", name="Zakończ rozmowę").click()
+
+    # Część 3 z 3 · Ocena na piśmie: wynik § 11 i arkusz na jednym ekranie, dane z wcześniejszych kroków.
+    expect(page.get_by_text("Część 3 z 3 · Ocena na piśmie", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", level=1, name="Zakończenie oceny")).to_be_visible()
+    expect(page.get_by_label("Miejscowość", exact=True)).to_have_value("Warszawa")
+    expect(page.get_by_role("heading", name="Ocena pozytywna", exact=True)).to_be_visible()
+    s.krok("II-ocena-na-pismie")
+    # Braki jak użytkownik: pozycja z „Co jeszcze trzeba” rozwija sekcję i ustawia fokus w polu.
+    co_trzeba = page.locator("section:has(h2:has-text('Co jeszcze trzeba'))")
+    for brak, wartosc in (("wnioski dotyczące indywidualnego programu", IPRZ), ("poziom poprzedniej oceny", "na poziomie oczekiwań")):
+        pozycja = co_trzeba.get_by_role("button", name=re.compile(brak))
+        if pozycja.count():
+            pozycja.click()
+            page.locator(":focus").fill(wartosc)
+    expect(page.locator(".oc-nawigacja")).not_to_contain_text("Brakuje")
     page.get_by_role("button", name="Zatwierdź arkusz").click()
     expect(page.get_by_text("Arkusz zatwierdzony.")).to_be_visible(timeout=30_000)
-    s.pdf("Pobierz PDF")
+    expect(page.get_by_text(re.compile(r"Arkusz włącza się do akt osobowych"))).to_be_visible()
+    s.pdf("Pobierz arkusz (PDF)")
     page.get_by_role("button", name="Zarejestruj w EZD (próbnie)").click()
-    expect(page.get_by_text(re.compile(r"^Zarejestrowano w EZD \(próbnie\)"))).to_be_visible()
+    expect(page.get_by_text(re.compile(r"^Próbna rejestracja w EZD"))).to_be_visible()
     s.krok("II-arkusz-zatwierdzony-ezd")
 
-    # Krok 8: wnioski rozwojowe po arkuszu.
-    page.get_by_role("button", name="Dalej: wnioski rozwojowe").click()
-    expect(page.get_by_text("Krok 8 z 8 · Wnioski rozwojowe")).to_be_visible()
-    expect(page.get_by_role("heading", name="Wnioski do indywidualnego programu rozwoju")).to_be_visible()
-    expect(page.get_by_label("Treść wniosków (pisze przełożony)")).to_have_value(IPRZ)
-    s.krok("II-wnioski")
+    # Zakończenie (§ 12 ust. 1): dzień zapoznania ocenianego z oceną, potem proces ZAKONCZONY i ocena w kartotece.
+    page.get_by_label("Data zapoznania ocenianego z oceną").fill(dzis)
+    page.get_by_role("button", name="Zakończ ocenę").click()
+    expect(page.get_by_text(re.compile(r"^Ocena zakończona: zapoznanie z oceną"))).to_be_visible()
+    expect(page.get_by_role("button", name="Zarejestruj w EZD (próbnie)")).to_have_count(0)
+    s.pdf("Pobierz arkusz (PDF)")
+    s.krok("II-ocena-zakonczona")
 
-    # Karta po zatwierdzonym arkuszu: ocena widoczna w ocenach kryteriów.
+    # Karta po zakończeniu: następny okres („Rozpocznij ocenę”), nowa ocena w „Poprzednich ocenach”.
     _karta(page, "Zielińska")
-    oceny = page.locator(".sekcja", has=page.get_by_role("heading", name="Oceny kryteriów")).locator(".slupki li")
-    expect(oceny.first).to_be_visible()
-    assert oceny.count() == (6 if dodatkowe else 5), f"Oceny kryteriów na karcie: {oceny.count()}"
-    s.krok("II-karta-po-ocenie")
+    expect(page.locator(".ramka.nastepny").get_by_role("button")).to_have_text("Rozpocznij ocenę")
+    poprzednie = page.locator(".poprzednie")
+    expect(poprzednie).to_contain_text("pozytywna")
+    expect(poprzednie).to_contain_text(f"sporządzona {date.today().strftime('%d.%m.%Y')}")
+    s.krok("II-karta-po-zakonczeniu")
     s.zamknij()

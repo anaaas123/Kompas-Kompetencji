@@ -791,6 +791,22 @@ export async function pobierzArkuszPdf(token: string, procesId: number): Promise
   return r.blob();
 }
 
+/** Zakończenie oceny po zapoznaniu ocenianego z oceną (§ 12 ust. 1): status ZAKONCZONY, ocena trafia do kartoteki. */
+export interface ZakonczenieOceny {
+  proces_id: number;
+  data_sporzadzenia_oceny: string;
+  data_zapoznania_z_ocena: string;
+  wynik: "pozytywna" | "negatywna";
+  srednia: string;
+}
+
+export const zakonczOcene = (token: string, procesId: number, dataZapoznania: string) =>
+  fetch(`${sciezkaArkusza(procesId)}/zakoncz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ data_zapoznania_z_ocena: dataZapoznania }),
+  }).then((r) => odpowiedz<ZakonczenieOceny>(r));
+
 /** Sama część I arkusza do podpisu po rozmowie na początku okresu (rozp. 2016 § 5 ust. 3, § 6).
  *  409 przed zapisem kroku 2, 422 gdy nie da się ustalić terminu oceny. */
 export async function pobierzCzescIPdf(token: string, procesId: number): Promise<Blob> {

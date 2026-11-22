@@ -13,6 +13,8 @@ import {
   type WynikOkresowy,
   zapiszArkusz,
   zarejestrujEzd,
+  zakonczOcene,
+  type ZakonczenieOceny,
   type ArkuszOkresowy,
   type BrakArkusza,
   type PoleArkusza,
@@ -33,9 +35,8 @@ import {
   Werdykt,
   bladWyniku,
   data,
-  dataRozmowy,
   dzienZapisu,
-  notatkaRozwoju,
+  zRozmowy,
   srednia,
   poprawnaData,
   zapiszPlik,
@@ -355,7 +356,9 @@ export function Arkusz({
   onZmienOcene,
   zalogowanyId,
 }: Krok7Props) {
-  const zakonczony = proces.status !== "W_TOKU";
+  const [zakonczenie, setZakonczenie] = useState<ZakonczenieOceny | null>(null);
+  const [dataZapoznania, setDataZapoznania] = useState<string | null>(null);
+  const zakonczony = proces.status !== "W_TOKU" || zakonczenie !== null;
   const edycja = moznaProwadzic && !zakonczony;
   const [arkusz, setArkusz] = useState<ArkuszOkresowy | null>(null);
   const [wynik, setWynik] = useState<WynikOkresowy | null>(null);
@@ -375,19 +378,19 @@ export function Arkusz({
       pobierzArkusz(token, proces.id),
       edycja ? pobierzPrzelozonego(token, osoba, zalogowanyId) : undefined,
       edycja ? pobierzKrok2(token, proces.id) : undefined,
-      edycja ? dataRozmowy(token, proces.id) : undefined,
+      edycja ? zRozmowy(token, proces.id) : undefined,
     ]).then(([w, a, kierownik, krok2, rozmowa]) => {
       if (!aktywny) return;
       const zatwierdzony = a.status === "fulfilled" && a.value.zatwierdzony;
       if (w.status === "fulfilled") {
         setWynik(w.value);
         const dane = w.value.dane;
-        const zapis = krok2.status === "fulfilled" && krok2.value?.wybor?.zapisano;
-        const kryteria = zapis && Number.isFinite(Date.parse(zapis)) ? dzienZapisu(new Date(zapis)) : null;
+        const wybor = krok2.status === "fulfilled" ? krok2.value?.wybor : undefined;
+        const kryteria = wybor?.zapisano && Number.isFinite(Date.parse(wybor.zapisano)) ? dzienZapisu(new Date(wybor.zapisano)) : null;
         setF(edycja && !zatwierdzony ? {
           ...dane,
           data_ustalenia_kryteriow: dane.data_ustalenia_kryteriow ?? kryteria,
-          data_zapoznania_z_kryteriami: dane.data_zapoznania_z_kryteriami ?? kryteria,
+          data_zapoznania_z_kryteriami: dane.data_zapoznania_z_kryteriami ?? wybor?.zapoznanie ?? kryteria,
           data_sporzadzenia_oceny: dane.data_sporzadzenia_oceny ?? dzienZapisu(new Date()),
           poprzednia_ocena_poziom: w.value.poprzednia_ocena?.poziom ?? dane.poprzednia_ocena_poziom,
         } : dane);
@@ -400,8 +403,9 @@ export function Arkusz({
           const domyslne = podpowiedziPol(a.value, szef);
           for (const p of edytowalnePola(a.value)) {
             if (p.wartosc?.trim()) continue;
-            if (p.id === "wnioski_iprz") domyslne[p.id] = notatkaRozwoju(proces.id);
-            if (p.id === "rozmowa_oceniajaca.data" && rozmowa.status === "fulfilled") domyslne[p.id] = rozmowa.value ?? null;
+            const z = rozmowa.status === "fulfilled" ? rozmowa.value : undefined;
+            if (p.id === "wnioski_iprz") domyslne[p.id] = z?.wnioski ?? null;
+            if (p.id === "rozmowa_oceniajaca.data") domyslne[p.id] = z?.data ?? null;
           }
           setZmiany(domyslne);
         }
@@ -589,6 +593,24 @@ export function Arkusz({
     </div>
   );
   const ezd = arkusz?.rejestracja_ezd;
+  // Zakończenie (§ 12 ust. 1): datę zapoznania wpisuje się po podpisie ocenianego na wydruku, więc pole startuje puste.
+  const zapoznanie = zakonczenie ? (
+    <p className="sukces">
+      Ocena zakończona: zapoznanie z oceną {data(zakonczenie.data_zapoznania_z_ocena)}. Ocena trafiła do kartoteki pracownika.
+    </p>
+  ) : zatwierdzony && edycja ? (
+    <>
+      <PoleDaty id="data-zapoznania" nazwa="Data zapoznania ocenianego z oceną" wartosc={dataZapoznania} onZmiana={setDataZapoznania} />
+      <button
+        type="button"
+        className="jasny"
+        disabled={czekam || !dataZapoznania || !poprawnaData(dataZapoznania)}
+        onClick={() => dataZapoznania && wykonaj(async () => setZakonczenie(await zakonczOcene(token, proces.id, dataZapoznania)))}
+      >
+        Zakończ ocenę
+      </button>
+    </>
+  ) : null;
   return (
     <div className="oc-ekran k7">
       {naglowek}
@@ -615,7 +637,7 @@ export function Arkusz({
         bok={
           <>
             {daneWyniku ? (
-              <BokOkresowej {...daneWyniku} onZmienOcene={edycja ? onZmienOcene : undefined}>{poleWnioskow}</BokOkresowej>
+              <BokOkresowej {...daneWyniku} onZmienOcene={edycja ? onZmienOcene : undefined} zapoznanie={zapoznanie}>{poleWnioskow}</BokOkresowej>
             ) : (
               <>
                 <Werdykt wynik={null} warunki={[]} />
