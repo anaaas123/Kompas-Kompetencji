@@ -9,6 +9,7 @@ import {
   type WynikOperacji,
 } from "./api";
 import { opisBledu } from "./Krok1";
+import { NAZWA_ROLI } from "./Powloka";
 import { Wybor } from "./Ocena";
 import { PoleDaty, poprawnaData, zapiszPlik } from "./Wynik";
 
@@ -115,7 +116,7 @@ export default function Rejestr({ token }: { token: string }) {
                   <td className="liczba">{CZAS.format(new Date(w.czas))}</td>
                   <td>
                     {w.aktor_login ?? "niezalogowany"}
-                    {w.aktor_rola && <div className="meta">{w.aktor_rola}</div>}
+                    {w.aktor_rola && <div className="meta">{NAZWA_ROLI[w.aktor_rola as keyof typeof NAZWA_ROLI] ?? w.aktor_rola}</div>}
                   </td>
                   <td>
                     {w.etykieta ?? w.akcja}

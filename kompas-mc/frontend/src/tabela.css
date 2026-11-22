@@ -66,8 +66,8 @@
 .tabela-pracownikow th:first-child button.sortuj, .tabela-pracownikow td:first-child { padding-left: var(--o-12); }
 .bez-lamania { white-space: nowrap; }
 .komorka-pionowa { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-4); }
-/* Nazwy komórek ustępują miejsca reszcie wiersza: łamią się w dowolnym miejscu i mają najwyżej dwie linie. */
-.nazwa-komorki { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+/* Nazwy komórek w całości, w kilku wierszach (przegląd serwera, zgłoszenie 122, poz. 8): ucięte wyglądały jak ta sama komórka. */
+.nazwa-komorki { overflow-wrap: break-word; }
 .tabela-pracownikow td.kol-czynnosc { min-width: 160px; }
 /* Wąska treść (tablet, okno obok okna): całe słowa i przewijanie w bok; nagłówek nie przykleja się wtedy do okna. */
 @container (max-width: 959px) {
