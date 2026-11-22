@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 import yaml
 from collections import defaultdict, deque
+from threading import Lock
 from time import monotonic
 
 from fastapi import FastAPI, HTTPException, Request
@@ -213,18 +214,22 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     # Helix G3 (Grok, 3): serwer jest publiczny, a model płatny – asystent tylko po zalogowaniu i z limitem na konto
     # (hasła demo są jawne). ponytail: limit w pamięci procesu, jeden proces API; wspólny licznik przy skalowaniu.
     pytania: dict[str, deque[float]] = defaultdict(deque)
+    blokada_pytan = Lock()  # trasa synchroniczna działa w puli wątków: sprawdzenie i dopisanie razem
 
     @app.post("/api/asystent")
     def asystent(
         request: Request, body: PytanieAsystenta, uz: Uzytkownik = auth.wymagaj("asystent.pytaj")
     ) -> OdpowiedzAsystenta:
         """Pytanie do asystenta formalnego."""
-        teraz, kolejka = monotonic(), pytania[uz.login]
-        while kolejka and teraz - kolejka[0] > LIMIT_ASYSTENTA_S:
-            kolejka.popleft()
-        if len(kolejka) >= LIMIT_ASYSTENTA:
+        with blokada_pytan:
+            teraz, kolejka = monotonic(), pytania[uz.login]
+            while kolejka and teraz - kolejka[0] > LIMIT_ASYSTENTA_S:
+                kolejka.popleft()
+            przekroczony = len(kolejka) >= LIMIT_ASYSTENTA
+            if not przekroczony:
+                kolejka.append(teraz)
+        if przekroczony:
             raise HTTPException(429, f"Limit pytań do asystenta: {LIMIT_ASYSTENTA} na {LIMIT_ASYSTENTA_S // 60} minut. Spróbuj za chwilę.")
-        kolejka.append(teraz)
         wynik = request.app.state.asystent.odpowiedz(body.pytanie, body.sciezka)
         # Rejestr operacji: tryb i dostawca odpowiedzi oraz wynik walidacji cytatów, bez treści pytania i odpowiedzi.
         ustaw_szczegoly(
