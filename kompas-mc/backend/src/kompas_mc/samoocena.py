@@ -206,5 +206,9 @@ def ukryj_przed_przekazaniem(auth, uz, rekord: dict, baza: sqlite3.Connection, p
     from fastapi import HTTPException
 
     if proces.status == "W_TOKU" and auth.moze(uz, "pracownik", rekord, "samoocena.zapisz"):
+        # Pierwsza ocena nie ma samooceny: oceniany widzi punkty tylko przez ścieżkę pierwszej oceny, po sporządzeniu
+        # oceny na piśmie (pierwsza_ocena_api), więc przekazanie samooceny nie odsłania tu ocen przełożonego.
+        if proces.sciezka == "pierwsza":
+            raise HTTPException(403, "Pierwszą ocenę zobaczysz po jej sporządzeniu na piśmie przez przełożonego.")
         if wczytaj(baza, proces.id)[0] != "przekazana":
             raise HTTPException(403, KOMUNIKAT_PRZED_PRZEKAZANIEM)
