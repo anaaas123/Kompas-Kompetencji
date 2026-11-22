@@ -20,6 +20,7 @@ pozycje:
       - termin rozmowy wstępnej w pierwszej ocenie
       - do ilu dni od zatrudnienia przeprowadza się rozmowę wstępną
       - kiedy najpóźniej spotkać się z nowo przyjętą osobą na rozmowę wstępną
+      - do kiedy rozmowa wstępna z nową osobą
     odpowiedz: W ciągu 21 dni od nawiązania stosunku pracy (przy zastępstwie – od ustalenia, że osoba podlega pierwszej ocenie).
     adnotacje:
       - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 3", strona: 1,
@@ -329,6 +330,7 @@ pozycje:
     sciezka: okresowa
     pytania:
       - kiedy ocena okresowa jest negatywna
+      - w jakim przypadku ocena okresowa jest negatywna
       - ocena cząstkowa znacznie poniżej oczekiwań a wynik oceny
     odpowiedz: Gdy ogólny poziom to „poniżej” lub „znacznie poniżej oczekiwań” albo gdy choć jedna ocena cząstkowa jest „znacznie poniżej oczekiwań” – niezależnie od średniej.
     adnotacje:
@@ -417,3 +419,308 @@ pozycje:
     adnotacje:
       - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: model-kompetencji, lokalizator: "Model kompetencji!A5",
          cytat_dosłowny: "Oprzyj ocenę na konkretnych przykładach z ocenianego okresu."}
+
+  # ======================= PYTANIA Z PRÓBY JURY (#53) =======================
+  # Pozycje dopisane po próbie 30 pytań (pkt 6 zadania MC): pytania-jury.yaml. Warianty nie
+  # kopiują pytań z tej próby. Numery FAQ-O22, FAQ-O23, FAQ-P17 i FAQ-P18 są zajęte przez
+  # gałąź 53-asystent-jury.
+  - id: FAQ-O24
+    sciezka: okresowa
+    pytania:
+      - kto przeprowadza ocenę okresową
+      - kto jest oceniającym w ocenie okresowej
+      - czy ocenę okresową robi dyrektor departamentu czy bezpośredni przełożony
+    odpowiedz: "Bezpośredni przełożony ocenianego (oceniający), według kryteriów odpowiednich dla stanowiska. W ocenie okresowej nie uczestniczy kierujący komórką organizacyjną, chyba że sam jest bezpośrednim przełożonym."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 81 ust. 1", strona: 24,
+         cytat_dosłowny: "podlega ocenie okresowej dokonywanej przez bezpośredniego przełożonego"}
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 3. Zakres podmiotowy oceny okresowej", strona: 7,
+         cytat_dosłowny: "nie uczestniczy w niej kierujący komórką organizacyjną"}
+
+  - id: FAQ-O25
+    sciezka: okresowa
+    pytania:
+      - kogo obejmuje ocena okresowa
+      - czy osoba na umowie na czas określony podlega ocenie okresowej
+      - ocena okresowa a pracownik na zastępstwo
+    odpowiedz: "Ocenie okresowej podlega urzędnik służby cywilnej i pracownik służby cywilnej zatrudniony na czas nieokreślony. Nie podlegają jej osoby zatrudnione na czas określony, w tym na zastępstwo. Urząd może je oceniać w ramach oceny bieżącej."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 3. Zakres podmiotowy oceny okresowej", strona: 7,
+         cytat_dosłowny: "ocenie okresowej podlega urzędnik służby cywilnej i pracownik służby cywilnej zatrudniony na czas nieokreślony"}
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 81 ust. 1", strona: 24,
+         cytat_dosłowny: "zatrudniony na podstawie umowy o pracę na czas nieokreślony podlega ocenie okresowej"}
+
+  - id: FAQ-O26
+    sciezka: okresowa
+    pytania:
+      - ponowna ocena po negatywnej ocenie okresowej
+      - po ilu miesiącach ocenia się ponownie pracownika z oceną negatywną
+      - co dalej po negatywnej ocenie okresowej
+      - kiedy kolejna ocena po ocenie negatywnej
+    odpowiedz: "Po ocenie negatywnej oceniany podlega ponownej ocenie po upływie 6 miesięcy od dnia zapoznania się z nią (art. 81 ust. 9 ustawy). Rozmowę i zapoznanie z kryteriami przeprowadza się w ciągu 7 dni od sporządzenia negatywnej oceny na piśmie (§ 7 pkt 2)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 81 ust. 9", strona: 25,
+         cytat_dosłowny: "oceniany podlega ponownej ocenie po upływie 6 miesięcy od dnia zapoznania się z oceną"}
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 7 pkt 2", strona: 2,
+         cytat_dosłowny: "7 dni od dnia sporządzenia na piśmie negatywnej oceny"}
+
+  - id: FAQ-O27
+    sciezka: okresowa
+    pytania:
+      - długa nieobecność a termin oceny okresowej
+      - czy urlop macierzyński albo L4 przesuwa ocenę okresową
+      - przedłużenie 24 miesięcy o czas nieobecności
+      - zwolnienie lekarskie a termin oceny okresowej
+    odpowiedz: "Tak, jeśli usprawiedliwiona nieobecność (np. zwolnienie lekarskie albo urlop macierzyński) trwa dłużej niż miesiąc. Termin 24 miesięcy przedłuża się wtedy o czas tej nieobecności (art. 81 ust. 7 ustawy)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 81 ust. 7", strona: 24,
+         cytat_dosłowny: "ulega przedłużeniu o czas tej nieobecności"}
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 5.1. Obligatoryjna zmiana terminu", strona: 11,
+         cytat_dosłowny: "termin 24-miesięczny na sporządzenie oceny okresowej ulega przedłużeniu o czas tej nieobecności"}
+
+  - id: FAQ-O28
+    sciezka: okresowa
+    pytania:
+      - podpis ocenianego na arkuszu oceny okresowej
+      - czy pracownik dostaje kopię arkusza oceny
+      - potwierdzenie zapoznania się z oceną okresową
+    odpowiedz: "Tak. Na początku oceniany potwierdza podpisem rozmowę oraz zapoznanie z kryteriami i terminem, a oceniający doręcza mu kopię części I (§ 6). Po sporządzeniu oceny oceniający zapoznaje z nią ocenianego, oryginał arkusza trafia do akt osobowych, a kopię doręcza się ocenianemu (§ 12)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 12 ust. 2", strona: 4,
+         cytat_dosłowny: "kopię arkusza oceniający doręcza ocenianemu"}
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 6 ust. 2", strona: 2,
+         cytat_dosłowny: "Oceniany potwierdza podpisem przeprowadzenie z nim rozmowy"}
+
+  - id: FAQ-O29
+    sciezka: okresowa
+    pytania:
+      - od ilu punktów zaczynać ocenę cząstkową
+      - domyślna ocena kryterium w ocenie okresowej
+      - jak zdecydować czy dać 5 czy 7 punktów
+      - od jakiej oceny zacząć przyznawanie ocen cząstkowych
+    odpowiedz: "Punktem wyjścia jest ocena na poziomie oczekiwań (5 pkt). Po analizie zebranych informacji oceniający rozważa jej podniesienie albo obniżenie. Ocena ma wynikać z rzeczywistych zachowań pracownika, a nie z ogólnego wrażenia."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.5.1. Przyznanie ocen cząstkowych i skala ocen", strona: 26,
+         cytat_dosłowny: "Punktem wyjścia przy przyznawaniu oceny cząstkowej za dane kryterium powinna być ocena na poziomie oczekiwań"}
+
+  - id: FAQ-O30
+    sciezka: okresowa
+    pytania:
+      - czy kryteria dodatkowe są obowiązkowe
+      - ocena okresowa bez kryteriów dodatkowych
+      - czy można nie wybrać żadnego kryterium dodatkowego
+      - czy wybór kryteriów dodatkowych jest obowiązkowy
+      - wybrać kryteria dodatkowe czy tylko obowiązkowe
+    odpowiedz: "Nie są obowiązkowe. Oceniający może wybrać do 3 kryteriów dodatkowych, jeśli uzasadnia to charakter obowiązków z opisu stanowiska. Może też nie wybrać żadnego."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.2. Ewentualny wybór dodatkowych kryteriów oceny", strona: 22,
+         cytat_dosłowny: "można w ogóle nie wybierać dodatkowych kryteriów oceny"}
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 2 ust. 2", strona: 1,
+         cytat_dosłowny: "które oceniający może wybrać, jeżeli jest to uzasadnione"}
+
+  - id: FAQ-O31
+    sciezka: okresowa
+    pytania:
+      - wcześniejsza ocena okresowa na prośbę pracownika
+      - kiedy oceniający może zmienić termin oceny okresowej
+      - zmiana terminu oceny przy zmianie przełożonego lub długiej nieobecności
+      - wniosek ocenianego o zmianę terminu oceny okresowej
+    odpowiedz: "Tak. Oceniający może zmienić termin m.in. na wniosek ocenianego, przy zmianie oceniającego albo przy przewidywanej dłuższej nieobecności, jeśli od ostatniej oceny minęło ponad 6 miesięcy (art. 81 ust. 8 ustawy). O nowym terminie niezwłocznie zawiadamia ocenianego na piśmie, a kopię pisma dołącza do arkusza (§ 8)."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 5.2. Fakultatywna zmiana terminu", strona: 15,
+         cytat_dosłowny: "złożenia przez ocenianego wniosku o zmianę terminu przeprowadzenia oceny"}
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 8", strona: 2,
+         cytat_dosłowny: "oceniający niezwłocznie zawiadamia pisemnie ocenianego o nowym terminie"}
+
+  - id: FAQ-O32
+    sciezka: okresowa
+    pytania:
+      - kolejny stopień służbowy z mocy prawa
+      - dwie oceny na najwyższych poziomach a stopień służbowy
+      - stopień służbowy bez wniosku przełożonego
+    odpowiedz: "Urzędnik, który od otrzymania ostatniego stopnia uzyskał dwie kolejne pozytywne oceny okresowe na jednym z dwóch najwyższych poziomów skali, otrzymuje kolejny stopień w ciągu 30 dni od zapoznania z oceną (art. 89 ust. 2 ustawy). W pozostałych przypadkach potrzebny jest umotywowany wniosek przełożonego w części III arkusza (§ 11 ust. 5)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 89 ust. 2", strona: 26,
+         cytat_dosłowny: "uzyskał dwie kolejne następujące po sobie pozytywne oceny okresowe na jednym z dwóch najwyższych poziomów"}
+
+  - id: FAQ-P19
+    sciezka: pierwsza
+    pytania:
+      - między którym a którym miesiącem robi się pierwszą ocenę
+      - najpóźniejszy termin dokonania pierwszej oceny
+      - czy pierwszą ocenę można zrobić przed upływem 8 miesięcy
+    odpowiedz: "Nie wcześniej niż po upływie 8 miesięcy od nawiązania stosunku pracy i nie później niż miesiąc przed końcem umowy (art. 38 ust. 1 ustawy). Przy umowie na 12 miesięcy to okres od 8. do 11. miesiąca."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 4. Termin sporządzenia pierwszej oceny", strona: 8,
+         cytat_dosłowny: "Pierwszej oceny dokonuje się nie wcześniej niż po upływie 8 miesięcy od dnia nawiązania stosunku pracy"}
+
+  - id: FAQ-P20
+    sciezka: pierwsza
+    pytania:
+      - sprawozdanie złożone po terminie a pierwsza ocena
+      - brak sprawozdania w pierwszej ocenie
+      - spóźnione sprawozdanie skutki
+      - niezłożenie sprawozdania w wyznaczonym terminie
+      - nowy pracownik złożył sprawozdanie po wyznaczonym terminie
+      - pracownik nie oddał sprawozdania na czas
+    odpowiedz: "Złożenie sprawozdania w wyznaczonym terminie jest warunkiem pozytywnej pierwszej oceny. Bez tego ocena jest negatywna, nawet przy dobrej ocenie łącznej i zdanym egzaminie. Przy usprawiedliwionej nieobecności przełożony wyznacza nowy termin (§ 5)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 2", strona: 3,
+         cytat_dosłowny: "Negatywną pierwszą ocenę przyznaje się w przypadku niespełnienia warunków określonych w ust. 1."}
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 1 pkt 2", strona: 3,
+         cytat_dosłowny: "złożenie sprawozdania w wyznaczonym terminie"}
+
+  - id: FAQ-P21
+    sciezka: pierwsza
+    pytania:
+      - dwie oceny cząstkowe za 3 punkty w pierwszej ocenie
+      - czy średnia powyżej 5 wystarczy przy kilku ocenach poniżej oczekiwań
+      - kilka elementów poniżej oczekiwań a wynik pierwszej oceny
+    odpowiedz: "Nie wystarczy. Pozytywna pierwsza ocena dopuszcza najwyżej jedną ocenę cząstkową 3 pkt. Przy dwóch lub więcej ocena jest negatywna, nawet gdy ocena łączna wynosi co najmniej 5 pkt."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 10 ust. 1 pkt 3", strona: 3,
+         cytat_dosłowny: "uzyskanie nie więcej niż jednej oceny cząstkowej"}
+
+  - id: FAQ-P22
+    sciezka: pierwsza
+    pytania:
+      - umowa na czas nieokreślony po pierwszej ocenie
+      - wniosek do dyrektora generalnego po pierwszej ocenie
+      - co z umową po negatywnej pierwszej ocenie
+      - wniosek o umowę na czas nieokreślony po pozytywnej pierwszej ocenie
+    odpowiedz: "Kierujący komórką organizacyjną wnioskuje do dyrektora generalnego urzędu: po ocenie pozytywnej o zawarcie umowy na czas nieokreślony, a po negatywnej o niezawieranie takiej umowy albo o rozwiązanie umowy na czas określony (art. 38 ust. 3 ustawy)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 38 ust. 3", strona: 17,
+         cytat_dosłowny: "kierujący komórką organizacyjną wnioskuje do dyrektora generalnego urzędu"}
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 7. Konsekwencje dokonania pierwszej oceny", strona: 34,
+         cytat_dosłowny: "kierujący komórką organizacyjną składa wniosek o zawarcie"}
+
+  - id: FAQ-P23
+    sciezka: pierwsza
+    pytania:
+      - czas trwania służby przygotowawczej
+      - kiedy kończy się służba przygotowawcza
+      - kto kieruje na służbę przygotowawczą
+      - jak długo trwa służba przygotowawcza
+    odpowiedz: "Nie dłużej niż 4 miesiące. Służba przygotowawcza musi się skończyć nie później niż z upływem 8 miesięcy od podjęcia pracy (art. 36 ust. 4 ustawy) i kończy się egzaminem."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 5.1. Organizacja służby przygotowawczej", strona: 14,
+         cytat_dosłowny: "Powinna trwać nie dłużej niż 4 miesiące"}
+
+  - id: FAQ-P24
+    sciezka: pierwsza
+    pytania:
+      - zwolnienie ze służby przygotowawczej a egzamin
+      - czy zwolniony ze służby przygotowawczej przystępuje do egzaminu
+      - egzamin po zwolnieniu z art. 36 ust. 7
+    odpowiedz: "Tak. Zwolnienie z obowiązku odbywania służby przygotowawczej (art. 36 ust. 7 ustawy) nie zwalnia z egzaminu (art. 36 ust. 8), a zaliczenie egzaminu jest warunkiem pozytywnej pierwszej oceny."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 5.3. Egzamin kończący służbę przygotowawczą", strona: 16,
+         cytat_dosłowny: "nie oznacza zwolnienia z egzaminu"}
+
+  - id: FAQ-P25
+    sciezka: pierwsza
+    pytania:
+      - pierwsza ocena pracownika na zastępstwo
+      - czy umowa na zastępstwo może zakończyć się pierwszą oceną
+      - zgoda na pierwszą ocenę przy zastępstwie
+    odpowiedz: "Tak, ale to możliwość, a nie obowiązek. Potrzebne jest porozumienie stron, a terminy liczy się od dnia tego ustalenia (rozmowa wstępna w 21 dni, § 3). Egzamin ze służby przygotowawczej nie jest wtedy wymagany (§ 10 ust. 3 pkt 2)."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 3. Kto podlega pierwszej ocenie w służbie cywilnej?", strona: 6,
+         cytat_dosłowny: "Osoba zatrudniona w celu zastępstwa może podlegać pierwszej ocenie."}
+
+  - id: FAQ-P26
+    sciezka: pierwsza
+    pytania:
+      - przedłużenie umowy 12-miesięcznej o czas choroby
+      - nieobecność dłuższa niż 3 miesiące w pierwszym roku pracy
+      - art. 35 ust. 4 przedłużenie umowy
+    odpowiedz: "Tak, ale nie automatycznie. Przy usprawiedliwionej nieobecności dłuższej niż 3 miesiące dyrektor generalny urzędu może, na wniosek pracownika, przedłużyć umowę o czas tej nieobecności (art. 35 ust. 4 ustawy). Przełożony wyznacza wtedy nowy termin sprawozdania (§ 5 ust. 2)."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 35 ust. 4", strona: 16,
+         cytat_dosłowny: "dyrektor generalny urzędu, na wniosek pracownika, może przedłużyć okres trwania umowy"}
+      - {kategoria: PRZEPIS, doc_id: rozp-2015-pierwsza, lokalizator: "§ 5 ust. 2", strona: 2,
+         cytat_dosłowny: "w przypadku przedłużenia okresu trwania umowy o pracę"}
+
+  - id: FAQ-P27
+    sciezka: pierwsza
+    pytania:
+      - sprzeciw od pierwszej oceny
+      - odwołanie od negatywnej pierwszej oceny
+      - czy oceniany może zakwestionować pierwszą ocenę
+    odpowiedz: "W bazie wiedzy nie ma przepisu o sprzeciwie od pierwszej oceny. Ustawa przewiduje sprzeciw do dyrektora generalnego urzędu w 7 dni tylko od oceny okresowej (art. 83 ust. 1), a rozporządzenie z 2015 r. i poradnik o pierwszej ocenie go nie opisują."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: ustawa-sc, lokalizator: "art. 83 ust. 1", strona: 25,
+         cytat_dosłowny: "Od oceny okresowej służy, w terminie 7 dni od dnia zapoznania się z oceną, sprzeciw"}
+
+  # ----------------------- przygotowanie do rozmowy -----------------------
+  - id: FAQ-R01
+    sciezka: okresowa
+    pytania:
+      - o co pytać pracownika podczas rozmowy oceniającej
+      - scenariusz rozmowy oceniającej w ocenie okresowej
+      - przykładowe pytania do rozmowy oceniającej
+    odpowiedz: "Rozmowa obejmuje: (1) główne obowiązki w okresie oceny i sposób ich realizacji wobec kryteriów, (2) realizację wyznaczonych celów, (3) kierunki rozwoju i potrzeby szkoleniowe (§ 10). Przykładowe pytania (propozycja, nie cytat): Które zadanie uważa Pan/Pani za największe osiągnięcie i dlaczego? Gdzie pojawiły się trudności i co zrobił(a)by Pan/Pani inaczej? Jak ocenia Pan/Pani realizację wyznaczonego celu? Czego potrzebuje Pan/Pani, żeby rozwijać się w tym kryterium? Rozmowa ma być dialogiem, a nie monologiem oceniającego."
+    adnotacje:
+      - {kategoria: PRZEPIS, doc_id: rozp-2016-okresowe, lokalizator: "§ 10", strona: 3,
+         cytat_dosłowny: "przeprowadza z ocenianym rozmowę oceniającą"}
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.4. Rozmowa oceniająca", strona: 25,
+         cytat_dosłowny: "nie była monologiem oceniającego, lecz dialogiem oceniającego z ocenianym"}
+
+  - id: FAQ-R02
+    sciezka: okresowa
+    pytania:
+      - pracownik nie akceptuje oceny podczas rozmowy
+      - jak rozmawiać z pracownikiem który kwestionuje ocenę
+      - emocje pracownika na rozmowie oceniającej
+      - jak prowadzić trudną rozmowę oceniającą
+    odpowiedz: "Prowadź dialog: daj pracownikowi przedstawić własną ocenę i argumenty. Opieraj się na faktach zebranych w całym okresie, a nie na ogólnym wrażeniu, i powiedz, co konkretnie warto zmienić. Wnioski z rozmowy weź pod uwagę przy sporządzaniu oceny (§ 11 ust. 2). Jeśli pracownik nadal się nie zgadza, poinformuj go o prawie do sprzeciwu do dyrektora generalnego urzędu w ciągu 7 dni od zapoznania się z oceną."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.4. Rozmowa oceniająca", strona: 25,
+         cytat_dosłowny: "nie była monologiem oceniającego, lecz dialogiem oceniającego z ocenianym"}
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.7. Zakończenie procesu oceny okresowej", strona: 31,
+         cytat_dosłowny: "pouczeniu ocenianego o przysługującym mu prawie sprzeciwu"}
+
+  - id: FAQ-R03
+    sciezka: okresowa
+    pytania:
+      - jak napisać uzasadnienie oceny negatywnej
+      - argumenty w uzasadnieniu oceny okresowej
+      - co powinno zawierać uzasadnienie oceny okresowej
+    odpowiedz: "Uzasadnienie oceny negatywnej jest obowiązkowe (§ 11 ust. 3). Może być ogólnym omówieniem oceny albo odnosić się do wszystkich lub wybranych ocen cząstkowych. Najmocniejsze jest powiązanie każdej niskiej oceny z konkretnymi zachowaniami i z oczekiwaniami przekazanymi na rozmowie rozpoczynającej okres oceny."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.5.3. Uzasadnianie przyznanych ocen cząstkowych", strona: 28,
+         cytat_dosłowny: "szczegółowym odniesieniu się do wszystkich ocen cząstkowych"}
+
+  - id: FAQ-R04
+    sciezka: pierwsza
+    pytania:
+      - przygotowanie do rozmowy oceniającej w pierwszej ocenie
+      - robocza wersja pierwszej oceny przed rozmową
+      - co mieć przed rozmową oceniającą z nowym pracownikiem
+    odpowiedz: "Przed rozmową przygotuj z kierującym komórką organizacyjną roboczą wersję oceny: oceny 5 elementów z konkretnymi przykładami zachowań, ocenę zadań na podstawie zebranych informacji i sprawozdania oraz proponowany poziom oceny. Sprawdź też wynik egzaminu ze służby przygotowawczej i to, czy sprawozdanie złożono w terminie."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 6.5.1. Rozmowa oceniająca", strona: 27,
+         cytat_dosłowny: "powinien przygotować roboczą wersję oceny pracownika"}
+
+  - id: FAQ-R05
+    sciezka: pierwsza
+    pytania:
+      - rozmowa oceniająca przy negatywnej pierwszej ocenie
+      - jak przekazać nowemu pracownikowi negatywną ocenę
+      - rozmowa z nowym pracownikiem który nie spełnia oczekiwań
+    odpowiedz: "Daj pracownikowi powiedzieć, jak sam ocenia swoją postawę, zaangażowanie, postępy, relacje i terminowość. Omów każdy element na konkretnych przykładach. Także przy ocenie negatywnej warto rozmawiać o rozwoju i wskazać obszary do poprawy. Uzasadnienie negatywnej oceny jest obowiązkowe (§ 10 ust. 4)."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-pierwsza, lokalizator: "rozdz. 6.5.1. Rozmowa oceniająca", strona: 26,
+         cytat_dosłowny: "Pracownikowi należy dać możliwość wypowiedzenia się"}
+
+  - id: FAQ-R06
+    sciezka: wspolne
+    pytania:
+      - jak dokumentować pracę pracownika przez cały okres oceny
+      - notatki o pracowniku w trakcie roku
+      - jak uniknąć oceniania tylko na podstawie ostatnich tygodni
+    odpowiedz: "Zbieraj informacje przez cały okres, na bieżąco i na piśmie: comiesięczne lub cokwartalne rozmowy podsumowujące, regularne podsumowania sukcesów i porażek, notatki z konkretnymi zdarzeniami. Dzięki temu ocena obejmuje cały okres, a nie tylko ostatnio zapamiętane działania."
+    adnotacje:
+      - {kategoria: OBJAŚNIENIE_MATERIAŁU, doc_id: poradnik-okresowa, lokalizator: "rozdz. 6.2.3. Proces oceniania", strona: 24,
+         cytat_dosłowny: "ustalenie comiesięcznych lub cokwartalnych rozmów"}

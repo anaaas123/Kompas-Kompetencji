@@ -208,7 +208,11 @@ class Asystent:
         if faq is None and not wskazane:
             nieznane = self._nieznane_pojecia(pytanie, pokryte)
             if nieznane:
-                kom = self._kom("nieznane_pojecia").format(pojecia=", ".join(nieznane))
+                # Jedno słowo i wiele słów mają osobne zdania; słowa w cudzysłowach, bo są z pytania.
+                klucz = "nieznane_pojecie" if len(nieznane) == 1 else "nieznane_pojecia"
+                kom = (self._kom(klucz) or self._kom("nieznane_pojecia")).format(
+                    pojecia=", ".join(f"„{p}”" for p in nieznane)
+                )
                 return brak.model_copy(update={"nieznane_pojecia": nieznane, "uwagi": [kom]})
 
         ranking = self._ranking(zapytanie, dozwolone)

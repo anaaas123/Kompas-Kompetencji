@@ -1,0 +1,158 @@
+# Próba jury (#53): 30 pytań zadanych asystentowi tak, jak mógłby je zadać juror (pkt 6 treści
+# zadania MC BDG: „Jurorzy mogą zadawać mu przykładowe pytania”). ZESTAW TESTOWY.
+#
+# Pytania pochodzą z audytu z 21.11.2026 (main cd3d87e, bez modelu: 3/30 poprawnych odpowiedzi).
+# Oczekiwane odpowiedzi i źródła sprawdzono w PDF z folderu „materialy mc”.
+#   faq       – pozycje faq.yaml, które poprawnie odpowiadają na pytanie (wystarczy jedna)
+#   czeka_na  – pozycja powstaje na innej gałęzi; do jej scalenia pytanie nie liczy się do progu
+# Sformułowań z tego pliku nie wolno kopiować do wariantów pytań w faq.yaml ani do słownika
+# w asystent.yaml (pilnuje tego test), inaczej próba przestaje mierzyć uogólnianie.
+# Pomiar: cd backend && uv run pytest tests/test_asystent_proba_jury.py -s
+
+wersja: 1
+
+pytania:
+  # ---------------- Ocena okresowa ----------------
+  - {id: O01, sciezka: okresowa, faq: [FAQ-O21],
+     pytanie: "Ile mam czasu na odwołanie się od oceny okresowej?",
+     oczekiwana_odpowiedz: "Sprzeciw do dyrektora generalnego urzędu w 7 dni od zapoznania się z oceną; rozpatrzenie w 14 dni.",
+     zrodlo: "ustawa art. 83 ust. 1 i 3; poradnik o ocenie okresowej s. 32"}
+  - {id: O02, sciezka: okresowa, faq: [FAQ-O24],
+     pytanie: "Kto dokonuje oceny okresowej pracownika?",
+     oczekiwana_odpowiedz: "Bezpośredni przełożony (oceniający).",
+     zrodlo: "ustawa art. 81 ust. 1; poradnik o ocenie okresowej s. 7"}
+  - {id: O03, sciezka: okresowa, faq: [FAQ-O25],
+     pytanie: "Czy pracownik zatrudniony na zastępstwo podlega ocenie okresowej?",
+     oczekiwana_odpowiedz: "Nie. Ocenie okresowej podlegają zatrudnieni na czas nieokreślony.",
+     zrodlo: "poradnik o ocenie okresowej s. 7"}
+  - {id: O04, sciezka: okresowa, faq: [FAQ-O26],
+     pytanie: "Pracownik dostał negatywną ocenę okresową. Kiedy robimy kolejną ocenę?",
+     oczekiwana_odpowiedz: "Ponowna ocena po upływie 6 miesięcy od zapoznania się z oceną negatywną.",
+     zrodlo: "ustawa art. 81 ust. 9; rozporządzenie z 2016 r. § 7 pkt 2"}
+  - {id: O05, sciezka: okresowa, faq: [FAQ-O22], czeka_na: 53-asystent-jury,
+     pytanie: "Co grozi urzędnikowi służby cywilnej za dwie negatywne oceny okresowe z rzędu?",
+     oczekiwana_odpowiedz: "Rozwiązanie stosunku pracy.",
+     zrodlo: "poradnik o ocenie okresowej s. 34"}
+  - {id: O06, sciezka: okresowa, faq: [FAQ-O27],
+     pytanie: "Pracownik był dwa miesiące na zwolnieniu lekarskim. Czy termin oceny okresowej się przesuwa?",
+     oczekiwana_odpowiedz: "Tak. Usprawiedliwiona nieobecność dłuższa niż miesiąc przedłuża termin 24 miesięcy o czas nieobecności.",
+     zrodlo: "ustawa art. 81 ust. 7; poradnik o ocenie okresowej s. 11–12"}
+  - {id: O07, sciezka: okresowa, faq: [FAQ-O28],
+     pytanie: "Czy oceniany musi podpisać arkusz oceny okresowej i czy dostaje jego kopię?",
+     oczekiwana_odpowiedz: "Tak. Podpis potwierdza rozmowę i zapoznanie z kryteriami, a po ocenie kopię arkusza doręcza się ocenianemu.",
+     zrodlo: "rozporządzenie z 2016 r. § 6 ust. 2–3 i § 12 ust. 2"}
+  - {id: O08, sciezka: okresowa, faq: [FAQ-O14],
+     pytanie: "Średnia z ocen cząstkowych wyszła 6,4. Jaki to ogólny poziom spełniania kryteriów?",
+     oczekiwana_odpowiedz: "Powyżej oczekiwań (powyżej 6 do 8 punktów).",
+     zrodlo: "rozporządzenie z 2016 r. § 11 ust. 1 pkt 2 lit. d"}
+  - {id: O09, sciezka: okresowa, faq: [FAQ-O29],
+     pytanie: "Od jakiego poziomu zacząć przyznawanie oceny cząstkowej za kryterium?",
+     oczekiwana_odpowiedz: "Od 5 punktów (na poziomie oczekiwań), potem podnieść albo obniżyć na podstawie zebranych informacji.",
+     zrodlo: "poradnik o ocenie okresowej s. 26"}
+  - {id: O10, sciezka: okresowa, faq: [FAQ-O30],
+     pytanie: "Czy muszę wybrać kryteria dodatkowe, czy mogę oceniać tylko według obowiązkowych?",
+     oczekiwana_odpowiedz: "Nie trzeba. Oceniający może wybrać najwyżej 3 kryteria dodatkowe albo żadnego.",
+     zrodlo: "rozporządzenie z 2016 r. § 2 ust. 2 i § 5 ust. 2; poradnik o ocenie okresowej s. 22"}
+  - {id: O11, sciezka: okresowa, faq: [FAQ-O31],
+     pytanie: "Czy pracownik może sam wnioskować o zmianę terminu oceny okresowej?",
+     oczekiwana_odpowiedz: "Tak, jeśli od ostatniej oceny minęło ponad 6 miesięcy. Decyduje oceniający.",
+     zrodlo: "ustawa art. 81 ust. 8 pkt 4; rozporządzenie z 2016 r. § 8"}
+  - {id: O12, sciezka: okresowa, faq: [FAQ-O32],
+     pytanie: "Kiedy urzędnik dostaje kolejny stopień służbowy automatycznie, bez wniosku przełożonego?",
+     oczekiwana_odpowiedz: "Po dwóch kolejnych pozytywnych ocenach na jednym z dwóch najwyższych poziomów, w 30 dni od zapoznania z oceną.",
+     zrodlo: "ustawa art. 89 ust. 2"}
+
+  # ---------------- Pierwsza ocena ----------------
+  - {id: P01, sciezka: pierwsza, faq: [FAQ-P19],
+     pytanie: "W jakim okresie trzeba dokonać pierwszej oceny – najwcześniej i najpóźniej?",
+     oczekiwana_odpowiedz: "Nie wcześniej niż po 8 miesiącach od nawiązania stosunku pracy i nie później niż miesiąc przed końcem umowy.",
+     zrodlo: "ustawa art. 38 ust. 1; poradnik o pierwszej ocenie s. 8"}
+  - {id: P02, sciezka: pierwsza, faq: [FAQ-P17], czeka_na: 53-asystent-jury,
+     pytanie: "Kto podlega pierwszej ocenie w służbie cywilnej?",
+     oczekiwana_odpowiedz: "Osoba, która po raz pierwszy podejmuje pracę w służbie cywilnej, zatrudniona na czas określony 12 miesięcy.",
+     zrodlo: "ustawa art. 37 ust. 1 i art. 35 ust. 3; poradnik o pierwszej ocenie s. 6"}
+  - {id: P03, sciezka: pierwsza, faq: [FAQ-P27],
+     pytanie: "Czy od pierwszej oceny przysługuje odwołanie albo sprzeciw?",
+     oczekiwana_odpowiedz: "Materiały nie przewidują sprzeciwu od pierwszej oceny; ustawa opisuje sprzeciw tylko od oceny okresowej.",
+     zrodlo: "ustawa art. 83 ust. 1 (dotyczy oceny okresowej)"}
+  - {id: P04, sciezka: pierwsza, faq: [FAQ-P12],
+     pytanie: "Nowa pracownica ma ocenę łączną 4,6 punktu. Czy dostanie pozytywną pierwszą ocenę?",
+     oczekiwana_odpowiedz: "Nie. Ocena łączna musi wynosić co najmniej 5 punktów.",
+     zrodlo: "rozporządzenie z 2015 r. § 10 ust. 1 pkt 4 i ust. 2"}
+  - {id: P05, sciezka: pierwsza, faq: [FAQ-P21],
+     pytanie: "Pracownik ma dwie oceny cząstkowe po 3 punkty i trzy po 7, średnia 5,4. Czy pierwsza ocena jest pozytywna?",
+     oczekiwana_odpowiedz: "Nie. Dopuszczalna jest najwyżej jedna ocena cząstkowa 3 punkty.",
+     zrodlo: "rozporządzenie z 2015 r. § 10 ust. 1 pkt 3 i ust. 2"}
+  - {id: P06, sciezka: pierwsza, faq: [FAQ-P20],
+     pytanie: "Co jeśli nowy pracownik nie złożył sprawozdania w wyznaczonym terminie?",
+     oczekiwana_odpowiedz: "Ocena jest negatywna.",
+     zrodlo: "rozporządzenie z 2015 r. § 10 ust. 1 pkt 2 i ust. 2"}
+  - {id: P07, sciezka: pierwsza, faq: [FAQ-P01],
+     pytanie: "Nowa osoba zaczęła pracę 3 listopada. Do kiedy mam z nią przeprowadzić rozmowę wstępną?",
+     oczekiwana_odpowiedz: "W 21 dni od nawiązania stosunku pracy.",
+     zrodlo: "rozporządzenie z 2015 r. § 3"}
+  - {id: P08, sciezka: pierwsza, faq: [FAQ-P22],
+     pytanie: "Co dzieje się po pozytywnej pierwszej ocenie – kto wnioskuje o umowę na czas nieokreślony?",
+     oczekiwana_odpowiedz: "Kierujący komórką organizacyjną wnioskuje do dyrektora generalnego urzędu o zawarcie umowy na czas nieokreślony.",
+     zrodlo: "ustawa art. 38 ust. 3 pkt 1"}
+  - {id: P09, sciezka: pierwsza, faq: [FAQ-P23],
+     pytanie: "Jak długo trwa służba przygotowawcza i do kiedy musi się skończyć?",
+     oczekiwana_odpowiedz: "Nie dłużej niż 4 miesiące; kończy się najpóźniej z upływem 8 miesięcy od podjęcia pracy.",
+     zrodlo: "ustawa art. 36 ust. 4; poradnik o pierwszej ocenie s. 14"}
+  - {id: P10, sciezka: pierwsza, faq: [FAQ-P24],
+     pytanie: "Pracownik został zwolniony ze służby przygotowawczej. Czy musi zdawać egzamin?",
+     oczekiwana_odpowiedz: "Tak. Zwolnienie ze służby przygotowawczej nie zwalnia z egzaminu.",
+     zrodlo: "ustawa art. 36 ust. 7–8; poradnik o pierwszej ocenie s. 16"}
+  - {id: P11, sciezka: pierwsza, faq: [FAQ-P25],
+     pytanie: "Czy osoba zatrudniona na zastępstwo może mieć pierwszą ocenę?",
+     oczekiwana_odpowiedz: "Tak, może jej podlegać.",
+     zrodlo: "ustawa art. 37 ust. 2; poradnik o pierwszej ocenie s. 6"}
+  - {id: P12, sciezka: pierwsza, faq: [FAQ-P26],
+     pytanie: "Nowy pracownik chorował ponad 3 miesiące. Czy jego umowę na czas określony można przedłużyć?",
+     oczekiwana_odpowiedz: "Tak, ale nie automatycznie: dyrektor generalny urzędu może to zrobić na wniosek pracownika.",
+     zrodlo: "ustawa art. 35 ust. 4; rozporządzenie z 2015 r. § 5 ust. 2"}
+
+  # ---------------- Przygotowanie do rozmowy ----------------
+  - {id: R01, sciezka: okresowa, faq: [FAQ-R01],
+     pytanie: "Jakie pytania zadać pracownikowi na rozmowie oceniającej w ocenie okresowej?",
+     oczekiwana_odpowiedz: "Zakres rozmowy z § 10 i propozycje pytań; rozmowa ma być dialogiem.",
+     zrodlo: "rozporządzenie z 2016 r. § 10; poradnik o ocenie okresowej s. 25"}
+  - {id: R02, sciezka: okresowa, faq: [FAQ-R02],
+     pytanie: "Pracownik nie zgadza się z moją oceną i jest zdenerwowany. Jak poprowadzić rozmowę?",
+     oczekiwana_odpowiedz: "Dialog, fakty z całego okresu, konkretna informacja zwrotna, pouczenie o prawie do sprzeciwu.",
+     zrodlo: "poradnik o ocenie okresowej s. 25 i s. 31"}
+  - {id: R03, sciezka: okresowa, faq: [FAQ-R03],
+     pytanie: "Jak uzasadnić negatywną ocenę okresową, żeby argumenty były mocne?",
+     oczekiwana_odpowiedz: "Uzasadnienie jest obowiązkowe; ogólne albo odniesione do ocen cząstkowych, oparte na konkretnych zachowaniach.",
+     zrodlo: "rozporządzenie z 2016 r. § 11 ust. 3; poradnik o ocenie okresowej s. 28"}
+  - {id: R04, sciezka: pierwsza, faq: [FAQ-R04],
+     pytanie: "Co przygotować przed rozmową oceniającą z nowym pracownikiem w pierwszej ocenie?",
+     oczekiwana_odpowiedz: "Roboczą wersję oceny przygotowaną z kierującym komórką organizacyjną.",
+     zrodlo: "poradnik o pierwszej ocenie s. 27"}
+  - {id: R05, sciezka: pierwsza, faq: [FAQ-R05],
+     pytanie: "Jak rozmawiać z nowym pracownikiem, któremu planuję dać negatywną pierwszą ocenę?",
+     oczekiwana_odpowiedz: "Dać pracownikowi powiedzieć, jak sam się ocenia; rozmawiać o rozwoju także przy ocenie negatywnej.",
+     zrodlo: "poradnik o pierwszej ocenie s. 26"}
+  - {id: R06, sciezka: wspolne, faq: [FAQ-R06, FAQ-M02],
+     pytanie: "Jak zbierać przykłady zachowań pracownika w trakcie roku, żeby ocena nie opierała się tylko na ostatnich tygodniach?",
+     oczekiwana_odpowiedz: "Zbierać informacje przez cały okres, na bieżąco i na piśmie.",
+     zrodlo: "poradnik o ocenie okresowej s. 23–24"}
+
+# Zestaw odłożony: 15 pytań napisanych przed dopisaniem pozycji FAQ i niewykorzystanych przy
+# doborze wariantów. Służy tylko do pomiaru uogólniania (bez strojenia na nim).
+odlozone:
+  - {id: H01, sciezka: okresowa, faq: [FAQ-O21], pytanie: "Do kogo pracownik składa sprzeciw od oceny okresowej?"}
+  - {id: H02, sciezka: okresowa, faq: [FAQ-O24], pytanie: "Czy naczelnik wydziału sam ocenia swoich pracowników, czy robi to dyrektor?"}
+  - {id: H03, sciezka: okresowa, faq: [FAQ-O25], pytanie: "Osoba na umowie na zastępstwo – czy robię jej ocenę okresową?"}
+  - {id: H04, sciezka: okresowa, faq: [FAQ-O26], pytanie: "Jaki jest skutek negatywnej oceny okresowej dla terminu następnej oceny?"}
+  - {id: H05, sciezka: okresowa, faq: [FAQ-O22], czeka_na: 53-asystent-jury, pytanie: "Czy urzędnik może zostać zwolniony po negatywnych ocenach okresowych?"}
+  - {id: H06, sciezka: okresowa, faq: [FAQ-O27], pytanie: "Urlop macierzyński pracownicy trwał pół roku. Kiedy będzie jej ocena okresowa?"}
+  - {id: H07, sciezka: okresowa, faq: [FAQ-O28], pytanie: "Czy daję pracownikowi kopię arkusza oceny okresowej?"}
+  - {id: H08, sciezka: okresowa, faq: [FAQ-O29], pytanie: "Co oznacza 5 punktów i czy od tego zaczynam ocenę kryterium?"}
+  - {id: H09, sciezka: okresowa, faq: [FAQ-O30], pytanie: "Mam pracownika z prostymi zadaniami. Czy w ogóle muszę dobierać mu dodatkowe kryteria?"}
+  - {id: H10, sciezka: pierwsza, faq: [FAQ-P19], pytanie: "Do kiedy najpóźniej muszę zrobić pierwszą ocenę nowego pracownika?"}
+  - {id: H11, sciezka: pierwsza, faq: [FAQ-P20], pytanie: "Pracownik oddał sprawozdanie tydzień po terminie. Jaka będzie pierwsza ocena?"}
+  - {id: H12, sciezka: pierwsza, faq: [FAQ-P23], pytanie: "Ile miesięcy może trwać służba przygotowawcza?"}
+  - {id: H13, sciezka: pierwsza, faq: [FAQ-P22], pytanie: "Czy dyrektor generalny musi zawrzeć umowę na czas nieokreślony po pozytywnej pierwszej ocenie?"}
+  - {id: H14, sciezka: pierwsza, faq: [FAQ-R04], pytanie: "Jak przygotować się do rozmowy oceniającej przy pierwszej ocenie?"}
+  - {id: H15, sciezka: okresowa, faq: [FAQ-R03], pytanie: "Jak sformułować argumenty uzasadniające ocenę poniżej oczekiwań?"}
