@@ -519,7 +519,8 @@ function OcenyKryteriow({
   const max = ocena ? Math.max(...ocena.skala.punkty) : 9;
   return (
     <div className="sekcja oceny-kryteriow">
-      <h2>Oceny kryteriów</h2>
+      {/* Bez punktów (HR, pracownik przed zakończeniem) jest tylko wynik i data – nagłówek mówi, co widać (Helix G2). */}
+      <h2>{biezace.length > 0 || poprzednieSlupki ? "Oceny kryteriów" : "Poprzednia ocena"}</h2>
       {(o || p) && (
         <div className="poprzednie">
           {o && (

@@ -140,5 +140,8 @@ def test_hr_na_karcie_nie_pyta_o_tresc_oceny(przegladarka, proces_w_kroku_5):
     page.wait_for_load_state("networkidle")
     expect(page.get_by_role("button", name="Zobacz ocenę")).to_have_count(0)
     expect(page.get_by_text("Poprzednia ocena, skala 1–9 pkt")).to_have_count(0)
+    # Helix G2: bez punktów sekcja nie obiecuje „Ocen kryteriów”.
+    expect(page.get_by_role("heading", level=2, name="Poprzednia ocena")).to_be_visible()
+    expect(page.get_by_role("heading", level=2, name="Oceny kryteriów")).to_have_count(0)
     assert odmowy == [], odmowy
     page.close()
