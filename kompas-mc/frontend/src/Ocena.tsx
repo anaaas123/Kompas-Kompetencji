@@ -102,6 +102,8 @@ function EkranWskaznika({
   nr,
   pytania,
   zadania,
+  token,
+  procesId,
   tylkoOdczyt,
   czekam,
   blad,
@@ -112,6 +114,8 @@ function EkranWskaznika({
   nr: number;
   pytania: string[];
   zadania: { nr: number; tekst: string }[];
+  token: string;
+  procesId: number;
   tylkoOdczyt: boolean;
   czekam: boolean;
   blad?: string;
@@ -119,6 +123,7 @@ function EkranWskaznika({
 }) {
   const [uwagi, setUwagi] = useState(w.ocena?.uwagi ?? "");
   const [dopytaj, setDopytaj] = useState(false);
+  const [czat, setCzat] = useState(false);
   const przyklady = w.ocena?.przyklady ?? [];
   // Zablokowane tylko w odczycie: „disabled” na czas zapisu zrzucałby fokus klawiatury na początek strony.
   const zablokowane = tylkoOdczyt;
@@ -135,37 +140,65 @@ function EkranWskaznika({
         <h2 className="oc-tytul" tabIndex={-1}>
           {w.nazwa.replace(/\.$/, "")}
         </h2>
-        {zadania.length > 0 && (
-          <p className="meta oc-zadania">Zadanie z OSP: {zadania.map((z) => `${z.nr}. ${z.tekst}`).join(" · ")}</p>
-        )}
       </div>
 
       <div className="oc-pytanie">
         <Ikona nazwa="pytanie" rozmiar={20} />
         <div>
-          <p className="oc-pytanie-tytul">Przypomnij sobie sytuację z okresu oceny</p>
-          {pytania.slice(0, 1).map((p) => (
-            <p key={p}>
-              <span className="meta">Możesz zapytać: </span>
-              {p}
+          <p className="oc-pytanie-tytul">Podpowiedź do rozmowy</p>
+          {zadania.length > 0 && (
+            <p className="meta oc-zadania" title={zadania.map((z) => `${z.nr}. ${z.tekst}`).join(" · ")}>
+              Zadanie z opisu stanowiska: {zadania.map((z) => z.tekst).join(" · ")}
             </p>
+          )}
+          {pytania.slice(0, 1).map((p) => (
+            <p key={p}>{p}</p>
           ))}
-          {pytania.length > 1 && (
-            <>
+          <div className="oc-pytanie-akcje">
+            {pytania.length > 1 && (
               <button type="button" className="link oc-brak" aria-expanded={dopytaj} onClick={() => setDopytaj((v) => !v)}>
                 {dopytaj ? "Ukryj dopytania" : `Dopytaj (${pytania.length - 1})`}
               </button>
-              <Zwijane otwarte={dopytaj}>
-                <ul className="oc-pytania">
-                  {pytania.slice(1).map((p) => (
-                    <li key={p}>{p}</li>
-                  ))}
-                </ul>
-              </Zwijane>
-            </>
-          )}
+            )}
+            {!tylkoOdczyt && (
+              <button type="button" className="link oc-brak" aria-expanded={czat} onClick={() => setCzat((v) => !v)}>
+                {czat ? "Ukryj asystenta" : "Zapytaj asystenta AI"}
+              </button>
+            )}
+          </div>
+          <Zwijane otwarte={dopytaj}>
+            <ul className="oc-pytania">
+              {pytania.slice(1).map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </Zwijane>
+          <Zwijane otwarte={czat}>
+            <CzatRozmowy
+              token={token}
+              procesId={procesId}
+              poczatkowe={`Jakie pytanie zadać w rozmowie o wskaźnik „${w.nazwa.replace(/\.$/, "")}”?`}
+            />
+          </Zwijane>
         </div>
       </div>
+
+      <label className="etykieta oc-uwagi">
+        Przykład z okresu (opcjonalnie)
+        <textarea
+          rows={3}
+          value={uwagi}
+          disabled={tylkoOdczyt}
+          placeholder="Sytuacja → działanie → rezultat"
+          onChange={(e) => setUwagi(e.target.value)}
+          onBlur={() => w.ocena && (w.ocena.uwagi ?? "") !== uwagi.trim() && onZapisz({ ...w.ocena, uwagi: uwagi.trim() || null })}
+        />
+      </label>
+      {przyklady.map((p, i) => (
+        <p key={i} className="meta">
+          Przykład: {p.sytuacja} – {p.dzialanie} – {p.rezultat}
+        </p>
+      ))}
 
       <div className="oc-obserwacja">
         <p className="etykieta">Obserwacja</p>
@@ -208,23 +241,6 @@ function EkranWskaznika({
       </div>
 
       <SamoocenaPrzyWskazniku w={w} />
-
-      <label className="etykieta oc-uwagi">
-        Przykład z okresu (opcjonalnie)
-        <textarea
-          rows={3}
-          value={uwagi}
-          disabled={tylkoOdczyt}
-          placeholder="Sytuacja → działanie → rezultat"
-          onChange={(e) => setUwagi(e.target.value)}
-          onBlur={() => w.ocena && (w.ocena.uwagi ?? "") !== uwagi.trim() && onZapisz({ ...w.ocena, uwagi: uwagi.trim() || null })}
-        />
-      </label>
-      {przyklady.map((p, i) => (
-        <p key={i} className="meta">
-          Przykład: {p.sytuacja} – {p.dzialanie} – {p.rezultat}
-        </p>
-      ))}
       {w.ostrzezenia.map((o) => (
         <p key={o} className="brak">
           {o}
@@ -289,7 +305,7 @@ function OcenaKryterium({
       </p>
       {poprzednio && (
         <p className="meta">
-          Poprzednia ocena ({data(poprzednio.data)}): {poprzednio.punkty} pkt · dane demo
+          Poprzednia ocena ({data(poprzednio.data)}): {poprzednio.punkty} pkt
         </p>
       )}
       <p className="etykieta">Twoja ocena</p>
@@ -303,7 +319,7 @@ function OcenaKryterium({
               type="button"
               role="radio"
               aria-checked={wybrany}
-              className="oc-punkt"
+              className={`oc-punkt ${sugerowany ? "sugerowany" : ""}`}
               disabled={tylkoOdczyt}
               onClick={() => !czekam && !wybrany && onZapisz({ punkty: p, uzasadnienie: uzasadnienie.trim() || null })}
             >
@@ -331,7 +347,6 @@ function OcenaKryterium({
           />
         </label>
       )}
-      {!d && !tylkoOdczyt && <p className="meta">Sugestia to tylko podpowiedź. Punkty wybierasz Ty.</p>}
       {blad && <p className="blad">{blad}</p>}
     </div>
   );
@@ -389,7 +404,6 @@ function EkranTematu({
   blad?: string;
   onZapisz: (zmiana: ZapisRozmowy) => void;
 }) {
-  const [czat, setCzat] = useState(false);
   const wszystkie = (plan?.pytania ?? []).filter((q) => tematPytania(q.id) === temat).map((q) => q.tresc);
   // Obowiązki: szablon pyt.osp.zadanie to jedno pytanie + treść zadania; pytanie raz, pod nim lista zadań z OSP.
   // ponytail: podział po stałym zwrocie z rozmowa.yaml; przy zmianie szablonu lista zadań pokaże całe pytania.
@@ -495,12 +509,6 @@ function EkranTematu({
             tylkoOdczyt={tylkoOdczyt}
             onZapisz={(t) => onZapisz({ obszary_rozwoju: t })}
           />
-          <button type="button" className="link oc-brak" aria-expanded={czat} onClick={() => setCzat((v) => !v)}>
-            {czat ? "Ukryj asystenta" : "Zapytaj asystenta o rozmowę"}
-          </button>
-          <Zwijane otwarte={czat}>
-            <CzatRozmowy token={token} procesId={procesId} />
-          </Zwijane>
         </>
       )}
       {blad && <p className="blad">{blad}</p>}
@@ -538,7 +546,6 @@ type Krok = { typ: "temat"; temat: Temat } | { typ: "wskaznik"; kr: number; w: n
 const kroki = (dane: StanOceny, plan: PlanRozmowy | null): Krok[] => {
   const jest = (t: Temat) => (plan?.pytania ?? []).some((q) => tematPytania(q.id) === t);
   return [
-    ...(jest("obowiazki") ? [{ typ: "temat", temat: "obowiazki" } as Krok] : []),
     ...(jest("sprawozdanie") ? [{ typ: "temat", temat: "sprawozdanie" } as Krok] : []),
     ...dane.kryteria.flatMap((kr, i) => kr.wskazniki.map((_, j): Krok => ({ typ: "wskaznik", kr: i, w: j }))),
     ...(jest("cele") ? [{ typ: "temat", temat: "cele" } as Krok] : []),
@@ -569,13 +576,8 @@ function Os({ dane, lista, biezacy, onIdz }: { dane: StanOceny; lista: Krok[]; b
   return (
     <nav className="oc-os" aria-label="Plan oceny">
       <div className="oc-os-glowa">
-        <p className="oc-os-krok">
-          {k.typ === "podsumowanie"
-            ? "Podsumowanie"
-            : k.typ === "temat"
-              ? NAZWA_TEMATU[k.temat]
-              : `Kryterium ${k.kr + 1} z ${dane.kryteria.length}`}
-          <span className="meta"> · ocenione wskaźniki {ocenione} z {wszystkie}</span>
+        <p className="meta oc-os-krok">
+          Ocenione wskaźniki {ocenione} z {wszystkie}
         </p>
         <button type="button" className="link" aria-expanded={plan} onClick={() => setPlan((v) => !v)}>
           {plan ? "Zwiń plan" : "Plan oceny"}
@@ -729,6 +731,26 @@ export function Ocena({
     }
   }
 
+  // Sugestia jednoznaczna (nie remis), a punktów jeszcze nie ma: przyjmuje je przełożony, nic nie zaznacza się samo.
+  const doPrzyjecia = dane.kryteria.filter((kr) => !kr.decyzja && kr.sugestia.status === "POZIOM" && kr.sugestia.punkty != null);
+  async function przyjmijSugestie() {
+    setCzekam("sugestie");
+    setBledy(({ sugestie: _, ...reszta }) => reszta);
+    try {
+      setDane(
+        await zapiszDecyzje(
+          token,
+          proces.id,
+          Object.fromEntries(doPrzyjecia.map((kr) => [kr.kompetencja_id, { punkty: kr.sugestia.punkty as number, uzasadnienie: null }])),
+        ),
+      );
+    } catch (err) {
+      setBledy((b) => ({ ...b, sugestie: bladZapisu(err) }));
+    } finally {
+      setCzekam(null);
+    }
+  }
+
   const pierwszyWskaznik = (i: number) => lista.findIndex((x) => x.typ === "wskaznik" && x.kr === i);
 
   let ekran;
@@ -744,6 +766,8 @@ export function Ocena({
           nr={k.w + 1}
           pytania={pytaniaWskaznika(w.wskaznik_id)}
           zadania={zadania[w.wskaznik_id] ?? []}
+          token={token}
+          procesId={proces.id}
           tylkoOdczyt={tylkoOdczyt}
           czekam={czekam === w.wskaznik_id}
           blad={bledy[w.wskaznik_id]}
@@ -772,9 +796,20 @@ export function Ocena({
           Podsumowanie i punkty
         </h2>
         <p className="meta">
-          Po rozmowie przyznaj punkty za każde kryterium (§ 11 ust. 1 pkt 1 rozporządzenia), biorąc pod uwagę jej wnioski (§ 11 ust. 2).
-          Pod każdym kryterium widzisz poziomy z rozmowy i sugestię.
+          Przyznaj punkty za każde kryterium (§ 11 ust. 1 pkt 1). Sugestia wynika z poziomów zaznaczonych w rozmowie; punkty wybierasz Ty.
         </p>
+        {!tylkoOdczyt && doPrzyjecia.length > 0 && (
+          <div className="oc-przyjmij">
+            <p className="meta">
+              {doPrzyjecia.length === 1 ? "1 kryterium ma" : `${doPrzyjecia.length} kryteria mają`} jedną sugestię. Możesz przyjąć je
+              jednym kliknięciem i zmienić pojedyncze punkty.
+            </p>
+            <button type="button" className="jasny" disabled={czekam === "sugestie"} onClick={przyjmijSugestie}>
+              {czekam === "sugestie" ? "Zapisuję…" : `Przyjmij sugestie (${doPrzyjecia.length})`}
+            </button>
+          </div>
+        )}
+        {bledy.sugestie && <p className="blad">{bledy.sugestie}</p>}
         {dane.kryteria.map((kr, i) => {
           const p = poprzednie?.punkty[kr.kompetencja_id];
           return (
@@ -817,13 +852,37 @@ export function Ocena({
         <button type="button" className="link" onClick={onWstecz}>
           Zobacz kryteria (część I)
         </button>
-        <p className="meta">Zakończenie oceny</p>
-        <h1>Rozmowa oceniająca</h1>
+        <div className="oc-naglowek-wiersz">
+          <h1>Rozmowa oceniająca</h1>
+          <button
+            type="button"
+            className="ikona-przycisk"
+            aria-label="Jak oceniać i skąd sugestia?"
+            title="Jak oceniać i skąd sugestia?"
+            aria-expanded={metodyka}
+            onClick={() => setMetodyka((v) => !v)}
+          >
+            <Ikona nazwa="pytanie" rozmiar={22} />
+          </button>
+        </div>
         <p className="opis">
           {osoba.imie} {osoba.nazwisko} · {NAZWA_SCIEZKI[dane.sciezka]} · arkusz{" "}
           {dane.arkusz === "PIERWSZA" ? "pierwszej oceny" : dane.arkusz}
         </p>
       </div>
+      <Zwijane otwarte={metodyka}>
+        <div className="k1-szczegoly oc-zasady">
+          <p className="oc-pytanie-tytul">Jak oceniać i skąd sugestia</p>
+          {dane.instrukcja.map((i) => (
+            <div key={i.tekst}>
+              <p className="meta">{i.tekst}</p>
+              <Zrodla adnotacje={[i.adnotacja]} />
+            </div>
+          ))}
+          <p className="meta">{dane.metodyka.opis}</p>
+          <Zrodla adnotacje={dane.metodyka.adnotacje} />
+        </div>
+      </Zwijane>
       <Os dane={dane} lista={lista} biezacy={biezacy} onIdz={setKrok} />
       {(dane.samoocena_status === "przekazana" || k.typ === "podsumowanie") && (
         <StatusSamoocenyPrzelozonego status={dane.samoocena_status} />
@@ -864,23 +923,6 @@ export function Ocena({
               {tylkoOdczyt ? "Dalej: ocena na piśmie" : czekam === "rozmowa" ? "Zapisuję…" : "Zakończ rozmowę"}
             </button>
           )}
-        </div>
-        <div className="k2-metodyka">
-          <button type="button" className="link" aria-expanded={metodyka} onClick={() => setMetodyka((v) => !v)}>
-            {metodyka ? "Ukryj zasady" : "Jak oceniać i skąd sugestia?"}
-          </button>
-          <Zwijane otwarte={metodyka}>
-            <div className="k1-szczegoly">
-              {dane.instrukcja.map((i) => (
-                <div key={i.tekst}>
-                  <p className="meta">{i.tekst}</p>
-                  <Zrodla adnotacje={[i.adnotacja]} />
-                </div>
-              ))}
-              <p className="meta">{dane.metodyka.opis}</p>
-              <Zrodla adnotacje={dane.metodyka.adnotacje} />
-            </div>
-          </Zwijane>
         </div>
       </div>
     </div>

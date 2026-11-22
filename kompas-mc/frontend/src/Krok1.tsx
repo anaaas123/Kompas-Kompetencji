@@ -2,13 +2,11 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   BladApi,
   pobierzKrok1,
-  pobierzKrok2,
   pobierzProcesy,
   pobierzZrodla,
   rozpocznijProces,
   type AnalizaKroku1,
   type Brak,
-  type Krok2,
   type Pracownik,
   type ProcesOceny,
   type Przeslanka,
@@ -210,7 +208,7 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
       <h2>Jak oceniamy</h2>
       <div className="k1-decyzja">
         <p className="k1-tytul">{tytul}</p>
-        <p className="meta">Propozycja systemu z danych kadrowych i opisu stanowiska. Potwierdzasz ją, rozpoczynając ocenę.</p>
+        <p className="meta">Propozycja z danych kadrowych. Potwierdzasz ją, rozpoczynając ocenę.</p>
       </div>
       <Braki braki={[...s.braki, ...(okresowa ? a.braki : [])]} />
       {analiza.arkusz_a.dotyczy && <p className="brak">{analiza.arkusz_a.komunikat}</p>}
@@ -241,65 +239,6 @@ function Decyzja({ analiza }: { analiza: AnalizaKroku1 }) {
           ))}
         </div>
       </Zwijane>
-    </div>
-  );
-}
-
-/** Musi, wskazane w OSP, proponowane: z arkusza, z opisu stanowiska i z dopasowania do zadań. */
-function CoOceniamy({ analiza, krok2 }: { analiza: AnalizaKroku1; krok2: Krok2 | null }) {
-  const [otwarte, setOtwarte] = useState(false);
-  const osp = analiza.osp;
-  const obowiazkowe = krok2?.kryteria.filter((k) => k.rodzaj === "OBOWIAZKOWE") ?? [];
-  const proponowane = krok2?.kryteria.filter((k) => k.rodzaj === "DODATKOWE_PROPONOWANE") ?? [];
-  // Z opisu stanowiska pokazujemy tylko to, czego nie ma już wśród obowiązkowych (bez powtórzeń).
-  const obowiazkoweNazwy = new Set(obowiazkowe.map((k) => k.nazwa.toLowerCase()));
-  const zOsp = (osp?.kompetencje_miekkie.lista ?? []).filter((k) => !obowiazkoweNazwy.has(k.toLowerCase()));
-  if (!osp && !krok2) return null;
-  const arkusz = krok2 ? (krok2.arkusz === "PIERWSZA" ? "arkusz pierwszej oceny" : `arkusz ${krok2.arkusz}`) : null;
-  return (
-    <div className="k1-blok">
-      <h2>Co oceniamy na tym stanowisku</h2>
-      <dl className="k1-wiersze">
-        {obowiazkowe.length > 0 && (
-          <div>
-            <dt>Obowiązkowe · {arkusz}</dt>
-            <dd>{obowiazkowe.map((k) => nazwaKryterium(k.nazwa)).join(" · ")}</dd>
-          </div>
-        )}
-        {zOsp.length > 0 && (
-          <div>
-            <dt>{obowiazkowe.length ? "Z opisu stanowiska, poza obowiązkowymi" : "Wskazane w opisie stanowiska"}</dt>
-            <dd>{zOsp.map((k) => nazwaKryterium(k)).join(" · ")}</dd>
-          </div>
-        )}
-        {proponowane.length > 0 && (
-          <div>
-            <dt>Proponowane dodatkowo · wybierzesz w kroku 2</dt>
-            <dd>
-              {proponowane.map((k) => (
-                <span key={k.kompetencja_id} className="k1-propozycja">
-                  {nazwaKryterium(k.nazwa)}
-                  {k.propozycja?.powody.length ? <span className="meta"> ({k.propozycja.powody.join(", ")})</span> : null}
-                </span>
-              ))}
-            </dd>
-          </div>
-        )}
-      </dl>
-      {!krok2 && <p className="meta">Kryteria z arkusza pokażą się po rozpoczęciu oceny.</p>}
-      {krok2 && (
-        <>
-          <button type="button" className="link k1-rozwin" aria-expanded={otwarte} onClick={() => setOtwarte((v) => !v)}>
-            {otwarte ? "Ukryj podstawę" : "Skąd te kryteria?"}
-          </button>
-          <Zwijane otwarte={otwarte}>
-            <div className="k1-szczegoly">
-              <Zrodla adnotacje={[...krok2.podstawa_obowiazkowych, ...krok2.podstawa_dodatkowych]} />
-              {osp && <Zrodla adnotacje={[osp.kompetencje_miekkie.adnotacja]} />}
-            </div>
-          </Zwijane>
-        </>
-      )}
     </div>
   );
 }
@@ -376,7 +315,6 @@ export function Krok1({
 }) {
   const [analiza, setAnaliza] = useState<AnalizaKroku1 | null>(null);
   const [proces, setProces] = useState<ProcesOceny | null>(null);
-  const [krok2, setKrok2] = useState<Krok2 | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
 
   useEffect(() => {
@@ -390,13 +328,6 @@ export function Krok1({
       );
   }, [token, osoba.osoba_id]);
 
-  // Kryteria arkusza („co oceniamy”) zna dopiero proces; bez niego sekcja pokazuje sam OSP.
-  useEffect(() => {
-    if (!proces) return;
-    pobierzKrok2(token, proces.id)
-      .then(setKrok2)
-      .catch(() => setKrok2(null));
-  }, [token, proces]);
 
   const wydzial = osoba.komorka.split(" / ").pop();
 
@@ -421,21 +352,12 @@ export function Krok1({
         <div className="dwie">
           <div className="sekcja k1-glowna">
             <p className="k1-streszczenie">{zdanieOOsobie(osoba)}</p>
-            <PoprzedniaOcena token={token} osoba={osoba} />
-            <Decyzja analiza={analiza} />
-            <CoOceniamy analiza={analiza} krok2={krok2} />
             <OpisStanowiska analiza={analiza} />
-            {analiza.uwagi.length > 0 && (
-              <div className="k1-blok">
-                <h2>Uwagi i rozbieżności</h2>
-                {analiza.uwagi.map((u) => (
-                  <div key={u.id}>
-                    <p>{u.komunikat}</p>
-                    <Zrodla adnotacje={u.adnotacje} />
-                  </div>
-                ))}
-              </div>
-            )}
+            <Decyzja analiza={analiza} />
+            {/* Przy pierwszej ocenie poprzedniej nie ma, więc sekcji nie pokazujemy (Karol 22.11). */}
+            {osoba.ostatnia_ocena_okresowa && <PoprzedniaOcena token={token} osoba={osoba} />}
+            {/* Uwagi analizy to notatki o materiałach (np. kroki dodane z przepisu): są w „Źródłach i brakach”,
+                tu tylko zaśmiecały ekran przełożonego (Karol 22.11: „jasno albo wcale”). */}
           </div>
 
           <aside className="sekcja k2-boczna">
@@ -453,7 +375,7 @@ export function Krok1({
                   </button>
                 </>
               ) : moznaProwadzic ? (
-                <Rozpoczecie token={token} analiza={analiza} onRozpoczeto={setProces} />
+                <Rozpoczecie token={token} analiza={analiza} onRozpoczeto={onDalej} />
               ) : (
                 <p className="meta">Ocenę rozpoczyna przełożony.</p>
               )}

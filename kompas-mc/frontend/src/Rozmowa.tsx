@@ -12,8 +12,9 @@ interface WymianaCzatu {
   blad?: string;
 }
 
-export function CzatRozmowy({ token, procesId }: { token: string; procesId: number }) {
-  const [pytanie, setPytanie] = useState("");
+/** `poczatkowe`: pytanie wpisane w pole na start (np. przy wskaźniku); przełożony może je zmienić przed wysłaniem. */
+export function CzatRozmowy({ token, procesId, poczatkowe = "" }: { token: string; procesId: number; poczatkowe?: string }) {
+  const [pytanie, setPytanie] = useState(poczatkowe);
   const [historia, setHistoria] = useState<WymianaCzatu[]>([]);
   const [czekam, setCzekam] = useState(false);
 

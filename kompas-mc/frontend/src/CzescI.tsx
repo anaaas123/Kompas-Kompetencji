@@ -58,6 +58,7 @@ export function ZakonczenieCzesciI({
     setBlad(null);
     try {
       onZapisano(await zapiszZapoznanie(token, proces.id, dataZapoznania));
+      if (naKoncuOkresu) onDalej();
     } catch (err) {
       setBlad(opisBledu(err));
     } finally {
@@ -80,7 +81,7 @@ export function ZakonczenieCzesciI({
   return (
     <div className="k2-ustalone czesc-i" role="status">
       <h2 ref={tytul} tabIndex={-1}>
-        {zakonczona ? "Część I arkusza zakończona" : "Zakończ część I arkusza"}
+        {naKoncuOkresu ? "Kryteria z części I arkusza" : zakonczona ? "Część I arkusza zakończona" : "Zakończ część I arkusza"}
       </h2>
       <p className="meta">
         {wybor.kryteria.length - dodatkowe} kryteriów obowiązkowych
@@ -89,7 +90,7 @@ export function ZakonczenieCzesciI({
       </p>
       {naKoncuOkresu ? (
         <p className="meta">
-          Część I sporządzono na początku okresu oceny. Wpisz datę rozmowy i zapoznania z kryteriami z podpisanej części I.
+          Część I podpisano na początku okresu. Przepisz z niej datę zapoznania z kryteriami: od niej liczy się okres oceny.
         </p>
       ) : (
         <div>
@@ -103,8 +104,9 @@ export function ZakonczenieCzesciI({
       )}
       {zakonczona ? (
         <p className="sukces">
-          Rozmowa i zapoznanie z kryteriami: {data(wybor.zapoznanie as string)}. Oryginał arkusza trafia do akt osobowych, kopię
-          części I doręczasz ocenianemu (§ 6 ust. 3).
+          {naKoncuOkresu
+            ? `Zapoznanie z kryteriami: ${data(wybor.zapoznanie as string)}.`
+            : `Część I zakończona ${data(wybor.zapoznanie as string)}. Oryginał do akt osobowych, kopia dla ocenianego (§ 6 ust. 3).`}
         </p>
       ) : (
         moznaProwadzic && (
@@ -116,14 +118,14 @@ export function ZakonczenieCzesciI({
         <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>
           Wróć do pracownika
         </button>
-        {cykl?.etap !== "brak_danych" && (
+        {cykl?.etap !== "brak_danych" && !naKoncuOkresu && (
           <button type="button" className="jasny" disabled={drukuje} onClick={drukuj}>
             {drukuje ? "Przygotowuję PDF…" : "Pobierz część I do podpisu"}
           </button>
         )}
         {moznaProwadzic && !zakonczona && (
           <button type="button" disabled={czekam || !dataZapoznania || !poprawnaData(dataZapoznania)} onClick={zapisz}>
-            {czekam ? "Zapisuję…" : "Zapisz i zakończ część I"}
+            {czekam ? "Zapisuję…" : naKoncuOkresu ? "Zapisz i przejdź do rozmowy oceniającej" : "Zapisz i zakończ część I"}
           </button>
         )}
         {zakonczona && naKoncuOkresu && (

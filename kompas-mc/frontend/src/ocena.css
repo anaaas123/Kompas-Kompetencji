@@ -180,3 +180,14 @@ label.etykieta.rozmowa-pytanie textarea { field-sizing: content; min-height: var
 /* Podpowiedź szkicu informacji zwrotnej: widoczna, ale nie zapisana, dopóki przełożony jej nie wstawi. */
 .oc-szkic { display: flex; flex-direction: column; align-items: flex-start; gap: var(--o-8); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
 .oc-szkic p { margin: 0; }
+
+/* Sugestia w podsumowaniu: widoczna ramka i znacznik, dopóki przełożony nie wybierze punktów. */
+.oc-punkty button.oc-punkt.sugerowany:not([aria-checked="true"]) { border: 1px dashed var(--k-link); background: var(--k-info-bg); }
+.oc-punkt.sugerowany .znacznik { color: var(--k-link); }
+.oc-przyjmij { display: flex; align-items: center; justify-content: space-between; gap: var(--o-16); padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-info-bg); }
+.oc-przyjmij p { margin: 0; }
+/* Nagłówek rozmowy: tytuł i „?” w jednym wierszu, zasady pod nagłówkiem. */
+.oc-naglowek-wiersz { display: flex; align-items: center; justify-content: space-between; gap: var(--o-16); }
+.oc-naglowek-wiersz h1 { margin: 0; }
+.oc-zasady { padding: var(--o-16); border-radius: var(--r-wiersz); background: var(--k-wiersz); }
+.oc-pytanie-akcje { display: flex; flex-wrap: wrap; gap: var(--o-16); }
