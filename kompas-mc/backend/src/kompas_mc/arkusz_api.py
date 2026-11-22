@@ -18,7 +18,7 @@ from .arkusze import (
     ZrodloArkusza, sprawdz_uzupelnienia, wypelnij,
 )
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
-from .procesy import ProcesOceny, wczytaj_proces
+from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt, OstatniaOcenaOkresowa, Pracownik
 from .rejestr import ustaw_szczegoly
 from .zakonczenie import ZakonczenieOceny, pracownik_procesu, zastosuj_zakonczone  # noqa: F401 (app importuje stąd)
@@ -352,6 +352,13 @@ def router(
             raise HTTPException(409, "Najpierw zatwierdź arkusz oceny (krok 7).")
         dane = stan.wynik.dane
         sporzadzono = dane.data_sporzadzenia_oceny
+        # Helix G3 (7): data zapoznania z oceny na piśmie jest wiążąca – inna przy zakończeniu rozjechałaby
+        # kartotekę, wynik i termin sprzeciwu.
+        if body.data_zapoznania_z_ocena and dane.data_zapoznania_z_ocena and body.data_zapoznania_z_ocena != dane.data_zapoznania_z_ocena:
+            raise HTTPException(
+                422,
+                f"W ocenie na piśmie zapisano zapoznanie {dane.data_zapoznania_z_ocena:%d.%m.%Y}; zakończ z tą datą.",
+            )
         zapoznano = body.data_zapoznania_z_ocena or dane.data_zapoznania_z_ocena
         if sporzadzono is None:
             raise HTTPException(422, "Brak daty sporządzenia oceny na piśmie (krok 7).")
@@ -359,6 +366,10 @@ def router(
             raise HTTPException(422, "Podaj dzień zapoznania ocenianego z oceną (§ 12 ust. 1).")
         if zapoznano < sporzadzono:
             raise HTTPException(422, "Zapoznanie z oceną nie może być wcześniejsze niż jej sporządzenie.")
+        # Helix G3 (8): zakończenie zapisuje fakty, nie plany – data z przyszłości nie zamyka procesu.
+        dzis = dzien_urzedowy(datetime.now(UTC))
+        if max(sporzadzono, zapoznano) > dzis:
+            raise HTTPException(422, f"Daty sporządzenia i zapoznania nie mogą być późniejsze niż dziś ({dzis:%d.%m.%Y}).")
         obl = stan.wynik.obliczenie
         zak = ZakonczenieOceny(
             proces_id=proces_id, data_sporzadzenia_oceny=sporzadzono, data_zapoznania_z_ocena=zapoznano,

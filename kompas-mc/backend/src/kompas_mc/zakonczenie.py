@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from datetime import date, datetime
 from typing import Literal
 
@@ -38,6 +40,22 @@ def zastosuj_zakonczone(baza, qnt: MockQnt) -> None:
             data_zapoznania=z.data_zapoznania_z_ocena,
         ))
 
+
+
+def zapis_wyniku_procesu(baza, proces: ProcesOceny, zapis: str | None) -> str | None:
+    """Dane kroku 6 zakończonego procesu z datą zapoznania z zakończenia, gdy ocena na piśmie jej nie miała
+    (Helix G3, 7): wynik pokazuje tę samą datę co kartoteka i liczy od niej termin sprzeciwu."""
+    if proces.status != "ZAKONCZONY" or not zapis:
+        return zapis
+    zapisany = json.loads(zapis)  # {"podstawa": …, "dane": DaneWynikuOkresowego}
+    if zapisany.get("dane", {}).get("data_zapoznania_z_ocena"):
+        return zapis
+    wiersz = baza.execute("SELECT zakonczenie FROM procesy WHERE id = ?", (proces.id,)).fetchone()
+    if not wiersz or not wiersz[0]:
+        return zapis
+    zak = ZakonczenieOceny.model_validate_json(wiersz[0])
+    zapisany.setdefault("dane", {})["data_zapoznania_z_ocena"] = zak.data_zapoznania_z_ocena.isoformat()
+    return json.dumps(zapisany)
 
 
 def pracownik_procesu(baza, pracownik: Pracownik, proces: ProcesOceny) -> Pracownik:
