@@ -16,8 +16,6 @@ from .arkusze import WzoryArkuszy
 from .asystent import Asystent, KonfiguracjaAsystenta, OdpowiedzAsystenta, Sciezka
 from .baza import polacz
 from .braki import PanelBrakow, zbuduj_panel
-from .kompetencje import odczytaj as odczytaj_model
-from .korpus_mc import zaladuj
 from .cele import KonfiguracjaCelow
 from .cele_api import router as router_celow
 from .cele_llm import PodpowiedziLlm
@@ -25,16 +23,15 @@ from .cykl import router as router_cyklu
 from .hr import terminy_z_regul
 from .hr_api import router as router_hr
 from .hr_api import router_terminow
-from .samoocena import KonfiguracjaSamooceny
-from .samoocena_api import router as router_samooceny
-from .zespol_api import router as router_zespolu
+from .kompetencje import odczytaj as odczytaj_model
+from .korpus_mc import zaladuj
 from .krok1 import KonfiguracjaKroku1, proponuj_sciezke
 from .krok2 import KonfiguracjaKroku2
 from .krok2_api import StanKroku2
 from .krok2_api import router as router_kroku2
-from .ocena import KonfiguracjaOceny
 from .metodyka import RejestrMetodyk
 from .metodyka_api import router as router_metodyki
+from .ocena import KonfiguracjaOceny
 from .ocena_api import router as router_oceny
 from .opis_api import router as router_opisu
 from .osp import KatalogOsp
@@ -42,16 +39,23 @@ from .pierwsza_ocena_api import router as router_pierwszej
 from .pracownicy import router as router_pracownikow
 from .procesy import router as router_procesow
 from .qnt import MockQnt
+from .rejestr import router as router_rejestru
+from .rejestr import ustaw_szczegoly
+from .rejestr import zainstaluj as zainstaluj_rejestr
 from .rozmowa import KonfiguracjaRozmowy
 from .rozmowa_api import router as router_rozmowy
-from .rozwoj_api import router as router_wnioskow
 from .rozwoj import DaneRozwoju, KonfiguracjaRozwoju, WynikRozwoju, zaproponuj
+from .rozwoj_api import router as router_wnioskow
+from .samoocena import KonfiguracjaSamooceny
+from .samoocena_api import router as router_samooceny
 from .terminy_okresowej import KonfiguracjaTerminow
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej
 from .ustawienia import Ustawienia
 from .wynik_okresowy import KonfiguracjaWynikuOkresowego
-from .wynik_okresowy_api import SerwisWynikuOkresowego, router as router_wyniku_okresowego
+from .wynik_okresowy_api import SerwisWynikuOkresowego
+from .wynik_okresowy_api import router as router_wyniku_okresowego
 from .wynik_pierwszej import KonfiguracjaWynikuPierwszej
+from .zespol_api import router as router_zespolu
 
 
 class PytanieAsystenta(BaseModel):
@@ -102,6 +106,8 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
     role = yaml.safe_load(ust.role.read_text(encoding="utf-8"))
     auth = Autoryzacja(KonfiguracjaRol.model_validate(role))
     app.include_router(auth.router(), prefix="/api", tags=["logowanie"])
+    app.include_router(router_rejestru(auth))
+    zainstaluj_rejestr(app, auth)
     qnt = MockQnt.z_pliku(ust.qnt)
     katalog = KatalogOsp()
     app.include_router(router_pracownikow(auth, qnt))
@@ -201,7 +207,14 @@ def utworz_aplikacje(ustawienia: Ustawienia | None = None) -> FastAPI:
 
     @app.post("/api/asystent")
     def asystent(request: Request, body: PytanieAsystenta) -> OdpowiedzAsystenta:
-        return request.app.state.asystent.odpowiedz(body.pytanie, body.sciezka)
+        """Pytanie do asystenta formalnego."""
+        wynik = request.app.state.asystent.odpowiedz(body.pytanie, body.sciezka)
+        # Rejestr operacji: tryb i dostawca odpowiedzi oraz wynik walidacji cytatów, bez treści pytania i odpowiedzi.
+        ustaw_szczegoly(
+            request, tryb=wynik.tryb, dostawca=wynik.dostawca, odrzuceni=wynik.odrzuceni,
+            walidacja="cytaty_ok" if wynik.znaleziono and wynik.cytaty else "brak_cytatow", pokrycie=wynik.pokrycie,
+        )
+        return wynik
 
     return app
 

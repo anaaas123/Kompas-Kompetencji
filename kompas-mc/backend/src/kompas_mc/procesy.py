@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime
-from zoneinfo import ZoneInfo
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Dziennik, Uzytkownik
@@ -19,6 +19,7 @@ from .krok1 import AnalizaKroku1, KonfiguracjaKroku1, Sciezka, Uwaga, analizuj
 from .krok2 import WyborKroku2
 from .osp import KatalogOsp
 from .qnt import MockQnt, Pracownik
+from .rejestr import ustaw_osobe
 
 WERSJA_REGUL = "krok1@1"
 
@@ -121,6 +122,7 @@ def router(
         422: inna ścieżka niż proponowana (albo brak propozycji) bez uzasadnienia; ocena
         okresowa bez ustalonego arkusza B/C. 409: osoba ma już proces w toku.
         """
+        ustaw_osobe(request, body.osoba_id)
         p = dostepny(body.osoba_id, uz, "ocena.prowadz")
         analiza = analizuj(p, katalog, konf)
         zgodna = analiza.sciezka.proponowana == body.sciezka

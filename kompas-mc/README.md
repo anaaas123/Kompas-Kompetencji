@@ -88,6 +88,15 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 
 **Zakres danych osobowych.** Mock QNT zawiera 10 fikcyjnych osób powiązanych z trzema OSP: imię, nazwisko, stanowisko, komórkę, przełożonego i fakty kadrowe potrzebne do wyboru ścieżki oceny i terminów (podstawa i data zatrudnienia, korpus, ostatnia ocena, egzamin, zastępstwo, nieobecności). Nie ma PESEL, adresów ani danych wrażliwych. Pola `scenariusz` i `oczekiwany_arkusz` służą tylko do demo i testów i nie trafiają do odpowiedzi API.
 
+## Rejestr operacji
+
+Każda zmiana (żądanie inne niż GET), pobranie dokumentu (PDF, CSV), odczyt karty, oceny, notatek i samooceny oraz każda odmowa 401/403 trafia do tabeli `operacje` w bazie aplikacji: czas, użytkownik (login, rola, osoba), stały kod akcji i jej opis, trasa, obiekt, osoba oceniana, wynik (`ok`, `odmowa`, `blad`), kod HTTP, czas trwania i identyfikator żądania (nagłówek `X-Request-Id`). Wpis powstaje także wtedy, gdy obsługa żądania rzuci wyjątek. Trasy dopisują szczegóły przez `ustaw_szczegoly(request, …)` tylko z listy dozwolonych pól (np. asystent: tryb, dostawca, odrzuceni dostawcy, wynik walidacji cytatów), a osobę ocenianą spoza ścieżki przez `ustaw_osobe`. Treść żądań, odpowiedzi, notatek, pytań i haseł do rejestru nie trafia. Przy logowaniu zapisuje się tylko zadeklarowany login.
+
+- `GET /api/rejestr` (filtry `od`, `do`, `uzytkownik`, `akcja`, `wynik`, `osoba`, stronicowanie) i `GET /api/rejestr.csv` (do 10 000 wpisów, komórki zaczynające się od `=`, `+`, `-`, `@` dostają apostrof) wymagają uprawnienia `rejestr.czytaj`, które ma tylko HR. Ekran: menu HR → „Rejestr operacji”.
+- Tylko dopisywanie: triggery SQLite odrzucają `UPDATE` i `DELETE` na `operacje`. To chroni przed pomyłką w kodzie, nie przed administratorem z dostępem do pliku bazy. Integralność kryptograficzną i kopię poza serwerem trzeba dodać we wdrożeniu urzędu.
+- Przechowywanie: aplikacja nie usuwa wpisów. Okres przechowywania i usuwanie po jego upływie ustala administrator (RODO art. 5 ust. 1 lit. e). Dla wpisów wywołań AI warto przyjąć co najmniej 6 miesięcy (AI Act art. 26 ust. 6 wymaga tego dla systemów wysokiego ryzyka; kwalifikację systemu ocenia urząd).
+- Granica: wpis rejestru i zmiana danych mają osobne transakcje. Zmiana zapisana przy błędzie zapisu rejestru da wynik bez wpisu. Wpis o odmowie albo błędzie powstaje niezależnie od wycofania zmian.
+
 ## Krok 1: analiza OSP, ścieżka i arkusz
 
 - `GET /api/pracownicy/{osoba_id}/krok1` (podgląd, akcja `ocena.czytaj`) zwraca OSP z korpusu: cel, zadania dominujące i pozostałe, liczbę podległych, złożoność, samodzielność i kompetencje miękkie. Każde pole ma adnotację z cytatem. Zwraca też propozycję ścieżki z przesłankami i arkusz B/C według § 3 rozp. 2016.
