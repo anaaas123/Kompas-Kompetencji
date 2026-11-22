@@ -89,11 +89,62 @@ def _oceniany(baza: sqlite3.Connection, parametry: dict[str, str]) -> str | None
     return None
 
 
+_P = "/api/procesy/{proces_id}"
+# Nazwy czynności dla HR (G2 22.11: zamiast opisów tras z kodu). Klucz = stały kod akcji „METODA trasa”.
+ETYKIETY: dict[str, str] = {
+    "POST /api/auth/login": "Logowanie",
+    "GET /api/rejestr": "Podgląd rejestru operacji",
+    "GET /api/rejestr.csv": "Eksport rejestru operacji (CSV)",
+    "GET /api/pracownicy/{osoba_id}": "Odczyt karty pracownika",
+    "GET /api/pracownicy/{osoba_id}/poprzednia-ocena": "Odczyt poprzedniej oceny",
+    "GET /api/pracownicy/{osoba_id}/notatki": "Odczyt notatek przełożonego",
+    "POST /api/pracownicy/{osoba_id}/notatki": "Nowa notatka przełożonego",
+    "GET /api/pracownicy/{osoba_id}/opis": "Odczyt opisu osoby",
+    "POST /api/pracownicy/{osoba_id}/cele": "Nowy cel rozwojowy",
+    "POST /api/procesy": "Rozpoczęcie oceny",
+    f"PUT {_P}/krok2": "Zapis kryteriów i wskaźników",
+    f"PUT {_P}/krok2/zapoznanie": "Zakończenie części I (zapoznanie z kryteriami)",
+    f"GET {_P}/ocena": "Odczyt oceny kryteriów",
+    f"PUT {_P}/ocena/wskazniki": "Ocena wskaźników",
+    f"PUT {_P}/ocena/decyzje": "Decyzje o punktach",
+    f"PUT {_P}/ocena/rozmowa": "Zapis rozmowy oceniającej",
+    f"POST {_P}/rozmowa": "Plan rozmowy oceniającej",
+    f"POST {_P}/rozmowa/czat": "Pytanie w czacie rozmowy",
+    f"GET {_P}/wynik-okresowy": "Odczyt wyniku oceny",
+    f"PUT {_P}/wynik-okresowy": "Zapis oceny na piśmie",
+    f"GET {_P}/wynik-okresowy/zawiadomienie.pdf": "Wydruk zawiadomienia o zmianie terminu",
+    f"GET {_P}/arkusz-okresowy": "Podgląd arkusza oceny",
+    f"PUT {_P}/arkusz-okresowy": "Zapis arkusza oceny",
+    f"GET {_P}/arkusz-okresowy/pdf": "Wydruk arkusza oceny",
+    f"GET {_P}/arkusz-okresowy/czesc-i/pdf": "Wydruk części I arkusza",
+    f"POST {_P}/arkusz-okresowy/ezd": "Rejestracja w EZD",
+    f"POST {_P}/arkusz-okresowy/zakoncz": "Zakończenie oceny",
+    f"GET {_P}/pierwsza-ocena": "Odczyt pierwszej oceny",
+    f"PUT {_P}/pierwsza-ocena": "Zapis pierwszej oceny",
+    f"POST {_P}/pierwsza-ocena/zakoncz": "Zakończenie pierwszej oceny",
+    f"GET {_P}/pierwsza-ocena/arkusz.pdf": "Wydruk arkusza pierwszej oceny",
+    f"GET {_P}/pierwsza-ocena/rozmowa-wstepna.pdf": "Wydruk części I–II (rozmowa wstępna)",
+    f"GET {_P}/pierwsza-ocena/zawiadomienie.pdf": "Wydruk zawiadomienia (pierwsza ocena)",
+    f"GET {_P}/samoocena": "Odczyt samooceny",
+    f"PUT {_P}/samoocena": "Zapis szkicu samooceny",
+    f"POST {_P}/samoocena/przekaz": "Przekazanie samooceny",
+    "PUT /api/cele/{cel_id}": "Zmiana celu",
+    "POST /api/cele/{cel_id}/zatwierdz": "Zatwierdzenie celu",
+    "POST /api/cele/{cel_id}/odrzuc": "Odrzucenie celu",
+    "POST /api/cele/{cel_id}/status": "Zmiana statusu celu",
+    "POST /api/metodyka": "Nowa wersja metodyki",
+    "POST /api/metodyka/{metodyka_id}/zatwierdz": "Zatwierdzenie metodyki",
+    "POST /api/hr/przypomnienia": "Przypomnienie do przełożonego",
+    "POST /api/rozwoj/propozycje": "Propozycje rozwoju",
+    "POST /api/asystent": "Pytanie do asystenta formalnego",
+}
+_ZAPAS = {"GET": "Odczyt danych", "PUT": "Zapis danych", "POST": "Czynność w aplikacji", "DELETE": "Usunięcie danych"}
+
+
 def _etykieta(trasa: object, metoda: str, sciezka: str) -> tuple[str, str]:
-    """Stały kod akcji (nazwa funkcji trasy) i etykieta po ludzku (pierwsze zdanie opisu trasy)."""
-    nazwa = getattr(trasa, "name", None)
-    opis = (getattr(trasa, "description", "") or "").strip().split("\n")[0].strip()
-    return (nazwa or f"{metoda} {sciezka}"), (opis.rstrip(".") or f"{metoda} {sciezka}")
+    """Stały kod akcji („METODA trasa”, jednoznaczny) i nazwa czynności po ludzku dla HR."""
+    kod = f"{metoda} {sciezka}"
+    return kod, ETYKIETY.get(kod, _ZAPAS.get(metoda, "Czynność w aplikacji"))
 
 
 def zainstaluj(app: FastAPI, auth: Autoryzacja) -> None:

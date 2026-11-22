@@ -88,3 +88,18 @@ def test_tylko_dopisywanie(klient):
         with pytest.raises(sqlite3.DatabaseError, match="tylko dopisywanie"):
             baza.execute(polecenie)
     baza.close()
+
+
+
+def test_kazda_rejestrowana_trasa_ma_nazwe_dla_hr(klient):
+    """G2 22.11: w kolumnie „Operacja” nazwa czynności, nie opis trasy z kodu. Nowa trasa = nowy wpis w ETYKIETY."""
+    from kompas_mc.rejestr import ETYKIETY, czy_rejestrowac
+
+    braki = [
+        f"{m.upper()} {p}" for p, ops in klient.app.openapi()["paths"].items() for m in ops
+        if czy_rejestrowac(m.upper(), p, 200) and f"{m.upper()} {p}" not in ETYKIETY
+    ]
+    assert not braki, braki
+    assert all("`" not in e and "403" not in e for e in ETYKIETY.values())
+    wpis = next(w for w in _wpisy(klient) if w["trasa"] == "/api/pracownicy/{osoba_id}")
+    assert (wpis["akcja"], wpis["etykieta"]) == ("GET /api/pracownicy/{osoba_id}", "Odczyt karty pracownika")
