@@ -66,6 +66,24 @@ class CytatAsystenta(BaseModel):
     powoluje_ustawe: bool = False
 
 
+# Tekst modelu w czacie rozmowy i podpowiedzi nie może proponować oceny tej osoby: punktów, poziomu ani
+# nazwy poziomu skali w zdaniu z propozycją (zadanie MC: „ostateczny poziom oceny zawsze wybiera przełożony”).
+# Core sprawdza tylko cytaty, nie treść (icc-8a, 22.11), więc ta kontrola jest ostatnia przed ekranem.
+_PROPOZYCJA_OCENY = re.compile(
+    r"\b[1-9]\s*(pkt|punkt)"
+    r"|\bpoziom\w*\s*(nr\s*)?[1-9]\b"
+    r"|\bocen\w*\s+(na\s+)?[1-9]\b"
+    r"|(proponuj|sugeruj|rekomend|zalecam|oceń|przyznaj|należy\s+(przyznać|ocenić)|powin\w+\s+(otrzymać|dostać))"
+    r"[^.?!]{0,80}(poniżej|powyżej|na\s+poziomie)\s+oczekiwań",
+    re.IGNORECASE,
+)
+
+
+def proponuje_ocene(tekst: str | None) -> bool:
+    """Czy tekst modelu podsuwa ocenę (punkty, poziom) zamiast pomagać w rozmowie."""
+    return bool(tekst and _PROPOZYCJA_OCENY.search(tekst))
+
+
 class OdpowiedzAsystenta(BaseModel):
     pytanie: str
     sciezka: Sciezka | None

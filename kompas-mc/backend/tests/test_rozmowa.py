@@ -303,13 +303,14 @@ class _AtrapaPodpowiedzi:
     model = "test"
     tryb = Tryb.NA_ZYWO
 
-    def __init__(self):
+    def __init__(self, tresc="Kiedy w tym okresie było to widać?"):
         self.zapytania = []
+        self.tresc = tresc
 
     def odpowiedz(self, zapytanie):
         self.zapytania.append(zapytanie)
         f = zapytanie.fragmenty[0]
-        return Odpowiedz(cytaty=[Cytat(fragment_id=f.id, cytat=f.tekst[:40])], tresc="Kiedy w tym okresie było to widać?")
+        return Odpowiedz(cytaty=[Cytat(fragment_id=f.id, cytat=f.tekst[:40])], tresc=self.tresc)
 
 
 def test_podpowiedz_ai_przy_wskazniku_bez_danych_osobowych(klient, naglowek):
@@ -329,8 +330,30 @@ def test_podpowiedz_ai_przy_wskazniku_bez_danych_osobowych(klient, naglowek):
         tekst = atrapa.zapytania[0].pytanie
         assert pracownik["nazwisko"] not in tekst and pracownik["imie"] not in tekst
         assert klient.post(url, json={"wskaznik_id": "nie-ma"}, headers=h).status_code == 404
+        # Model nie podsuwa oceny ani punktów: taka odpowiedź nie trafia na ekran (zostaje szablon).
+        llm.dostawcy = [_AtrapaPodpowiedzi("Proponuję 7 pkt, bo przykład jest mocny.")]
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=h).json()["pytanie"] is None
         llm.dostawcy = []
         assert klient.post(url, json={"wskaznik_id": wid}, headers=h).json()["pytanie"] is None
         assert klient.post(url, json={"wskaznik_id": wid}, headers=naglowek("hr")).status_code == 403
     finally:
         llm.dostawcy = poprzedni
+
+
+@pytest.mark.parametrize(
+    "tekst,ocena",
+    [
+        ("Proponuję 3 pkt za to kryterium.", True),
+        ("Sugeruję ocenić to na poziomie oczekiwań.", True),
+        ("To poziom 7.", True),
+        ("Powinien otrzymać ocenę powyżej oczekiwań.", True),
+        ("Jak wyglądała realizacja tego zadania w okresie oceny?", False),
+        ("Standard to poziom „na poziomie oczekiwań”: jak to wyglądało u Ciebie?", False),
+        ("W razie oceny negatywnej przysługuje sprzeciw w 7 dni.", False),
+    ],
+)
+def test_tekst_modelu_nie_podsuwa_oceny(tekst, ocena):
+    """icc-8a 22.11: core sprawdza tylko cytaty; propozycja punktów albo poziomu nie może trafić na ekran."""
+    from kompas_mc.asystent import proponuje_ocene
+
+    assert proponuje_ocene(tekst) is ocena

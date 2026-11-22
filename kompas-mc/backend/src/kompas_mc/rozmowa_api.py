@@ -7,7 +7,7 @@ from kompas_core.auth import Autoryzacja, Uzytkownik
 from kompas_core.llm import BrakOdpowiedzi, Zapytanie, wywolaj
 from pydantic import BaseModel, Field
 
-from .asystent import OdpowiedzAsystenta
+from .asystent import OdpowiedzAsystenta, proponuje_ocene
 from .krok2_api import StanKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import zbuduj_stan
@@ -127,6 +127,11 @@ def router(
         odpowiedz = request.app.state.asystent.odpowiedz(
             body.pytanie, proces.sciezka, kontekst=kontekst
         )
+        if odpowiedz.faq_id is None and proponuje_ocene(odpowiedz.tresc):
+            odpowiedz = odpowiedz.model_copy(update={
+                "tresc": None,
+                "uwagi": [*odpowiedz.uwagi, "Asystent nie proponuje punktów ani poziomu; zostały same cytaty ze źródeł."],
+            })
         return OdpowiedzCzatu(
             **odpowiedz.model_dump(), oznaczenie_sugestii=konf.oznaczenie_sugestii
         )
@@ -177,6 +182,10 @@ def router(
             wynik = wywolaj(zapytanie, llm.dostawcy, llm.dziennik)
         except BrakOdpowiedzi:
             return PodpowiedzRozmowy(pytanie=None)
-        return PodpowiedzRozmowy(pytanie=wynik.odpowiedz.tresc, dostawca=wynik.dostawca, tryb=str(wynik.tryb))
+        pytanie = (wynik.odpowiedz.tresc or "").strip()
+        # Ma to być jedno pytanie do rozmowy, nie ocena ani wykład: inaczej zostaje pytanie z szablonu.
+        if not pytanie.endswith("?") or len(pytanie) > 400 or proponuje_ocene(pytanie):
+            return PodpowiedzRozmowy(pytanie=None, dostawca=wynik.dostawca, tryb=str(wynik.tryb))
+        return PodpowiedzRozmowy(pytanie=pytanie, dostawca=wynik.dostawca, tryb=str(wynik.tryb))
 
     return r
