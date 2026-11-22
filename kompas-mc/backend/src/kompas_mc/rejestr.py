@@ -109,6 +109,7 @@ ETYKIETY: dict[str, str] = {
     f"PUT {_P}/ocena/decyzje": "Decyzje o punktach",
     f"PUT {_P}/ocena/rozmowa": "Zapis rozmowy oceniającej",
     f"POST {_P}/rozmowa": "Plan rozmowy oceniającej",
+    f"POST {_P}/rozmowa/podpowiedz": "Podpowiedź AI do rozmowy przy wskaźniku",
     f"POST {_P}/rozmowa/czat": "Pytanie w czacie rozmowy",
     f"GET {_P}/wynik-okresowy": "Odczyt wyniku oceny",
     f"PUT {_P}/wynik-okresowy": "Zapis oceny na piśmie",
