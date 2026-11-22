@@ -68,6 +68,7 @@ def test_rozmowa_wstepna_zapis_i_wydruk_czesci_i_ii(przegladarka, api, proces_po
     page.locator("nav.menu button.poz", has_text="Pracownicy").click()
     page.get_by_text("Kacper Mazur-Demo").first.click()
     page.locator(".cykl .etapy button.etap", has_text="Rozpoczęcie: rozmowa wstępna").click()
+    page.locator(".szczegoly-etapu button", has_text="Otwórz rozmowę wstępną").click()  # #83: etap rozwija się na miejscu
     page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
 
     przycisk = page.get_by_role("button", name="Zapisz i wydrukuj części I–II")

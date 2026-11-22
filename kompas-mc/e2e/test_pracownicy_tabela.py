@@ -239,9 +239,11 @@ def test_filtr_z_zespolu_jako_znacznik(przegladarka):
     ludzie, _ = _dane(p, "hr")
     page = _pracownicy(b, "hr")
     page.locator("nav.menu button.poz", has_text="Zespół").click()
-    departament = page.locator(".lista button.pozycja .pozycja-tytul").first.inner_text().split("\n")[0].strip()
-    page.locator(".lista button.pozycja").first.click()
-    page.locator("button.do-listy").click()
+    # #91: komórkę wybiera się w Strukturze (zakres całej strony), do Pracowników prowadzi liczba osób do zrobienia.
+    wiersz = page.locator(".wiersz-departamentu button.zakres").first
+    departament = wiersz.locator(".nazwa-zakresu").inner_text().strip()
+    wiersz.click()
+    page.locator("button.liczba-zespolu", has_text="Do zrobienia teraz").click()
     w_departamencie = sum(1 for o in ludzie if o["komorka"].split(" / ")[0] == departament)
     znacznik = page.locator(".listwa button.znacznik-filtra")
     expect(znacznik).to_have_text(departament)
