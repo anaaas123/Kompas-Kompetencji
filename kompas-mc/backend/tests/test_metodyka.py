@@ -115,3 +115,20 @@ def test_tylko_hr_zarzadza_metodyka(app_m, login):
         "minimalny_udzial_ocenionych": 0.5, "mapowanie_pierwsza": MAPOWANIE_2, "zmiana": "x"})
     assert r.status_code == 403
     assert app_m.post("/api/metodyka/sugestia-mc-1/zatwierdz", headers=h, json={}).status_code == 403
+
+
+def test_wersja_startowa_opisana_dla_uzytkownika_i_poprawiana_w_starej_bazie(ustawienia, tmp_path):
+    """Opis wersji startowej bez nazwy pliku i numeru zgłoszenia; baza z dawnym opisem poprawia go przy starcie."""
+    import json
+    import sqlite3
+
+    konf = replace(ustawienia, baza=tmp_path / "m.db", log_llm=tmp_path / "l.jsonl")
+    opis = "Wersja startowa z konfiguracji aplikacji."
+    with TestClient(utworz_aplikacje(konf)) as k:
+        assert k.get("/api/metodyka", headers=_h(k, "hr")).json()["wersje"][0]["zmiana"] == opis
+    with sqlite3.connect(konf.baza) as baza:
+        dane = json.loads(baza.execute("SELECT dane FROM metodyki WHERE numer = 1").fetchone()[0])
+        dane["zmiana"] = "Wersja startowa z konfiguracja/ocena.yaml (#31)."
+        baza.execute("UPDATE metodyki SET dane = ? WHERE numer = 1", (json.dumps(dane),))
+    with TestClient(utworz_aplikacje(konf)) as k:
+        assert k.get("/api/metodyka", headers=_h(k, "hr")).json()["wersje"][0]["zmiana"] == opis
