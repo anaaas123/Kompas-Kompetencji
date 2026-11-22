@@ -17,9 +17,13 @@ from kompas_core.zrodla import SourceRef
 from pydantic import BaseModel, Field
 
 from .pierwsza_ocena import ZapisDanychPierwszej, uzupelnij_z_kadr
-from .procesy import ProcesOceny, dzien_urzedowy
+from .procesy import ProcesOceny, dzien_urzedowy, dzien_ustalenia_kryteriow
 from .qnt import Pracownik
-from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, oblicz_terminy
+from .terminy_okresowej import (
+    KonfiguracjaTerminow,
+    dane_terminow_procesu,
+    oblicz_terminy,
+)
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, oblicz_terminy_pierwszej
 
 PROG_ZAGROZONY_DNI = 7
@@ -66,8 +70,14 @@ def terminy_z_regul(
                 )
                 if not wykonano and termin is not None
             ]
+        # Te same dane terminów co wynik i cykl: zapisana zmiana terminu (§ 8) i daty z kroku 2 (zgłoszenie 124).
+        zapis_wyniku, = baza.execute("SELECT wynik_okresowy FROM procesy WHERE id = ?", (proces.id,)).fetchone()
         try:
-            t = oblicz_terminy(p, DaneTerminow(), konf_okresowej)
+            t = oblicz_terminy(p, dane_terminow_procesu(
+                zapis_wyniku,
+                data_ustalenia_kryteriow=dzien_ustalenia_kryteriow(proces.krok2) if proces.krok2 else None,
+                data_zapoznania_z_kryteriami=proces.krok2.zapoznanie if proces.krok2 else None,
+            ), konf_okresowej)
         except ValueError:
             return []
         wynik = []
