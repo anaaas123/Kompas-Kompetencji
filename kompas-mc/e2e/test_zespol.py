@@ -1,7 +1,8 @@
-"""Test Playwright #58: Zespół z paskiem etapów, osią terminów, profilem kompetencji i zestawieniem CSV.
+"""Test Playwright #58, #84: Zespół ze strukturą, zakresem per komórka, osią terminów, kompetencjami i CSV.
 
 Serwery jak w test_samoocena.py (KOMPAS_URL, PLAYWRIGHT_CHROMIUM, KOMPAS_ZRZUTY, TRYB=dark dla ciemnego).
-Przełożony widzi profil i mapę kompetencji; HR ich nie dostaje (API 403), oś i pasek etapów ma.
+Przełożony widzi kompetencje; HR ich nie dostaje (API 403), strukturę, liczby i oś ma.
+Klik wydziału zawęża całą stronę (liczby, linię zakresu, CSV); okruszek wraca do całości.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ def _zespol(przegladarka, login: str) -> Page:
     page.keyboard.press("Enter")
     expect(page.locator("nav.menu")).to_be_visible()
     page.locator("nav.menu button.poz", has_text="Zespół").click()
-    expect(page.get_by_role("heading", name="Etapy i terminy")).to_be_visible()
+    expect(page.get_by_role("heading", name="Struktura")).to_be_visible()
     return page
 
 
@@ -53,27 +54,68 @@ def _csv(page: Page) -> list[str]:
     return tresc.decode("utf-8-sig").splitlines()
 
 
-def _etapy_i_os(page: Page) -> None:
-    etapy = page.locator("figure.udzialy", has_text="Etap cyklu oceny")
-    expect(etapy.locator(".pasek-klik button").first).to_be_visible()
-    expect(etapy.locator(".legenda")).to_contain_text("ustalenie kryteriów")
-    expect(etapy.locator(".legenda")).to_contain_text("ocena końcowa")
+def _osob(page: Page) -> int:
+    """Liczba osób z linii zakresu pod tytułem („5 osób · 2 departamenty · 2 wydziały”)."""
+    return int(page.locator(".linijka-zakresu").inner_text().split()[0])
+
+
+def _uklad(page: Page) -> None:
+    # Bez powtórzeń z poprzedniej wersji: podtytułu, paska etapów, dolnych komórek i przycisku do listy.
+    for zbedny in ("Mój zespół", "Etap cyklu oceny", "Ostatnia ocena okresowa", "Komórki"):
+        expect(page.get_by_text(zbedny, exact=True)).to_have_count(0)
+    expect(page.locator(".liczba-zespolu")).to_have_count(3)
+    osob = _osob(page)
+    expect(page.locator(".struktura tr.wiersz-osoby")).to_have_count(osob)
+    expect(page.locator(".linia-ocen")).to_contain_text("Ostatnie oceny:")
+    legenda = page.locator(".sekcja-zespolu .legenda")
+    expect(legenda).to_contain_text("ocena końcowa")
     expect(page.locator(".os-terminow .punkt-osi").first).to_be_visible()
 
 
-def test_przelozony_os_profil_csv(przegladarka):
+def _zakres_wydzialu(page: Page) -> None:
+    """Klik wydziału zawęża stronę, okruszek wraca do całości."""
+    wszystkich = _osob(page)
+    wydzial = page.locator("tr.wiersz-wydzialu button.zakres").first
+    nazwa = wydzial.locator(".nazwa-zakresu").inner_text()
+    w_wydziale = int(wydzial.locator(".liczba-zakresu").inner_text().split()[0])
+    wydzial.click()
+    expect(page.locator("nav.okruszki")).to_contain_text(nazwa)
+    assert _osob(page) == w_wydziale
+    expect(page.locator(".struktura tr.wiersz-osoby")).to_have_count(w_wydziale)
+    assert len(_csv(page)) == 1 + w_wydziale
+    page.locator("nav.okruszki button.link").first.click()
+    expect(page.locator("nav.okruszki")).to_have_count(0)
+    assert _osob(page) == wszystkich
+
+
+def test_przelozony_struktura_kompetencje_csv(przegladarka):
     page = _zespol(przegladarka, "przelozony1")
-    _etapy_i_os(page)
-    expect(page.locator(".profil-lista li:not(.skala-profilu)").first).to_be_visible()
-    expect(page.locator(".tabela-mapy")).to_be_visible()
+    _uklad(page)
+    tabela = page.locator(".tabela-kompetencji")
+    expect(tabela).to_be_visible()
+    expect(tabela.locator("tr.srednia")).to_contain_text("Średnia zespołu")
+    expect(page.locator(".profil-lista")).to_have_count(0)
+    # Wnioski z poprawną odmianą: „2 z 3 osób”, „(2 osoby)”.
+    expect(page.locator(".wniosek").first).not_to_contain_text(" osoby poniżej")
     _zrzut(page, "zespol-przelozony")
 
     wiersze = _csv(page)
     assert wiersze[0].startswith(KOLUMNY + ";"), wiersze[0]
     assert "Komunikacja" in wiersze[0], "przełożony dostaje punkty kryteriów"
-    assert len(wiersze) == 1 + int(page.locator(".naglowek-widoku .meta").inner_text().split()[0])
+    assert len(wiersze) == 1 + _osob(page)
 
-    # Punkt na osi otwiera kartę tej osoby.
+    _zakres_wydzialu(page)
+
+    # Imię w strukturze otwiera kartę tej osoby.
+    osoba = page.locator(".struktura tr.wiersz-osoby button.link").first
+    nazwisko = osoba.inner_text()
+    osoba.click()
+    expect(page.get_by_role("heading", level=1)).to_contain_text(nazwisko)
+    page.close()
+
+
+def test_przelozony_punkt_osi_otwiera_karte(przegladarka):
+    page = _zespol(przegladarka, "przelozony1")
     punkt = page.locator(".os-terminow button.punkt-osi").first
     osoba = punkt.get_attribute("aria-label").split(":")[0]
     punkt.click()
@@ -81,18 +123,17 @@ def test_przelozony_os_profil_csv(przegladarka):
     page.close()
 
 
-def test_hr_bez_profilu_i_mapy(przegladarka):
+def test_hr_bez_kompetencji(przegladarka):
     page = _zespol(przegladarka, "hr")
-    _etapy_i_os(page)
-    expect(page.get_by_role("heading", name="Kompetencje zespołu")).to_have_count(0)
-    expect(page.locator(".profil-lista")).to_have_count(0)
-    expect(page.locator(".tabela-mapy")).to_have_count(0)
+    _uklad(page)
+    expect(page.get_by_role("heading", name="Kompetencje")).to_have_count(0)
+    expect(page.locator(".tabela-kompetencji")).to_have_count(0)
     _zrzut(page, "zespol-hr")
 
     wiersze = _csv(page)
     assert wiersze[0] == KOLUMNY, wiersze[0]
 
-    # Klik w odcinek paska etapów otwiera listę z filtrem etapu (znacznik w liście albo aktywna pigułka w tabeli #54).
-    page.locator("figure.udzialy", has_text="Etap cyklu oceny").locator(".pasek-klik button").first.click()
+    # Klik etapu w legendzie osi otwiera listę z filtrem etapu (znacznik w liście albo aktywna pigułka w tabeli #54).
+    page.locator(".sekcja-zespolu .legenda button.pozycja-legendy").first.click()
     expect(page.locator(".znacznik-filtra, .pigulka.aktywna").first).to_be_visible()
     page.close()

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { MapaKompetencji, nazwaKryterium } from "./Kompetencje";
+import { Fragment, useEffect, useState } from "react";
+import { nazwaKryterium } from "./Kompetencje";
 import {
   pobierzCykl,
   pobierzKrok1,
@@ -12,18 +12,20 @@ import {
   type Pracownik,
 } from "./api";
 import type { Sesja } from "./Konto";
-import { SzkieletListy, WierszListy } from "./Lista";
+import { SzkieletListy } from "./Lista";
 import { Ikona } from "./Ikona";
-import { Kafel, OsTerminow, PasekUdzialow, type PunktOsi, type Udzial } from "./Wykresy";
+import { OsTerminow, type PunktOsi } from "./Wykresy";
 import {
   data,
   kiedy,
   nastepnyKrok,
+  odmiana,
   osoby,
   podzial,
   poTerminie,
   wkrotce,
   doZrobienia,
+  wedlugKomorek,
   NAZWA_ETAPU,
   NAZWA_SCIEZKI,
   type FiltrPracownikow,
@@ -111,7 +113,6 @@ function policz(lista: Sprawa[]) {
 }
 
 const kto = (s: Sprawa) => `${s.osoba.imie} ${s.osoba.nazwisko}`;
-const czynnoscZDniem = (s: Sprawa) => (s.cykl?.termin ? `${s.cykl.czynnosc}, ${data(s.cykl.termin.data)}` : s.cykl?.czynnosc ?? "");
 
 /** Pole CSV: tekst zaczynający się od =, +, -, @ dostaje apostrof (Excel nie wykona go jako formuły). */
 function poleCsv(v: string | number): string {
@@ -155,21 +156,184 @@ function pobierzPlik(nazwa: string, tresc: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000); // Firefox i Safari czytają adres po kliknięciu
 }
 
-/** Mały pasek etapów w wierszu komórki: same proporcje, liczby są w opisie wiersza i w legendzie wyżej. */
-function MiniPasekEtapow({ etapy }: { etapy: Record<EtapOsoby["etap"], number> }) {
+const departamenty = (n: number) => `${n} ${odmiana(n, "departament", "departamenty", "departamentów")}`;
+const wydzialy = (n: number) => `${n} ${odmiana(n, "wydział", "wydziały", "wydziałów")}`;
+const poNazwisku = (a: Sprawa, b: Sprawa) =>
+  a.osoba.nazwisko.localeCompare(b.osoba.nazwisko, "pl") || a.osoba.imie.localeCompare(b.osoba.imie, "pl");
+
+/** Etap i termin osoby w jednej krótkiej plakietce: „Rozmowa oceniająca · 02.12.2026” albo „… · 3 dni po terminie”. */
+function plakietka(s: Sprawa): string {
+  const c = s.cykl;
+  if (!c) return nastepnyKrok(s);
+  if (!c.termin) return c.czynnosc;
+  const kiedyTxt = c.po_terminie && c.dni_do_terminu !== null ? kiedy(c.dni_do_terminu) : data(c.termin.data);
+  return `${c.czynnosc} · ${kiedyTxt}`;
+}
+
+/** Punkty kompetencji: ton komórki względem poziomu oczekiwań, średnia z przecinkiem. */
+const tonPunktow = (pkt: number, oczekiwany: number) => (pkt < oczekiwany ? "ponizej" : pkt > oczekiwany ? "powyzej" : "");
+const liczba = (x: number) => x.toFixed(1).replace(".", ",");
+const srednia = (w: number[]) => Math.round((w.reduce((a, b) => a + b, 0) / w.length) * 10) / 10;
+
+/** Krótkie nagłówki kryteriów do tabeli (pełna nazwa w `title`); nieznane kryterium dostaje pełną nazwę. */
+const KROTKO: Record<string, string> = {
+  rzetelnosc: "Rzetelność",
+  komunikacja: "Komunikacja",
+  "wykorzystywanie-wiedzy-i-doskonalenie-zawodowe": "Wiedza i doskonalenie",
+  "organizacja-pracy-i-orientacja-na-osiaganie-celow": "Organizacja pracy",
+  wspolpraca: "Współpraca",
+  "zarzadzanie-ludzmi": "Zarządzanie ludźmi",
+  "podejmowanie-decyzji-i-odpowiedzialnosc": "Decyzje i odpowie­dzialność",
+};
+
+/**
+ * Kompetencje osób w zakresie (tylko przełożony): dwa wnioski, tabela osoby × kryteria ze średnią zespołu w pierwszym
+ * wierszu. Kolejność według struktury i nazwiska, nigdy według wyniku. Kolor tła tylko poniżej i powyżej oczekiwań.
+ */
+function Kompetencje({ mapa, sprawy, onWybierz }: { mapa: Mapa; sprawy: Sprawa[]; onWybierz?: (p: Pracownik) => void }) {
+  const oczek = mapa.poziom_oczekiwan;
+  const poId = new Map(mapa.osoby.map((o) => [o.osoba_id, o]));
+  const kolejnosc = [...sprawy].sort((a, b) => a.osoba.komorka.localeCompare(b.osoba.komorka, "pl") || poNazwisku(a, b));
+  const wiersze = kolejnosc.flatMap((s) => {
+    const o = poId.get(s.osoba.osoba_id);
+    return o ? [{ s, o }] : [];
+  });
+  const bez = kolejnosc.filter((s) => !poId.has(s.osoba.osoba_id));
+  const kryteria = mapa.kryteria.filter((k) => wiersze.some(({ o }) => o.punkty[k.kompetencja_id] !== undefined));
+  const staty = kryteria.map((k) => {
+    const w = wiersze.map(({ o }) => o.punkty[k.kompetencja_id]).filter((x): x is number => x !== undefined);
+    return { k, n: w.length, sr: srednia(w), ponizej: w.filter((x) => x < oczek).length };
+  });
+  // Do rozwoju: najwięcej osób poniżej oczekiwań (co najmniej dwie). Mocna strona: najwyższa średnia powyżej
+  // oczekiwań u co najmniej dwóch osób (jedna osoba to nie zespół).
+  const slabe = [...staty].sort((a, b) => b.ponizej - a.ponizej || a.sr - b.sr).find((x) => x.ponizej >= 2);
+  const mocne = staty.filter((x) => x.n >= 2 && x.sr > oczek).sort((a, b) => b.sr - a.sr)[0];
+  const rozbieznosci = wiersze.some(({ o }) => o.rozbieznosci !== null);
+  const [min, max] = [Math.min(...mapa.skala), Math.max(...mapa.skala)];
+  const zrodlo = (o: Mapa["osoby"][number]) =>
+    o.zrodlo === "biezaca_ocena" ? "ocena bieżąca" : `ocena ${o.data ? `${o.data.slice(5, 7)}.${o.data.slice(0, 4)}` : "z akt"}`;
+  const osoba = (p: Pracownik) =>
+    onWybierz ? (
+      <button type="button" className="link" onClick={() => onWybierz(p)}>
+        {p.imie} {p.nazwisko}
+      </button>
+    ) : (
+      `${p.imie} ${p.nazwisko}`
+    );
+
   return (
-    <span className="mini-pasek" role="img" aria-label={`Etapy: ${ETAPY.map((e) => `${NAZWA_ETAPU[e]} ${etapy[e]}`).join(", ")}`}>
-      {ETAPY.filter((e) => etapy[e] > 0).map((e) => (
-        <span key={e} className={`odcinek ${e}`} style={{ flexGrow: etapy[e] }} />
-      ))}
-    </span>
+    <section className="sekcja-zespolu">
+      <h2>Kompetencje</h2>
+      {wiersze.length === 0 ? (
+        <p className="meta">Nikt w tym zakresie nie ma jeszcze punktów za kryteria.</p>
+      ) : (
+        <>
+          {(slabe || mocne) && (
+            <div className="wnioski-mapy">
+              {slabe && (
+                <p className="wniosek do-rozwoju">
+                  <span className="kafel-etykieta">Do rozwoju w zespole</span>
+                  <strong>{nazwaKryterium(slabe.k.nazwa)}</strong>
+                  <span>
+                    {slabe.ponizej} z {slabe.n} osób poniżej oczekiwań, średnio {liczba(slabe.sr)} pkt
+                  </span>
+                </p>
+              )}
+              {mocne && (
+                <p className="wniosek mocna">
+                  <span className="kafel-etykieta">Mocna strona zespołu</span>
+                  <strong>{nazwaKryterium(mocne.k.nazwa)}</strong>
+                  <span>
+                    średnio {liczba(mocne.sr)} pkt ({osoby(mocne.n)})
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+          <div className="tabela-kompetencji" role="region" aria-label="Kompetencje: osoby i kryteria" tabIndex={0}>
+            <table>
+              <colgroup>
+                <col className="kol-osoby" />
+                {kryteria.map((k) => (
+                  <col key={k.kompetencja_id} />
+                ))}
+                {rozbieznosci && <col />}
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Osoba</th>
+                  {kryteria.map((k) => (
+                    <th key={k.kompetencja_id} scope="col" title={nazwaKryterium(k.nazwa)}>
+                      <span className="naglowek-kryterium">{KROTKO[k.kompetencja_id] ?? nazwaKryterium(k.nazwa)}</span>
+                    </th>
+                  ))}
+                  {rozbieznosci && (
+                    <th scope="col">
+                      <span className="naglowek-kryterium">Samoocena do omówienia</span>
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="srednia">
+                  <th scope="row">Średnia zespołu</th>
+                  {staty.map((x) => (
+                    <td key={x.k.kompetencja_id}>
+                      <strong className={tonPunktow(x.sr, oczek)}>{liczba(x.sr)}</strong>
+                      <span className="meta">{osoby(x.n)}</span>
+                    </td>
+                  ))}
+                  {rozbieznosci && <td />}
+                </tr>
+                {wiersze.map(({ s, o }) => (
+                  <tr key={o.osoba_id}>
+                    <th scope="row">
+                      {osoba(s.osoba)}
+                      <span className="meta">{zrodlo(o)}</span>
+                    </th>
+                    {kryteria.map((k) => {
+                      const v = o.punkty[k.kompetencja_id];
+                      return v === undefined ? (
+                        <td key={k.kompetencja_id} className="poza-arkuszem" title="kryterium spoza arkusza tej osoby">
+                          –
+                        </td>
+                      ) : (
+                        <td key={k.kompetencja_id} className={tonPunktow(v, oczek)}>
+                          {v}
+                        </td>
+                      );
+                    })}
+                    {rozbieznosci && <td className={o.rozbieznosci === null ? "poza-arkuszem" : undefined}>{o.rozbieznosci ?? "–"}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {bez.length > 0 && (
+            <p className="meta bez-punktow">
+              Bez punktów za kryteria:{" "}
+              {bez.map((s, i) => (
+                <Fragment key={s.osoba.osoba_id}>
+                  {i > 0 && ", "}
+                  {osoba(s.osoba)}
+                </Fragment>
+              ))}
+            </p>
+          )}
+        </>
+      )}
+      <p className="meta podstawa-kompetencji">
+        <span className="probka ponizej" aria-hidden="true" /> poniżej oczekiwań
+        <span className="probka powyzej" aria-hidden="true" /> powyżej · skala {min}–{max} pkt, poziom oczekiwań {oczek} · źródło: ostatnia
+        ocena okresowa z akt albo ocena bieżąca
+      </p>
+    </section>
   );
 }
 
 /**
- * Zespół: analiza komórki, bez listy osób (osoby są w „Pracownicy”). Odpowiada w 10 sekund: kto jest po terminie,
- * co jest najbliżej, co trzeba zrobić teraz, jak wypadły ostatnie oceny i która komórka ma zaległości.
- * Każda liczba ma podstawę (osoba i czynność albo źródło). Kliknięcie liczby albo komórki otwiera listę z filtrem.
+ * Zespół: struktura zespołu i analiza per komórka. Klik departamentu albo wydziału zawęża całą stronę (liczby, oś,
+ * kompetencje, ostatnie oceny, CSV); okruszek cofa zakres. Klik liczby otwiera listę Pracownicy z filtrem.
  */
 export function Zespol({
   sesja,
@@ -190,8 +354,7 @@ export function Zespol({
   useEffect(() => {
     if (przelozony) pobierzMapeKompetencji(sesja.token).then(setMapa).catch(() => setMapa(null));
   }, [sesja.token, przelozony]);
-  const hr = sesja.uzytkownik.rola === "hr";
-  const korzen = hr ? "Cały urząd" : "Mój zespół";
+  const korzen = sesja.uzytkownik.rola === "hr" ? "Cały urząd" : "Cały zespół";
 
   if (blad) return <p className="blad">{blad}</p>;
   if (!sprawy)
@@ -206,31 +369,17 @@ export function Zespol({
   const l = policz(zakres);
   const komorka = komorkaWyboru(wybor);
   const doListy = (f: FiltrPracownikow = {}) => () => onPracownicy({ komorka, ...f });
-  const najblizszy = [...l.wkrotce].sort((a, b) => (a.cykl?.dni_do_terminu ?? 0) - (b.cykl?.dni_do_terminu ?? 0))[0];
-  const bezEtapu = zakres.filter((s) => !s.cykl).length;
 
-  // Komórki podrzędne: departamenty w całym zakresie, wydziały w departamencie; posortowane po zaległości.
-  const podrzedne = wybor.wydzial
-    ? []
-    : [...new Set(zakres.map((s) => (wybor.departament ? podzial(s.osoba.komorka).wydzial : podzial(s.osoba.komorka).departament)))]
-        .map((nazwa) => {
-          const w: Wybor = wybor.departament ? { departament: wybor.departament, wydzial: nazwa } : { departament: nazwa };
-          return { nazwa, wybor: w, liczby: policz(zakres.filter((s) => wZakresie(s, w))) };
-        })
-        .sort(
-          (a, b) =>
-            b.liczby.poTerminie.length - a.liczby.poTerminie.length ||
-            b.liczby.wkrotce.length - a.liczby.wkrotce.length ||
-            a.nazwa.localeCompare(b.nazwa, "pl"),
-        );
-
-  const etapy: Udzial[] = ETAPY.map((e) => ({
-    nazwa: NAZWA_ETAPU[e],
-    liczba: l.etapy[e],
-    ton: e,
-    onClick: doListy({ etap: e }),
-  }));
-  const zEtapem = l.osob - bezEtapu;
+  // Drzewo departament → wydział → osoby; wydział równy departamentowi (komórka bez wydziału) nie ma własnego wiersza.
+  const grupy = wedlugKomorek(zakres, (s) => s.osoba.komorka);
+  const ileWydzialow = grupy.reduce((a, g) => a + g.wydzialy.filter((w) => w.wydzial !== g.departament).length, 0);
+  const linijkaZakresu = [
+    osoby(l.osob),
+    !wybor.departament && departamenty(grupy.length),
+    !wybor.wydzial && ileWydzialow > 0 && wydzialy(ileWydzialow),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const zTerminem = zakres.filter((s) => s.cykl?.termin && s.cykl.dni_do_terminu !== null);
   const punkty: PunktOsi[] = zTerminem.map((s) => {
@@ -247,142 +396,196 @@ export function Zespol({
     };
   });
   const pozniej = punkty.filter((p) => p.dni > HORYZONT).length;
+  const bezTerminu = l.osob - zTerminem.length;
 
-  const oceny: Udzial[] = [
-    { nazwa: "pozytywna", liczba: l.pozytywne, ton: "dobrze", onClick: doListy({ ocena: "pozytywna" }) },
-    { nazwa: "negatywna", liczba: l.negatywne, ton: "zle", onClick: doListy({ ocena: "negatywna" }) },
-    { nazwa: "jeszcze bez oceny", liczba: l.bezOceny, ton: "pusty", onClick: doListy({ ocena: "brak" }) },
+  const liczby: { etykieta: string; n: number; ton?: "zle" | "uwaga"; onClick: () => void }[] = [
+    { etykieta: "Po terminie", n: l.poTerminie.length, ton: "zle", onClick: doListy({ termin: "po_terminie" }) },
+    { etykieta: "Termin w ciągu 14 dni", n: l.wkrotce.length, ton: "uwaga", onClick: doListy({ termin: "wkrotce" }) },
+    { etykieta: "Do zrobienia teraz", n: l.teraz.length, onClick: doListy() },
+  ];
+  const oceny: { tekst: string; n: number; filtr: FiltrPracownikow["ocena"] }[] = [
+    { tekst: odmiana(l.pozytywne, "pozytywna", "pozytywne", "pozytywnych"), n: l.pozytywne, filtr: "pozytywna" },
+    { tekst: odmiana(l.negatywne, "negatywna", "negatywne", "negatywnych"), n: l.negatywne, filtr: "negatywna" },
+    { tekst: "bez oceny", n: l.bezOceny, filtr: "brak" },
   ];
 
   return (
-    <div className="widok">
+    <div className="widok zespol">
       <div className="naglowek-widoku">
         <div className="wiersz-tytulu">
           <h1>Zespół</h1>
           <button
             type="button"
-            className="jasny"
+            className="link pobierz-csv"
             onClick={() => pobierzPlik(`zestawienie-zespolu-${new Date().toISOString().slice(0, 10)}.csv`, zestawienieCsv(zakres, mapa))}
           >
             Pobierz zestawienie (CSV)
           </button>
         </div>
-        <nav className="okruszki" aria-label="Wybrana komórka">
-          <button type="button" className="link" aria-current={!wybor.departament ? "page" : undefined} onClick={() => setWybor({})}>
-            {korzen}
-          </button>
-          {wybor.departament && (
-            <>
-              <Ikona nazwa="dalej" rozmiar={16} />
-              <button
-                type="button"
-                className="link"
-                aria-current={!wybor.wydzial ? "page" : undefined}
-                onClick={() => setWybor({ departament: wybor.departament })}
-              >
+        {wybor.departament && (
+          <nav className="okruszki" aria-label="Zakres">
+            <button type="button" className="link" onClick={() => setWybor({})}>
+              {korzen}
+            </button>
+            <Ikona nazwa="dalej" rozmiar={16} />
+            {wybor.wydzial ? (
+              <button type="button" className="link" onClick={() => setWybor({ departament: wybor.departament })}>
                 {wybor.departament}
               </button>
-            </>
-          )}
-          {wybor.wydzial && (
+            ) : (
+              <span aria-current="page">{wybor.departament}</span>
+            )}
+            {wybor.wydzial && (
+              <>
+                <Ikona nazwa="dalej" rozmiar={16} />
+                <span aria-current="page">{wybor.wydzial}</span>
+              </>
+            )}
+          </nav>
+        )}
+        <p className="meta linijka-zakresu">{linijkaZakresu}</p>
+      </div>
+
+      <div className="liczby-zespolu">
+        {liczby.map((x) => {
+          const tresc = (
             <>
-              <Ikona nazwa="dalej" rozmiar={16} />
-              <span aria-current="page">{wybor.wydzial}</span>
+              <strong className={x.n ? x.ton : undefined}>{x.n}</strong>
+              <span>{x.etykieta}</span>
             </>
-          )}
-        </nav>
-        <p className="meta">
-          {osoby(l.osob)} · etapy i terminy z reguł ocen{bezEtapu ? ` · bez ustalonego etapu: ${bezEtapu}` : ""}
+          );
+          return x.n ? (
+            <button key={x.etykieta} type="button" className="liczba-zespolu" onClick={x.onClick}>
+              {tresc}
+            </button>
+          ) : (
+            <div key={x.etykieta} className="liczba-zespolu">
+              {tresc}
+            </div>
+          );
+        })}
+      </div>
+
+      <section className="sekcja-zespolu">
+        <h2>Struktura</h2>
+        <table className="struktura">
+          <thead>
+            <tr>
+              <th scope="col">Osoba</th>
+              <th scope="col">Stanowisko</th>
+              <th scope="col">Etap i termin</th>
+              <th scope="col">Ostatnia ocena</th>
+            </tr>
+          </thead>
+          {grupy.map((g) => (
+            <tbody key={g.departament}>
+              {!wybor.departament && (
+                <tr className="wiersz-departamentu">
+                  <th colSpan={4} scope="colgroup">
+                    <button type="button" className="zakres" onClick={() => setWybor({ departament: g.departament })}>
+                      <span className="nazwa-zakresu">{g.departament}</span>
+                      <span className="liczba-zakresu">{osoby(g.wydzialy.reduce((a, w) => a + w.ludzie.length, 0))}</span>
+                      <Ikona nazwa="dalej" rozmiar={16} />
+                    </button>
+                  </th>
+                </tr>
+              )}
+              {g.wydzialy.map((w) => (
+                <Fragment key={w.wydzial}>
+                  {!wybor.wydzial && w.wydzial !== g.departament && (
+                    <tr className="wiersz-wydzialu">
+                      <th colSpan={4} scope="colgroup">
+                        <button
+                          type="button"
+                          className="zakres"
+                          onClick={() => setWybor({ departament: g.departament, wydzial: w.wydzial })}
+                        >
+                          <span className="nazwa-zakresu">{w.wydzial}</span>
+                          <span className="liczba-zakresu">{osoby(w.ludzie.length)}</span>
+                          <Ikona nazwa="dalej" rozmiar={16} />
+                        </button>
+                      </th>
+                    </tr>
+                  )}
+                  {[...w.ludzie].sort(poNazwisku).map((s) => {
+                    const ocena = s.osoba.ostatnia_ocena_okresowa;
+                    return (
+                      <tr key={s.osoba.osoba_id} className="wiersz-osoby">
+                        <th scope="row">
+                          {onWybierz ? (
+                            <button type="button" className="link" onClick={() => onWybierz(s.osoba)}>
+                              {kto(s)}
+                            </button>
+                          ) : (
+                            kto(s)
+                          )}
+                        </th>
+                        <td>{s.osoba.stanowisko}</td>
+                        <td>
+                          <span className={poTerminie(s) ? "plakietka po-terminie" : "plakietka"}>{plakietka(s)}</span>
+                        </td>
+                        <td>
+                          {ocena ? (
+                            <>
+                              <span className={ocena.wynik === "negatywna" ? "negatywna" : undefined}>{ocena.wynik}</span>
+                              <span className="data-oceny"> · {data(ocena.data)}</span>
+                            </>
+                          ) : (
+                            <span className="bez-oceny">bez oceny</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </tbody>
+          ))}
+        </table>
+        <p className="linia-ocen">
+          Ostatnie oceny:{" "}
+          {oceny.map((o, i) => (
+            <Fragment key={o.filtr}>
+              {i > 0 && " · "}
+              {o.n ? (
+                <button type="button" className="pozycja-legendy" onClick={doListy({ ocena: o.filtr })}>
+                  <strong>{o.n}</strong> {o.tekst}
+                </button>
+              ) : (
+                <span>
+                  <strong>{o.n}</strong> {o.tekst}
+                </span>
+              )}
+            </Fragment>
+          ))}
         </p>
-      </div>
-
-      <div className="kafle">
-        <Kafel
-          etykieta="Po terminie"
-          wartosc={l.poTerminie.length}
-          ton={l.poTerminie.length ? "zle" : undefined}
-          opis={
-            l.poTerminie.length
-              ? l.poTerminie.slice(0, 2).map((s) => `${kto(s)}: ${czynnoscZDniem(s)}`).join(" · ") +
-                (l.poTerminie.length > 2 ? ` i ${l.poTerminie.length - 2} więcej` : "")
-              : "Nikt nie przekroczył terminu."
-          }
-          onClick={l.poTerminie.length ? doListy({ termin: "po_terminie" }) : undefined}
-        />
-        <Kafel
-          etykieta="Termin w ciągu 14 dni"
-          wartosc={l.wkrotce.length}
-          ton={l.wkrotce.length ? "uwaga" : undefined}
-          opis={najblizszy ? `Najbliższy: ${kto(najblizszy)}, ${czynnoscZDniem(najblizszy)}` : "Żaden termin nie wypada w ciągu 14 dni."}
-          onClick={l.wkrotce.length ? doListy({ termin: "wkrotce" }) : undefined}
-        />
-        <Kafel
-          etykieta="Do zrobienia teraz"
-          wartosc={l.teraz.length}
-          opis={
-            l.teraz.length
-              ? `ustalenie kryteriów: ${l.teraz.filter((s) => s.cykl?.etap === "kryteria").length} · ocena końcowa: ${
-                  l.teraz.filter((s) => s.cykl?.etap === "ocena").length
-                }`
-              : "Wszyscy są w okresie oceny."
-          }
-          onClick={l.teraz.length ? () => onPracownicy({ komorka }) : undefined}
-        />
-      </div>
-
-      <section className="etapy-terminy">
-        <h2>Etapy i terminy</h2>
-        <PasekUdzialow
-          tytul="Etap cyklu oceny"
-          podstawa={`${osoby(zEtapem)} z etapem z reguł ocen${bezEtapu ? `, bez etapu: ${bezEtapu}` : ""}; kliknij odcinek albo nazwę, aby zobaczyć osoby`}
-          udzialy={etapy}
-        />
-        <figure className="udzialy">
-          <figcaption>
-            <span className="kafel-etykieta">Terminy w najbliższych {HORYZONT} dniach</span>
-            <span className="meta">
-              na osi: {osoby(punkty.length - pozniej)} · później niż za {HORYZONT} dni: {pozniej} · bez terminu: {l.osob - zTerminem.length}; kolor
-              punktu to etap z paska wyżej, kliknięcie otwiera kartę
-            </span>
-          </figcaption>
-          <OsTerminow punkty={punkty} horyzont={HORYZONT} />
-        </figure>
       </section>
 
-      {mapa && <MapaKompetencji mapa={mapa} ludzie={zakres.map((s) => s.osoba)} onWybierz={onWybierz} />}
-
-      <PasekUdzialow tytul="Ostatnia ocena okresowa" podstawa="kartoteka QNT; kliknij liczbę, aby zobaczyć osoby" udzialy={oceny} />
-
-      {podrzedne.length > 0 && (
-        <div className="sekcja">
-          <h2>{wybor.departament ? "Wydziały" : hr ? "Departamenty" : "Komórki"}</h2>
-          <div className="lista">
-            {podrzedne.map((k) => (
-              <WierszListy
-                key={k.nazwa}
-                lewa={<Ikona nazwa="osoby" />}
-                tytul={k.nazwa}
-                znacznik={
-                  k.liczby.poTerminie.length > 0 && <span className="status negatywna">po terminie {k.liczby.poTerminie.length}</span>
-                }
-                opis={
-                  <>
-                    {osoby(k.liczby.osob)} · termin w 14 dni: {k.liczby.wkrotce.length} · do zrobienia teraz: {k.liczby.teraz.length}
-                    <MiniPasekEtapow etapy={k.liczby.etapy} />
-                    <br />
-                    ostatnie oceny: pozytywne {k.liczby.pozytywne} · negatywne {k.liczby.negatywne} · bez oceny {k.liczby.bezOceny}
-                  </>
-                }
-                onClick={() => setWybor(k.wybor)}
-              />
+      <section className="sekcja-zespolu">
+        <div className="wiersz-tytulu">
+          <h2>Terminy w najbliższych {HORYZONT} dniach</h2>
+          <ul className="legenda" aria-label="Etapy">
+            {ETAPY.filter((e) => l.etapy[e] > 0).map((e) => (
+              <li key={e}>
+                <button type="button" className="pozycja-legendy" onClick={doListy({ etap: e })}>
+                  <span className={`kropka ${e}`} aria-hidden="true" />
+                  {NAZWA_ETAPU[e]} <strong>{l.etapy[e]}</strong>
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
-      )}
+        <OsTerminow punkty={punkty} horyzont={HORYZONT} />
+        {(pozniej > 0 || bezTerminu > 0) && (
+          <p className="meta">
+            {[pozniej > 0 && `Później niż za ${HORYZONT} dni: ${osoby(pozniej)}`, bezTerminu > 0 && `bez terminu: ${osoby(bezTerminu)}`]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
+      </section>
 
-      <button type="button" className="jasny do-listy" onClick={doListy()}>
-        Pracownicy: {wybor.wydzial ?? wybor.departament ?? korzen.toLowerCase()} ({osoby(l.osob)})
-      </button>
+      {mapa && <Kompetencje mapa={mapa} sprawy={zakres} onWybierz={onWybierz} />}
     </div>
   );
 }
