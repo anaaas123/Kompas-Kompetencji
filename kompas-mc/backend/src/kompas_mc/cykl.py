@@ -52,13 +52,15 @@ def _termin(nazwa: str, w: WynikTerminu) -> Termin:
 def _wynik(
     p: Pracownik, sciezka: Sciezka | None, etap: Etap, czynnosc: str, termin: Termin | None,
     dzis: date, proces: ProcesOceny | None, braki: tuple[str, ...] | list[str] = (),
+    rozpoczeto: date | None = None,
 ) -> EtapOsoby:
+    """``rozpoczeto``: dzień zakończenia rozpoczęcia oceny, gdy to nie zapis kryteriów (pierwsza: rozmowa wstępna)."""
     dni = (termin.data - dzis).days if termin else None
     return EtapOsoby(
         osoba_id=p.osoba_id, sciezka=sciezka, etap=etap, czynnosc=czynnosc, termin=termin,
         dni_do_terminu=dni, po_terminie=dni is not None and dni < 0,
         proces_id=proces.id if proces else None,
-        kryteria_ustalone=dzien_ustalenia_kryteriow(proces.krok2) if proces and proces.krok2 else None,
+        kryteria_ustalone=rozpoczeto or (dzien_ustalenia_kryteriow(proces.krok2) if proces and proces.krok2 else None),
         braki=list(braki),
     )
 
@@ -107,9 +109,14 @@ def etap_pierwszej(
     if t.pierwsza_ocena_do is None:
         return _wynik(p, "pierwsza", "brak_danych", "Uzupełnij dane kadrowe", None, dzis, proces, t.braki)
     termin = _termin("dokonanie pierwszej oceny", t.pierwsza_ocena_do)
+    rozmowa = t.data_rozmowy_wstepnej
     if (proces and proces.krok >= 3) or (termin.data - dzis).days <= okno_oceny:
-        return _wynik(p, "pierwsza", "ocena", "Pierwsza ocena", termin, dzis, proces, t.braki)
-    return _wynik(p, "pierwsza", "okres", "Okres przed pierwszą oceną", termin, dzis, proces, t.braki)
+        return _wynik(p, "pierwsza", "ocena", "Pierwsza ocena", termin, dzis, proces, t.braki, rozmowa)
+    # Po rozmowie wstępnej następny krok to sprawozdanie pracownika w wyznaczonym terminie (§ 4 ust. 1, § 6), #99.
+    if t.termin_sprawozdania_do is not None and t.termin_sprawozdania_do.data >= dzis:
+        sprawozdanie = _termin("złożenie sprawozdania (§ 4 ust. 1, § 6)", t.termin_sprawozdania_do)
+        return _wynik(p, "pierwsza", "okres", "Sprawozdanie pracownika", sprawozdanie, dzis, proces, t.braki, rozmowa)
+    return _wynik(p, "pierwsza", "okres", "Okres przed pierwszą oceną", termin, dzis, proces, t.braki, rozmowa)
 
 
 def etap_osoby(

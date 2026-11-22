@@ -2,13 +2,14 @@
 
 Przełożony ma proces pierwszej oceny Kacpra (P-202) z zapisanym krokiem 2 i bez daty rozmowy wstępnej.
 Na końcu kroku 2 termin sprawozdania jest już podpowiedziany (pierwszy możliwy dzień), data sprzed
-8 miesięcy pracy blokuje zapis z ludzkim komunikatem; zapis pobiera PDF, a cykl przestaje pokazywać „Rozmowa wstępna” jako czynność do zrobienia (rozp. 2015 § 3–4).
+8 miesięcy pracy blokuje zapis z ludzkim komunikatem; zapis pobiera PDF i wraca do karty, gdzie następnym krokiem jest sprawozdanie pracownika; cykl przestaje pokazywać „Rozmowa wstępna” jako czynność do zrobienia (rozp. 2015 § 3–4).
 Uruchomienie i zmienne jak w test_samoocena.py; potrzebna świeża baza (P-202 bez procesu).
 """
 
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -82,13 +83,15 @@ def test_rozmowa_wstepna_zapis_i_wydruk_czesci_i_ii(przegladarka, api, proces_po
     with page.expect_download() as pobranie:
         przycisk.click()
     assert pobranie.value.suggested_filename == f"pierwsza-ocena-{pid}-rozmowa-wstepna.pdf"
-    expect(page.locator(".k2-ustalone strong", has_text="Rozmowa wstępna")).to_be_visible()
-    expect(page.get_by_role("button", name="Wydrukuj części I–II do podpisu")).to_be_visible()
+    # #99: po zapisie i wydruku powrót do karty, następny krok to sprawozdanie pracownika w wyznaczonym terminie
+    expect(page.get_by_role("heading", level=1, name="Kacper Mazur-Demo")).to_be_visible()
+    expect(page.locator(".ramka.nastepny")).to_contain_text("Sprawozdanie pracownika")
+    expect(page.locator(".cykl .etapy li").first).to_have_class(re.compile("zrobiony"))
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(ZRZUTY / f"rozmowa-wstepna-{tryb}.png"))
 
     cykl = {e["osoba_id"]: e for e in ctx.get(f"{API}/api/cykl", headers=h).json()}
-    assert cykl["P-202"]["czynnosc"] != "Rozmowa wstępna", cykl["P-202"]
+    assert (cykl["P-202"]["czynnosc"], cykl["P-202"]["termin"]["data"]) == ("Sprawozdanie pracownika", najwczesniej), cykl["P-202"]
     assert not bledy, bledy
     page.close()
