@@ -280,3 +280,16 @@ input:disabled, textarea:disabled { background: var(--k-disabled-bg); color: var
 html.motyw-przejscie, html.motyw-przejscie * {
   transition: background-color 240ms ease, color 240ms ease, border-color 240ms ease, fill 240ms ease, stroke 240ms ease !important;
 }
+
+/* Treść zadania pkt 2: bez smartfonów (#77). Do 760 px tylko ekran „Kompas działa na komputerze”;
+   aplikacja i logowanie są ukryte. Samym CSS, więc zmiana szerokości okna działa bez przeładowania. */
+.tylko-komputer { display: none; }
+@media (max-width: 760px) {
+  #root > :not(.tylko-komputer) { display: none; }
+  .tylko-komputer {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--o-16);
+    min-height: 100dvh; padding: var(--o-24); text-align: center;
+  }
+  .tylko-komputer h1 { margin: 0; font-size: var(--t-title-r); line-height: var(--t-title-l); }
+  .tylko-komputer p { margin: 0; color: var(--k-text-secondary); }
+}
