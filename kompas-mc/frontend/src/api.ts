@@ -1098,6 +1098,14 @@ export const zapiszPierwsza = (token: string, procesId: number, dane: DanePierws
     body: JSON.stringify({ ...dane, zatwierdz }),
   }).then((r) => odpowiedz<StanPierwszejOceny>(r));
 
+/** Zakończenie pierwszej oceny po zapoznaniu ocenianego z oceną (§ 11 ust. 1 rozp. 2015): status ZAKONCZONY. */
+export const zakonczPierwsza = (token: string, procesId: number, dataZapoznania: string) =>
+  fetch(`${sciezkaPierwszej(procesId)}/zakoncz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ data_zapoznania_z_ocena: dataZapoznania }),
+  }).then((r) => odpowiedz<StanPierwszejOceny>(r));
+
 export async function pobierzPdfPierwszej(token: string, procesId: number, plik: "arkusz.pdf" | "zawiadomienie.pdf" | "rozmowa-wstepna.pdf"): Promise<Blob> {
   const r = await fetch(`${sciezkaPierwszej(procesId)}/${plik}`, { headers: autoryzacja(token) });
   if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);

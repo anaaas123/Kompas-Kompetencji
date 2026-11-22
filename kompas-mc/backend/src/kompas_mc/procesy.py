@@ -160,6 +160,10 @@ def router(
                 "SELECT 1 FROM procesy WHERE osoba_id = ? AND status = 'W_TOKU'", (p.osoba_id,)
             ).fetchone():
                 raise HTTPException(409, "Ta osoba ma już proces oceny w toku")
+            if body.sciezka == "pierwsza" and baza.execute(
+                "SELECT 1 FROM procesy WHERE osoba_id = ? AND sciezka = 'pierwsza' AND status = 'ZAKONCZONY'", (p.osoba_id,)
+            ).fetchone():
+                raise HTTPException(409, "Pierwsza ocena tej osoby jest już zakończona; dalej decyzja kadrowa (rozp. 2015 § 11).")
             kursor = baza.execute(
                 "INSERT INTO procesy (osoba_id, sciezka, arkusz, krok, status, rozpoczal,"
                 " rozpoczeto, zgodna_z_propozycja, uzasadnienie, krok1)"

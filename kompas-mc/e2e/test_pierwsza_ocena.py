@@ -137,10 +137,7 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     expect(page.get_by_role("textbox", name="Wnioski rozwojowe")).to_have_value(wnioski)
 
     page.get_by_role("button", name="Zatwierdź arkusz").click()
-    expect(page.get_by_text(
-        "Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną; "
-        "oryginał wraz ze sprawozdaniem trafia do akt, kopia do ocenianego (§ 11)."
-    )).to_be_visible()
+    expect(page.get_by_text("Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną (§ 11 ust. 1).")).to_be_visible()
     if ZRZUTY:
         ZRZUTY.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=ZRZUTY / f"pierwsza-ocena-{tryb}.png", full_page=True)
@@ -152,3 +149,8 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
         page.get_by_role("button", name="Pobierz PDF").click()
     sciezka = pobranie.value.path()
     assert sciezka and Path(sciezka).read_bytes()[:5] == b"%PDF-"
+
+    # Zakończenie (§ 11 ust. 1): data zapoznania po podpisie ocenianego, potem status zakończony.
+    page.get_by_label("Data zapoznania ocenianego z oceną").fill("2026-11-21")
+    page.get_by_role("button", name="Zakończ ocenę").click()
+    expect(page.get_by_text(re.compile(r"^Ocena zakończona: zapoznanie z oceną 21\.11\.2026"))).to_be_visible()

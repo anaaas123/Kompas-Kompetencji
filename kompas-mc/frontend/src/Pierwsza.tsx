@@ -3,6 +3,7 @@ import {
   pobierzPdfPierwszej,
   pobierzPierwsza,
   zapiszPierwsza,
+  zakonczPierwsza,
   type BrakArkusza,
   type DanePierwszej,
   type EgzaminPierwszej,
@@ -153,6 +154,9 @@ function Formularz({
   const [sprawdzoneDane, setSprawdzoneDane] = useState(stan.dane);
   const [czekam, setCzekam] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
+  // Zakończenie (§ 11 ust. 1): datę zapoznania wpisuje się po podpisie ocenianego na wydruku, więc pole startuje puste.
+  const [dataZapoznania, setDataZapoznania] = useState<string | null>(null);
+  const [zakonczono, setZakonczono] = useState<string | null>(null);
   const ustaw = (z: Partial<DanePierwszej>) => setD((p) => ({ ...p, ...z }));
   const ustawWnioski = (tekst: string) => ustaw({ wnioski_rozwojowe: tekst || null });
   const egz = d.egzamin;
@@ -331,6 +335,19 @@ function Formularz({
         setSprawdzoneDane(d);
         setBraki(b.braki);
       }
+    } finally {
+      setCzekam(false);
+    }
+  }
+  async function zakoncz(dzien: string) {
+    if (czekam) return;
+    setBlad(null);
+    setCzekam(true);
+    try {
+      await zakonczPierwsza(token, stan.proces_id, dzien);
+      setZakonczono(dzien);
+    } catch (err) {
+      setBlad(bladArkusza(err).tekst);
     } finally {
       setCzekam(false);
     }
@@ -551,7 +568,28 @@ function Formularz({
           {!stan.obliczenie && (
             <p className="meta">Do wyliczenia wyniku potrzebne są oceny cząstkowe, dane sprawozdania i egzaminu.</p>
           )}
-          {zatwierdzony && <p className="sukces">Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną; oryginał wraz ze sprawozdaniem trafia do akt, kopia do ocenianego (§ 11).</p>}
+          {zakonczono ? (
+            <p className="sukces">
+              Ocena zakończona: zapoznanie z oceną {data(zakonczono)}. Oryginał wraz ze sprawozdaniem trafia do akt, kopia do ocenianego (§ 11 ust. 2).
+            </p>
+          ) : zatwierdzony && (
+            <>
+              <p className="sukces">Arkusz zatwierdzony. Wydrukuj go do podpisu i zapoznaj ocenianego z oceną (§ 11 ust. 1).</p>
+              {edycja && !zakonczony && (
+                <>
+                  <PoleDaty id="data-zapoznania" nazwa="Data zapoznania ocenianego z oceną" wartosc={dataZapoznania} onZmiana={setDataZapoznania} />
+                  <button
+                    type="button"
+                    className="jasny"
+                    disabled={czekam || !dataZapoznania || !poprawnaData(dataZapoznania)}
+                    onClick={() => dataZapoznania && zakoncz(dataZapoznania)}
+                  >
+                    Zakończ ocenę
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </>
       }
       akcje={
@@ -578,7 +616,7 @@ function Formularz({
         </>
       }
       glowna={
-        zakonczony ? (
+        zakonczony || zakonczono ? (
           <div className="k7-zakonczona"><strong>Ocena zakończona</strong>
             {pdf && <button type="button" onClick={() => pobierz("arkusz.pdf")}>Pobierz arkusz (PDF)</button>}
           </div>
