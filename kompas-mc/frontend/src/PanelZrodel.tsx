@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { pobierzBraki, type PanelBrakow, type Zrodla } from "./api";
+import { kategoriaZrodla } from "./Krok1";
 
 const ETYKIETA: Record<string, string> = { BRAK: "brak", "ROZBIEŻNOŚĆ": "rozbieżność", DUPLIKAT: "duplikat" };
 
@@ -33,8 +34,8 @@ export default function PanelZrodel({ zrodla, token }: { zrodla: Zrodla | null; 
               {b.adnotacje.map((a, i) => (
                 <div key={i} className="adnotacja">
                   <div className="zrodlo">
-                    <span className={`kategoria ${a.adnotacja.kategoria === "PRZEPIS" ? "przepis" : ""}`}>
-                      {a.adnotacja.kategoria}
+                    <span className={`kategoria ${kategoriaZrodla(a.adnotacja.kategoria).klasa}`}>
+                      {kategoriaZrodla(a.adnotacja.kategoria).tekst}
                     </span>
                     {a.dokument}
                     {a.adnotacja.lokalizator && <> · {a.adnotacja.lokalizator}</>}
@@ -78,7 +79,7 @@ export default function PanelZrodel({ zrodla, token }: { zrodla: Zrodla | null; 
             <tbody>
               {zrodla.dokumenty.map((d) => (
                 <tr key={d.doc_id}>
-                  <td>{d.nazwa}</td><td>{d.sciezka}</td><td>{d.kategoria}</td><td>{d.fragmenty}</td>
+                  <td>{d.nazwa}</td><td>{d.sciezka === "wspolne" ? "wspólne" : d.sciezka}</td><td>{kategoriaZrodla(d.kategoria).tekst}</td><td>{d.fragmenty}</td>
                   <td>{d.w_asystencie ? "tak" : "nie"}</td><td>{d.status}</td>
                 </tr>
               ))}

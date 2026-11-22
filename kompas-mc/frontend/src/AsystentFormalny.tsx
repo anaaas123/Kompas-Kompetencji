@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { pytajAsystenta, type CytatAsystenta, type OdpowiedzAsystenta, type Sciezka } from "./api";
-import { KATEGORIE } from "./Krok1";
+import { kategoriaZrodla } from "./Krok1";
 
 /**
  * Czat asystenta formalnego (#37). Komponent do osadzenia na ekranie każdej ścieżki:
@@ -189,7 +189,7 @@ function Cytat({ c, glowny }: { c: CytatAsystenta; glowny: boolean }) {
   const [caly, setCaly] = useState(false);
   const w = c.wyrozniony && c.cytat.includes(c.wyrozniony) ? c.wyrozniony : null;
   const pokaz = caly || !w ? c.cytat : w;
-  const kategoria = KATEGORIE[c.kategoria] ?? { tekst: c.kategoria, klasa: "" };
+  const kategoria = kategoriaZrodla(c.kategoria);
   return (
     <article className={`cytat ${glowny ? "glowny" : ""}`}>
       <div className="zrodlo">

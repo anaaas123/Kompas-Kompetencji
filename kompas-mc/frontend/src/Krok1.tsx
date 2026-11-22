@@ -25,12 +25,15 @@ export const NAZWA_SCIEZKI: Record<Sciezka, string> = { pierwsza: "pierwsza ocen
 export const nazwaKryterium = (n: string) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 
 /** Kategorie źródeł po ludzku: przepis, materiał (poradnik, model, OSP), zasada aplikacji. */
-export const KATEGORIE: Record<string, { tekst: string; klasa: string }> = {
+const KATEGORIE: Record<string, { tekst: string; klasa: string }> = {
   PRZEPIS: { tekst: "Przepis", klasa: "przepis" },
   "OBJAŚNIENIE_MATERIAŁU": { tekst: "Materiał", klasa: "" },
   DECYZJA_PROJEKTOWA: { tekst: "Zasada aplikacji", klasa: "zasada" },
   "BRAK_ŹRÓDŁA": { tekst: "Brak źródła", klasa: "typ-brak" },
 };
+
+/** Etykieta i klasa znacznika kategorii źródła; nieznana kategoria zostaje bez zmian. */
+export const kategoriaZrodla = (k: string) => KATEGORIE[k] ?? { tekst: k, klasa: "" };
 
 // Nazwy dokumentów z manifestu korpusu (/api/zrodla); pobierane raz na sesję.
 let nazwyDokumentow: Promise<Record<string, string>> | null = null;
@@ -66,7 +69,7 @@ function Zrodlo({ a, nazwy }: { a: SourceRef; nazwy: Record<string, string> }) {
   const strona = a.strona && a.lokalizator !== `s. ${a.strona}` ? `s. ${a.strona}` : null;
   const dokument = a.doc_id ? (nazwy[a.doc_id] ?? a.doc_id) : null;
   const miejsce = [dokument, a.lokalizator, strona].filter(Boolean).join(", ");
-  const kategoria = KATEGORIE[a.kategoria] ?? { tekst: a.kategoria, klasa: "" };
+  const kategoria = kategoriaZrodla(a.kategoria);
   return (
     <div className="zrodlo">
       <span className={`kategoria ${kategoria.klasa}`}>{kategoria.tekst}</span>
