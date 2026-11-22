@@ -66,3 +66,46 @@ def test_zakonczenie_zamyka_proces_i_zapisuje_ocene_w_kartotece(api_arkusza, ust
     with TestClient(utworz_aplikacje(replace(ustawienia, baza=tmp_path / "oceny.db", log_llm=tmp_path / "llm.jsonl"))) as k2:
         t = _json(k2.post("/api/auth/login", json={"login": "przelozony1", "hasło": "demo"}))["token"]
         assert _ostatnia(k2, {"Authorization": f"Bearer {t}"}, "P-105")["data"] == "2026-11-20"
+
+
+def _gotowy_do_zakonczenia(klient, h, osoba="P-105", **krok6):
+    proces = _proces(klient, h, osoba)
+    _zapisz_oceny(klient, h, proces)
+    _zapisz_krok6(klient, h, proces, **krok6)
+    _json(klient.put(f"{proces}/arkusz-okresowy", headers=h, json={"pola": _uzupelnienia(), "zatwierdz": True}))
+    return proces
+
+
+def test_zakonczenie_odrzuca_daty_z_przyszlosci(api_arkusza):  # noqa: F811
+    """Helix G3 (8): zdarzenie z przyszłości nie zamyka procesu ani nie zapisuje kartoteki."""
+    klient, naglowek = api_arkusza
+    h = naglowek("przelozony1")
+    proces = _gotowy_do_zakonczenia(klient, h)
+    r = klient.post(f"{proces}/arkusz-okresowy/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2035-01-01"})
+    assert r.status_code == 422, r.text
+    assert _json(klient.get(proces, headers=h))["status"] == "W_TOKU"
+    assert _ostatnia(klient, h, "P-105")["data"] != "2026-11-20"
+
+
+def test_zakonczenie_jedna_data_zapoznania(api_arkusza):  # noqa: F811
+    """Helix G3 (7): data zapoznania zapisana w ocenie na piśmie jest wiążąca; brak daty w wyniku uzupełnia
+    zakończenie, a wynik zakończonego procesu pokazuje ją i liczy termin sprzeciwu."""
+    klient, naglowek = api_arkusza
+    h = naglowek("przelozony1")
+    proces = _gotowy_do_zakonczenia(klient, h, data_zapoznania_z_ocena="2026-11-20")
+    url = f"{proces}/arkusz-okresowy/zakoncz"
+    assert klient.post(url, headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}).status_code == 422
+    zak = _json(klient.post(url, headers=h, json={}))
+    assert zak["data_zapoznania_z_ocena"] == "2026-11-20"
+
+
+def test_zakonczenie_uzupelnia_date_w_wyniku(api_arkusza):  # noqa: F811
+    klient, naglowek = api_arkusza
+    h = naglowek("przelozony1")
+    proces = _gotowy_do_zakonczenia(klient, h)
+    przed = _json(klient.get(f"{proces}/wynik-okresowy", headers=h))
+    assert przed["dane"]["data_zapoznania_z_ocena"] is None
+    _json(klient.post(f"{proces}/arkusz-okresowy/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}))
+    po = _json(klient.get(f"{proces}/wynik-okresowy", headers=h))
+    assert po["dane"]["data_zapoznania_z_ocena"] == "2026-11-21"
+    assert po["terminy"]["termin_sprzeciwu"] is not None

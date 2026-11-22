@@ -19,7 +19,7 @@ from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, Pracownik
 from .rejestr import ustaw_szczegoly
 from .samoocena import ukryj_przed_przekazaniem
-from .zakonczenie import pracownik_procesu
+from .zakonczenie import pracownik_procesu, zapis_wyniku_procesu
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, TerminyOkresowej, oblicz_terminy
 from .wynik_okresowy import KonfiguracjaWynikuOkresowego
 from .zawiadomienie import zawiadomienie_pdf
@@ -229,7 +229,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, serwis: SerwisWynikuOkresowego) -> A
         wybory_json, decyzje_json, zapis = baza.execute(
             "SELECT krok2, decyzje, wynik_okresowy FROM procesy WHERE id = ?", (proces_id,)
         ).fetchone()
-        return serwis.migawka(proces, pracownik, wybory_json, decyzje_json, zapis)
+        return serwis.migawka(proces, pracownik, wybory_json, decyzje_json, zapis_wyniku_procesu(baza, proces, zapis))
 
     @r.get(sciezka)
     def odczyt(proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc")) -> WynikOkresowy:
