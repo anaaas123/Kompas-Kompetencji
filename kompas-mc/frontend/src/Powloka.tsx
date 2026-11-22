@@ -12,7 +12,7 @@ import znak from "./wydra/wydra-stoi.webp";
  */
 export type Widok = "pulpit" | "zespol" | "pracownicy" | "cele" | "procesy" | "zrodla" | "rejestr";
 
-const NAZWA_ROLI: Record<Rola, string> = { przelozony: "przełożony", hr: "HR / administrator", oceniany: "oceniany" };
+export const NAZWA_ROLI: Record<Rola, string> = { przelozony: "przełożony", hr: "HR / administrator", oceniany: "oceniany" };
 
 interface Props {
   sesja: Sesja;

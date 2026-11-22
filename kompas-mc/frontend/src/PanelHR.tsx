@@ -71,7 +71,7 @@ export default function PanelHR({ token }: { token: string }) {
     <>
       <section>
         <div className="wiersz">
-          <h2>Procesy oceny</h2>
+          <h2>Oceny prowadzone w aplikacji</h2>
           <Wybor
             etykieta="Filtr procesów"
             opcje={[
