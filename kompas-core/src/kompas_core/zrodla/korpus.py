@@ -23,6 +23,7 @@ class OpisDokumentu:
     doc_id: str
     plik: Path
     doc_version: str | None = None
+    od_strony: int = 1
 
 
 class Korpus:
@@ -43,7 +44,7 @@ class Korpus:
     @classmethod
     def z_plikow(cls, dokumenty: Iterable[OpisDokumentu]) -> Korpus:
         """Ekstrahuje każdy plik i buduje korpus."""
-        return cls(ekstrahuj(d.plik, d.doc_id, d.doc_version) for d in dokumenty)
+        return cls(ekstrahuj(d.plik, d.doc_id, d.doc_version, d.od_strony) for d in dokumenty)
 
     @classmethod
     def z_manifestu(cls, manifest: str | Path) -> Korpus:
@@ -53,6 +54,7 @@ class Korpus:
               - doc_id: rozp-oceny
                 doc_version: "2021"
                 plik: ścieżka/względem/manifestu.pdf
+                od_strony: 3        # opcjonalnie: PDF od tej strony
         """
         sciezka = Path(manifest)
         dane = yaml.safe_load(sciezka.read_text(encoding="utf-8")) or {}
@@ -69,6 +71,7 @@ class Korpus:
                     doc_id=str(p["doc_id"]),
                     plik=(sciezka.parent / p["plik"]),
                     doc_version=None if wersja is None else str(wersja),
+                    od_strony=int(p.get("od_strony", 1)),
                 )
             )
         return cls.z_plikow(opisy)

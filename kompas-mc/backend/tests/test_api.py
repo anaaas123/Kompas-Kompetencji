@@ -10,7 +10,7 @@ BRAK = "brak wystarczających informacji w bazie wiedzy"
 def test_zdrowie(klient):
     r = klient.get("/api/zdrowie").json()
     assert r["wersja"] == "mc-bdg" and r["port"] == PORT_DOMYSLNY == 8002
-    assert r["dokumenty"] == 12 and r["fragmenty"] > 1000
+    assert r["dokumenty"] == 13 and r["fragmenty"] > 1000  # 12 z paczki MC + ustawa (#74)
 
 
 def test_zrodla_raportuja_duplikat_i_pominiete(klient):

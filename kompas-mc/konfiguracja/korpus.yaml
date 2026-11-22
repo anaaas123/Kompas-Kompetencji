@@ -7,6 +7,7 @@
 #   kategoria  – kategoria cytatów z tego dokumentu (PRZEPIS | OBJAŚNIENIE_MATERIAŁU)
 #   podzial    – jak dzielić na fragmenty: jednostki (§, ust., poz.) | strony | komorki | akapity
 #   asystent   – false: dokument w korpusie (do cytowania w panelu braków), ale poza asystentem
+#   od_strony  – PDF: pierwsza strona aktu; wcześniejsze (np. obwieszczenie o tekście jednolitym) poza korpusem
 
 dokumenty:
   - doc_id: rozp-2015-pierwsza
@@ -24,6 +25,17 @@ dokumenty:
     sciezka: okresowa
     kategoria: PRZEPIS
     podzial: jednostki
+
+  # Tekst jednolity z ISAP (decyzja właściciela 22.11.2026): stan prawny na 14.04.2026.
+  # Strony 1–2 to obwieszczenie Marszałka Sejmu, które cytuje artykuły ustaw zmieniających.
+  - doc_id: ustawa-sc
+    doc_version: dz-u-2026-590
+    nazwa: Ustawa o służbie cywilnej (tekst jednolity Dz.U. 2026 poz. 590)
+    plik: "../../materialy mc/Ustawa o służbie cywilnej - tekst jednolity Dz.U. 2026 poz. 590.pdf"
+    sciezka: wspolne
+    kategoria: PRZEPIS
+    podzial: jednostki
+    od_strony: 3
 
   - doc_id: poradnik-pierwsza
     doc_version: "2016"

@@ -43,12 +43,17 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
   `backend/dane/llm.jsonl`.
 - Odpowiedź „brak wystarczających informacji w bazie wiedzy” (bez cytatów) pada, gdy:
   1. pytanie wskazuje ustawę („ustawa”, „ustawy”, „ustawie”, „ustawę”, „ustawą”, „u.s.c.”;
-     `wzorzec_pytania_o_ustawe`), której tekstu nie ma w bazie; uwaga `brak_ustawy` to mówi;
+     `wzorzec_pytania_o_ustawe`), a dokumentu z klucza `ustawa` nie ma w korpusie; uwaga
+     `brak_ustawy` to mówi. Dziś ustawa jest w korpusie (`ustawa-sc`), więc ta odmowa nie zachodzi;
   2. pytanie nie pasuje do FAQ (`prog_faq`), a zawiera pojęcie spoza korpusu i FAQ
      (`nieznane_pojecia` w odpowiedzi);
   3. pytanie nie pasuje do FAQ, a najlepszy fragment ma wynik BM25 poniżej `minimalny_wynik` (4,0)
      albo zawiera mniej niż `minimalne_pokrycie` (0,5) pojęć pytania.
-- Ścieżka zawęża źródła do dokumentów danej ścieżki i wspólnych (model kompetencji, OSP).
+- Ścieżka zawęża źródła do dokumentów danej ścieżki i wspólnych (model kompetencji, OSP, ustawa).
+- Ustawa o służbie cywilnej: tekst jednolity Dz.U. 2026 poz. 590 z ISAP (stan prawny na
+  14.04.2026; strony 1–2 z obwieszczeniem są poza korpusem, `od_strony: 3`). Artykuł wskazany
+  w pytaniu („art. 81 ustawy”, „art. 83 ust. 1 u.s.c.”) daje cytaty z tego artykułu, bez FAQ.
+  W pozostałych odpowiedziach najwyżej jeden fragment ustawy (`ustawa_maks_z_rankingu: 1`).
 - Odpowiedź modelu z cytatem bez pokrycia jest odrzucana i uruchamia fallback.
 
 ### Pomiar jakości asystenta
@@ -86,7 +91,7 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 ## Krok 1: analiza OSP, ścieżka i arkusz
 
 - `GET /api/pracownicy/{osoba_id}/krok1` (podgląd, akcja `ocena.czytaj`) zwraca OSP z korpusu: cel, zadania dominujące i pozostałe, liczbę podległych, złożoność, samodzielność i kompetencje miękkie. Każde pole ma adnotację z cytatem. Zwraca też propozycję ścieżki z przesłankami i arkusz B/C według § 3 rozp. 2016.
-- Przesłanki ustawowe znamy tylko z poradników, więc mają kategorię `OBJAŚNIENIE_MATERIAŁU` i uwagę „brak tekstu ustawy w bazie”. Gdy dane kadrowe są niejednoznaczne, `proponowana` ma wartość `null`, a `braki` mówią, czego brakuje.
+- Przesłanki ustawowe krok 1 bierze z poradników, więc mają kategorię `OBJAŚNIENIE_MATERIAŁU` i uwagę „brak tekstu ustawy w bazie” (zapisaną przed dodaniem ustawy do korpusu; przepięcie na `ustawa-sc` to osobna zmiana). Gdy dane kadrowe są niejednoznaczne, `proponowana` ma wartość `null`, a `braki` mówią, czego brakuje.
 - `POST /api/procesy {"osoba_id", "sciezka", "uzasadnienie"?}` (akcja `ocena.prowadz`, tylko przełożony) rozpoczyna proces oceny. Wybór innej ścieżki niż proponowana wymaga uzasadnienia.
 - `GET /api/procesy` i `GET /api/procesy/{id}` pokazują procesy według ról.
 - Treść reguł (opisy i cytaty) jest w `konfiguracja/krok1.yaml`.

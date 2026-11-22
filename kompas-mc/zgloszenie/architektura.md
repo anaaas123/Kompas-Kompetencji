@@ -8,7 +8,7 @@
 | Interfejs | **React + TypeScript + Vite**, przeglądarka na komputerze i tablecie (bez smartfonów, zgodnie z zadaniem) |
 | Dokumenty | ReportLab (PDF z polskimi znakami), pypdf i openpyxl (ekstrakcja z PDF, DOCX i XLSX) |
 | AI | BM25 na rdzeniach słów (własna implementacja, bez wektorów); łańcuch dostawców `LlmProvider` z `asystent.yaml`: DeepSeek `deepseek-v4-flash` (API zgodne z OpenAI, klucz `DEEPSEEK_API_KEY`) → Ollama `qwen3:8b` → tryb ekstrakcyjny |
-| Jakość | pytest (297 testów backendu MC, 96 testów core), walidator cytatów `kompas-waliduj` (185 cytatów, 0 błędów); oba uruchamiane ręcznie |
+| Jakość | pytest (300 testów backendu MC, 97 testów core), walidator cytatów `kompas-waliduj` (186 cytatów, 0 błędów); oba uruchamiane ręcznie |
 
 Wszystkie biblioteki są open source i nie wymagają płatnych usług.
 
@@ -54,7 +54,7 @@ Wszystkie biblioteki są open source i nie wymagają płatnych usług.
 | Dane osobowe | Fikcyjne dane, SQLite bez szyfrowania | Baza z szyfrowaniem w spoczynku i w transmisji (TLS), retencja zgodna z przepisami o aktach osobowych, DPIA, rejestr czynności przetwarzania |
 | Integracje | Mock QNT i mock EZD | Prawdziwe API QNT i EZD, uwierzytelnienie usług (mTLS / klucze), obsługa błędów i kolejki |
 | AI | Łańcuch z `asystent.yaml`: DeepSeek → Ollama → ekstrakcyjny; bez klucza i Ollamy odpowiada tryb ekstrakcyjny | Model hostowany w infrastrukturze MC (dane nie opuszczają urzędu), testy jakości na pytaniach od ekspertów HR, monitorowanie odpowiedzi i logów |
-| Baza wiedzy | Materiały MC bez ustawy; pytanie o ustawę dostaje „brak informacji” | Ustawa o służbie cywilnej i aktualne poradniki KPRM, proces aktualizacji przepisów z zatwierdzaniem |
+| Baza wiedzy | Materiały MC i ustawa o służbie cywilnej (tekst jednolity Dz.U. 2026 poz. 590 z ISAP, stan prawny na 14.04.2026) | Aktualizacja ustawy po zmianach (najbliższa: Dz.U. 2026 poz. 26 od 1.01.2027), aktualne poradniki KPRM, proces aktualizacji przepisów z zatwierdzaniem |
 | Metodyka | Mediana i mapowanie 5→3 jako decyzja projektowa | Zatwierdzenie przez właściciela metodyki w MC (w aplikacji: wersja z osobą i datą) |
 | Podpis | PDF do podpisu odręcznego | Ewentualny podpis kwalifikowany lub podpis w EZD, zgodnie z decyzją prawną |
 | Dziennik i audyt | Tabela w SQLite | Niezmienialny dziennik audytowy, kopie zapasowe, monitorowanie |
@@ -63,7 +63,7 @@ Wszystkie biblioteki są open source i nie wymagają płatnych usług.
 
 ## Plan rozwoju bazy wiedzy
 
-Dziś dokument dodaje się plikiem w `materialy mc/`, wpisem w `konfiguracja/korpus.yaml` i restartem API (checklista w `kompas-mc/README.md`). Korpus i indeks powstają w pamięci przy starcie. Wersję (`doc_version`) ma 3 z 12 dokumentów. Kolejne kroki, w tej kolejności:
+Dziś dokument dodaje się plikiem w `materialy mc/`, wpisem w `konfiguracja/korpus.yaml` i restartem API (checklista w `kompas-mc/README.md`). Korpus i indeks powstają w pamięci przy starcie. Wersję (`doc_version`) ma 4 z 13 dokumentów. Kolejne kroki, w tej kolejności:
 
 1. **Wersje dokumentów z zatwierdzaniem**, na wzór metodyki sugestii (`metodyka.py`): nowa wersja ma stan PROJEKT, przechodzi walidację cytatów i pomiar zestawów pytań, a po zatwierdzeniu przez wskazaną osobę dostaje stan ZATWIERDZONA.
 2. **Data obowiązywania** przy każdej wersji aktu w manifeście.
