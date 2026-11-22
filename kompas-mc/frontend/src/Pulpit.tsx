@@ -276,11 +276,13 @@ export function Pulpit({
                 </div>
               </div>
             </section>
+            {/* Karol 02:04, zgłoszenie 110: prawa kolumna pokazuje kompetencje zespołu w skrócie; średnie i osoby są pod spodem. */}
+            {mapa && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} czesc="wnioski" />}
           </aside>
         )}
       </div>
 
-      {mapa && sprawy && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} />}
+      {mapa && sprawy && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} czesc={zespol ? "szczegoly" : undefined} />}
 
       <div className="pulpit-pasek">
         <form className="pole-zapytania" role="search" onSubmit={wyslij}>
