@@ -242,14 +242,19 @@ def router(
             ),
         ), odcisk
 
-    def ukryj_przed_sporzadzeniem(uz: Uzytkownik, m: _Migawka) -> None:
-        """Oceniany widzi punkty i arkusz pierwszej oceny dopiero po jej sporządzeniu na piśmie (zatwierdzeniu
-        arkusza, § 11 rozp. 2015). Pierwsza ocena nie ma samooceny, więc blokada okresowej (przekazanie samooceny)
-        tu nie pasuje; kopię części I–II po rozmowie wstępnej (§ 4 ust. 4) oceniany dostaje bez punktów."""
-        if (
-            m.proces.status == "W_TOKU" and m.zapis.zatwierdzony_odcisk is None
-            and auth.moze(uz, "pracownik", m.pracownik.model_dump(), "samoocena.zapisz")
-        ):
+    def ukryj_przed_sporzadzeniem(request: Request, uz: Uzytkownik, m: _Migawka) -> None:
+        """Oceniany widzi punkty i arkusz pierwszej oceny dopiero po jej sporządzeniu na piśmie (aktualnie zatwierdzony
+        arkusz, § 11 rozp. 2015). Pierwsza ocena nie ma samooceny, więc blokada okresowej (przekazanie samooceny)
+        tu nie pasuje; kopię części I–II po rozmowie wstępnej (§ 4 ust. 4) oceniany dostaje bez punktów.
+        Rozstrzyga wyliczony stan zatwierdzenia (po zmianie ocen dawne zatwierdzenie nie odsłania nowych punktów),
+        a błąd wyliczenia zamyka dostęp."""
+        if m.proces.status != "W_TOKU" or not auth.moze(uz, "pracownik", m.pracownik.model_dump(), "samoocena.zapisz"):
+            return
+        try:
+            zatwierdzony = widok(request, m, m.zapis)[0].formularz.zatwierdzony
+        except HTTPException:
+            zatwierdzony = False
+        if not zatwierdzony:
             raise HTTPException(403, "Pierwszą ocenę zobaczysz po jej sporządzeniu na piśmie przez przełożonego.")
 
     @r.get("")
@@ -258,7 +263,7 @@ def router(
     ) -> StanPierwszejOceny:
         """Pokaż terminy, status sprawozdania, egzamin, warunki wyniku i formularz pierwszej oceny."""
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
-        ukryj_przed_sporzadzeniem(uz, m)
+        ukryj_przed_sporzadzeniem(request, uz, m)
         return widok(request, m, m.zapis)[0]
 
     @r.put("")
@@ -355,7 +360,7 @@ def router(
         """Pobierz arkusz pierwszej oceny z miejscami na podpisy odręczne."""
         ustaw_szczegoly(request, format="pdf")
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
-        ukryj_przed_sporzadzeniem(uz, m)
+        ukryj_przed_sporzadzeniem(request, uz, m)
         stan, _ = widok(request, m, m.zapis)
         _sprawdz_gotowosc(stan)
         pdf = arkusz_pierwszej_oceny_pdf(
