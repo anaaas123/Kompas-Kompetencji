@@ -10,6 +10,7 @@ import { Wnioski } from "./Wnioski";
 import { Pierwsza } from "./Pierwsza";
 import PanelMetodyki from "./PanelMetodyki";
 import PanelHR from "./PanelHR";
+import Rejestr from "./Rejestr";
 import { pobierzWynik, type Pracownik, type ProcesOceny } from "./api";
 import PanelZrodel from "./PanelZrodel";
 import { Powloka, type Widok } from "./Powloka";
@@ -108,6 +109,7 @@ export default function App() {
   // Panel źródeł i braków oraz panel procesów widzi tylko HR/administrator (API też to egzekwuje).
   const widokZrodel = widok === "zrodla" && sesja.uzytkownik.rola === "hr";
   const widokProcesow = widok === "procesy" && sesja.uzytkownik.rola === "hr";
+  const widokRejestru = widok === "rejestr" && sesja.uzytkownik.rola === "hr";
 
   // #49: karta otwiera bieżący krok procesu w toku zamiast kroku 1; bez procesu krok 1.
   // Krok 7 okresowej: arkusz, gdy wynik jest zapisany i aktualny, inaczej ekran wyniku.
@@ -236,6 +238,8 @@ export default function App() {
       {!karta && !oceniany && widokZrodel && <PanelMetodyki token={sesja.token} mozeZarzadzac />}
       {!karta && !oceniany && widokProcesow && <h1 className="tytul-widoku">Procesy i terminy</h1>}
       {!karta && !oceniany && widokProcesow && <PanelHR token={sesja.token} />}
+      {!karta && !oceniany && widokRejestru && <h1 className="tytul-widoku">Rejestr operacji</h1>}
+      {!karta && !oceniany && widokRejestru && <Rejestr token={sesja.token} />}
       {!karta && !oceniany && widok === "pulpit" && (
         <Pulpit
           sesja={sesja}

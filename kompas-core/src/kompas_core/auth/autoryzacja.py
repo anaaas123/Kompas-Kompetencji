@@ -5,7 +5,7 @@ from __future__ import annotations
 import hmac
 import secrets
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import Field
 
 from .model import KonfiguracjaRol, Uzytkownik, _Model
@@ -31,6 +31,11 @@ class Autoryzacja:
                 )
                 return token
         raise HTTPException(401, "Nieprawidłowy login lub hasło")
+
+    def kto(self, authorization: str | None) -> Uzytkownik | None:
+        """Użytkownik sesji z nagłówka ``Authorization: Bearer``; ``None`` bez ważnej sesji (rejestr operacji)."""
+        schemat, _, token = (authorization or "").partition(" ")
+        return self._sesje.get(token) if schemat.lower() == "bearer" else None
 
     def _z_naglowka(self, authorization: str | None = Header(default=None)) -> Uzytkownik:
         schemat, _, token = (authorization or "").partition(" ")
@@ -89,7 +94,10 @@ class Autoryzacja:
         router = APIRouter()
 
         @router.post("/auth/login")
-        def login(dane: _DaneLogowania) -> dict:
+        def login(dane: _DaneLogowania, request: Request) -> dict:
+            """Logowanie."""
+            # Rejestr operacji zapisuje zadeklarowany login (także nieudany), nigdy hasła.
+            request.state.rejestr = {"deklarowany_login": dane.login}
             return {"token": self.zaloguj(dane.login, dane.haslo)}
 
         return router

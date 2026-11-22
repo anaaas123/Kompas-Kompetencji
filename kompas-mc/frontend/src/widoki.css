@@ -156,3 +156,19 @@ button.pozycja-legendy:focus-visible { outline: 2px solid var(--k-focus); outlin
 .wypelnienie.ponizej { background: var(--k-attention-text); }
 .wypelnienie.na-poziomie { background: var(--k-action); }
 .wypelnienie.powyzej { background: var(--k-success-pelny); }
+
+/* Rejestr operacji (HR): filtry w jednym rzędzie, tabela jak lista procesów, stronicowanie pod nią. */
+.rejestr { display: flex; flex-direction: column; gap: var(--o-16); }
+.rejestr-filtry { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--o-12) var(--o-16); }
+.rejestr-filtry .etykieta { flex: 0 1 200px; }
+.rejestr-filtry > button { margin-left: auto; }
+.rejestr-tabela { width: 100%; table-layout: fixed; }
+.rejestr-tabela th:nth-child(1) { width: 184px; }
+.rejestr-tabela th:nth-child(2) { width: 160px; }
+.rejestr-tabela th:nth-child(4) { width: 200px; }
+.rejestr-tabela th:nth-child(5) { width: 112px; }
+table.pracownicy.rejestr-tabela td { white-space: normal; overflow-wrap: anywhere; }
+table.pracownicy.rejestr-tabela td button.link { white-space: normal; text-align: left; }
+table.pracownicy.rejestr-tabela td.liczba { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rejestr-strony { display: flex; align-items: center; justify-content: flex-end; gap: var(--o-12); }
+.rejestr-strony .meta { margin-right: auto; }

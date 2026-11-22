@@ -1138,3 +1138,56 @@ export const zatwierdzMetodyke = (token: string, id: string, dane: { osoba: stri
     headers: { "content-type": "application/json", ...autoryzacja(token) },
     body: JSON.stringify(dane),
   }).then((r) => odpowiedz<WersjaMetodyki>(r));
+
+/* Rejestr operacji (Karol 22.11): kto, co, komu i z jakim skutkiem; tylko HR (rejestr.czytaj). */
+export type WynikOperacji = "ok" | "odmowa" | "blad";
+
+export interface WpisRejestru {
+  id: number;
+  czas: string;
+  request_id: string | null;
+  aktor_login: string | null;
+  aktor_rola: string | null;
+  aktor_osoba: string | null;
+  akcja: string;
+  etykieta: string | null;
+  metoda: string | null;
+  trasa: string | null;
+  obiekt: string | null;
+  oceniany_osoba: string | null;
+  wynik: WynikOperacji;
+  status: number | null;
+  czas_ms: number | null;
+  szczegoly: Record<string, unknown>;
+}
+
+export interface StronaRejestru {
+  wpisy: WpisRejestru[];
+  razem: number;
+  strona: number;
+  na_stronie: number;
+}
+
+export interface FiltryRejestru {
+  od?: string | null;
+  do?: string | null;
+  uzytkownik?: string | null;
+  wynik?: WynikOperacji | null;
+  osoba?: string | null;
+}
+
+const zapytanieRejestru = (f: FiltryRejestru, dodatkowe: Record<string, string> = {}) =>
+  new URLSearchParams(
+    Object.entries({ ...f, ...dodatkowe }).filter((p): p is [string, string] => typeof p[1] === "string" && p[1] !== ""),
+  ).toString();
+
+export const pobierzRejestr = (token: string, filtry: FiltryRejestru, strona: number) =>
+  fetch(`/api/rejestr?${zapytanieRejestru(filtry, { strona: String(strona), na_stronie: "50" })}`, {
+    headers: autoryzacja(token),
+  }).then((r) => odpowiedz<StronaRejestru>(r));
+
+export async function pobierzRejestrCsv(token: string, filtry: FiltryRejestru): Promise<Blob> {
+  const r = await fetch(`/api/rejestr.csv?${zapytanieRejestru(filtry)}`, { headers: autoryzacja(token) });
+  if (!r.ok) throw new BladApi(r.status, (await r.json().catch(() => null))?.detail);
+  return r.blob();
+}
