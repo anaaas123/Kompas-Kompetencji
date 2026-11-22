@@ -94,10 +94,12 @@ def router(
 
         baza = request.app.state.baza
         with baza:
-            baza.execute(
-                "UPDATE procesy SET krok2 = ?, krok = MAX(krok, 2) WHERE id = ?",
+            # Nowe kryteria unieważniają decyzje (aktualne_decyzje), więc proces wraca najwyżej do oceny (3).
+            if not baza.execute(
+                "UPDATE procesy SET krok2 = ?, krok = MIN(MAX(krok, 2), 3) WHERE id = ? AND status = 'W_TOKU'",
                 (wybor.model_dump_json(), proces.id),
-            )
+            ).rowcount:
+                raise HTTPException(409, "Proces nie jest w toku")
         po = wczytaj_proces(baza, proces.id)
         dziennik: Dziennik = request.app.state.dziennik
         dziennik.zapisz(
@@ -136,10 +138,11 @@ def router(
         baza = request.app.state.baza
         przed = proces.krok2.zapoznanie
         with baza:
-            baza.execute(
-                "UPDATE procesy SET krok2 = ? WHERE id = ?",
+            if not baza.execute(
+                "UPDATE procesy SET krok2 = ? WHERE id = ? AND status = 'W_TOKU'",
                 (proces.krok2.model_copy(update={"zapoznanie": body.data}).model_dump_json(), proces.id),
-            )
+            ).rowcount:
+                raise HTTPException(409, "Proces nie jest w toku")
         dziennik: Dziennik = request.app.state.dziennik
         dziennik.zapisz(
             uz.login, "proces", str(proces.id),
