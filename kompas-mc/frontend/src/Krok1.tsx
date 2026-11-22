@@ -114,15 +114,17 @@ function Przeslanki({ przeslanki }: { przeslanki: Przeslanka[] }) {
   );
 }
 
+/** Powód z API (tekst, `komunikat` albo lista z walidacji); stałe teksty tylko, gdy API go nie poda (#76). */
 export function opisBledu(err: unknown): string {
   if (!(err instanceof BladApi)) return "Brak połączenia z API.";
-  if (err.status === 409) return "Proces oceny tej osoby już trwa.";
-  if (err.status === 403) return "Nie masz uprawnień do rozpoczęcia oceny tej osoby.";
-  if (err.status === 422) {
-    const d = err.detail;
-    if (Array.isArray(d)) return d.map((b) => (typeof b === "string" ? b : (b?.komunikat ?? b?.msg ?? JSON.stringify(b)))).join(" ");
-    return typeof d === "string" ? d : "Dane nie pozwalają rozpocząć oceny.";
-  }
+  if (err.status === 403) return "Nie masz uprawnień do tej czynności.";
+  const d = err.detail as unknown;
+  if (typeof d === "string" && d) return d;
+  if (Array.isArray(d)) return d.map((b) => (typeof b === "string" ? b : (b?.komunikat ?? b?.msg ?? JSON.stringify(b)))).join(" ");
+  const komunikat = (d as { komunikat?: unknown } | null)?.komunikat;
+  if (typeof komunikat === "string" && komunikat) return komunikat;
+  if (err.status === 409) return "Tej czynności nie można teraz wykonać.";
+  if (err.status === 422) return "Dane nie pozwalają wykonać tej czynności.";
   return `Błąd API ${err.status}.`;
 }
 
