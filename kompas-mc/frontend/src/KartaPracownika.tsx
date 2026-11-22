@@ -116,7 +116,7 @@ export function KartaPracownika({
         const wlasne = procesy.filter((p) => p.osoba_id === osoba.osoba_id);
         const proces = wlasne.find((p) => p.status === "W_TOKU") ?? wlasne[wlasne.length - 1] ?? null;
         // Ocena kryteriów istnieje dopiero po zapisaniu kroku 2.
-        const ocena = proces ? await pobierzOcene(token, proces.id).catch(() => null) : null;
+        const ocena = proces?.krok2 ? await pobierzOcene(token, proces.id).catch(() => null) : null;
         // Samoocena: tylko konto pracownika (własny proces); przed krokiem 2 API zwraca 409.
         const samoocena =
           proces && sesja.uzytkownik.rola === "oceniany" ? await pobierzSamoocene(token, proces.id).catch(() => null) : null;
@@ -190,10 +190,10 @@ export function KartaPracownika({
               onEtap={prowadzi ? otworzEtap : undefined}
               wToku={wToku !== null}
             />
-            {cele}
             <WynikiKryteriow ocena={dane.ocena} />
-
+            {/* Karol 22.11: opis stanowiska (co oceniamy) przed celami rozwojowymi. */}
             {dane.analiza?.osp && <OpisStanowiska osp={dane.analiza.osp} />}
+            {cele}
 
             {dane.notatki.length > 0 && (
               <div className="sekcja">
@@ -323,7 +323,12 @@ function Cykl({
 }) {
   const c = dane.cykl;
   const etapy = ETAPY_CYKLU[sciezka ?? "okresowa"];
-  const biezacy = c ? INDEKS_ETAPU[c.etap] : -1;
+  // Ocena w toku przed zapoznaniem z kryteriami stoi na rozpoczęciu, nawet gdy termin z kartoteki jest dalej.
+  const p = dane.proces;
+  const rozpoczecieWToku = p?.status === "W_TOKU" && p.krok < 3 && !p.krok2?.zapoznanie;
+  const biezacy = rozpoczecieWToku ? 0 : c ? INDEKS_ETAPU[c.etap] : -1;
+  // Karol 22.11 02:13: etap rozwija się na miejscu i pokazuje, co ustalono; przejście do ekranu jest w środku.
+  const [otwarty, setOtwarty] = useState<number | null>(null);
   const arkusz = sciezka !== "pierwsza" ? dane.analiza?.arkusz_okresowy : null;
   return (
     <div className="sekcja cykl">
@@ -332,23 +337,6 @@ function Cykl({
         {/* Arkusz jako dopisek (Karol 21.11: „aż takie duże?”); uzasadnienie z przepisem jest w kroku 1. */}
         {arkusz?.arkusz && <span className="arkusz-dopisek"> · arkusz {arkusz.arkusz}</span>}
       </h2>
-      {c && (
-        <p className={`teraz ${c.po_terminie ? "po-terminie" : ""}`}>
-          <strong>Teraz:</strong> {c.czynnosc}
-          {c.termin && (
-            <>
-              {" "}
-              do {data(c.termin.data)} ({c.dni_do_terminu !== null ? kiedy(c.dni_do_terminu) : ""})
-            </>
-          )}
-          {biezacy >= 0 && biezacy < 2 && (
-            <>
-              {" "}
-              · <strong>Potem:</strong> {etapy[biezacy + 1].toLowerCase()}
-            </>
-          )}
-        </p>
-      )}
       {/* Braki dat w kartotece to język przepisów; przełożonemu wystarczy jedna linia, szczegóły po rozwinięciu. */}
       {c && c.braki.length > 0 && (
         <details className="braki-karty">
@@ -373,13 +361,16 @@ function Cykl({
                   ? `ustalone ${data(c.kryteria_ustalone)}`
                   : "zrobione"
                 : stan === "biezacy"
-                  ? c.termin
+                  ? rozpoczecieWToku
+                    ? "w toku"
+                    : c.termin
                     ? `do ${data(c.termin.data)}`
                     : "teraz"
                   : "";
-            // Bez oceny w aplikacji etap „zrobione” nie ma czego pokazać, a okres oceny nie zaczyna oceny
-            // (Następny krok mówi „zaczniesz bliżej terminu”); klik nie może otwierać nowej oceny.
-            const klik = onEtap && stan !== "przyszly" && (wToku || (stan === "biezacy" && c.etap !== "okres"));
+            // Przejście do ekranu tylko do oceny w aplikacji (albo bieżącej czynności poza okresem);
+            // nigdy nie otwiera nowej oceny z etapu zrobionego poza aplikacją.
+            const doEkranu = onEtap && stan !== "przyszly" && (wToku || (stan === "biezacy" && c.etap !== "okres"));
+            const klik = stan !== "przyszly";
             const tresc = (
               <>
                 <span className={`znak-etapu ${stan}`} aria-hidden="true">
@@ -387,25 +378,105 @@ function Cykl({
                 </span>
                 <span className="nazwa-etapu">{nazwa}</span>
                 <span className="meta">{opis}</span>
-                {klik && <Ikona nazwa="dalej" rozmiar={20} />}
+                {klik && <span className={otwarty === i ? "strzalka obrot" : "strzalka"}><Ikona nazwa="dalej" rozmiar={20} /></span>}
               </>
             );
             return (
               <li key={nazwa} className={stan} aria-current={stan === "biezacy" ? "step" : undefined}>
                 {klik ? (
-                  <button type="button" className="etap" onClick={() => onEtap!(i)}>
+                  <button
+                    type="button"
+                    className="etap"
+                    aria-expanded={otwarty === i}
+                    onClick={() => setOtwarty(otwarty === i ? null : i)}
+                  >
                     {tresc}
                   </button>
                 ) : (
                   <div className="etap">{tresc}</div>
+                )}
+                {otwarty === i && (
+                  <SzczegolyEtapu
+                    i={i}
+                    pierwsza={sciezka === "pierwsza"}
+                    c={c}
+                    p={p}
+                    osoba={osoba}
+                    onOtworz={doEkranu ? () => onEtap!(i) : undefined}
+                  />
                 )}
               </li>
             );
           })}
         </ol>
       )}
-      <LiniaSamooceny ocena={dane.ocena} />
-      <PoprzednieOceny osoba={osoba} mapa={dane.mapa} pierwsza={sciezka === "pierwsza"} />
+      {/* Pierwsza ocena nie ma samooceny ani wcześniejszych ocen (Karol 22.11: „po co te wszystkie?”). */}
+      {sciezka !== "pierwsza" && <LiniaSamooceny ocena={dane.ocena} />}
+      {sciezka !== "pierwsza" && <PoprzednieOceny osoba={osoba} mapa={dane.mapa} />}
+    </div>
+  );
+}
+
+/** Co ustalono w etapie: kryteria i zapoznanie (część I), okres od–do, stan zakończenia; przejście do ekranu, gdy jest. */
+function SzczegolyEtapu({
+  i,
+  pierwsza,
+  c,
+  p,
+  osoba,
+  onOtworz,
+}: {
+  i: number;
+  pierwsza: boolean;
+  c: EtapOsoby;
+  p: ProcesOceny | null;
+  osoba: Pracownik;
+  onOtworz?: () => void;
+}) {
+  const wybor = p?.krok2;
+  const poczatek = wybor?.zapoznanie ?? c.kryteria_ustalone;
+  const wiersze: [string, ReactNode][] = [];
+  if (i === 0) {
+    if (pierwsza) {
+      if (poczatek) wiersze.push(["Rozmowa wstępna", data(poczatek)]);
+    } else {
+      // Nazwy z arkusza bywają wersalikami; na karcie zdaniowo („Zarządzanie ludźmi”).
+      const nazwa = (n: string) => n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+      const obow = wybor?.kryteria.filter((k) => k.rodzaj === "OBOWIAZKOWE").map((k) => nazwa(k.nazwa)) ?? [];
+      const dod = wybor?.kryteria.filter((k) => k.rodzaj === "DODATKOWE").map((k) => nazwa(k.nazwa)) ?? [];
+      if (obow.length) wiersze.push(["Kryteria obowiązkowe", obow.join(", ")]);
+      if (dod.length) wiersze.push(["Kryteria dodatkowe", dod.join(", ")]);
+      if (poczatek) wiersze.push(["Zapoznanie z kryteriami", data(poczatek)]);
+    }
+    if (!wybor)
+      wiersze.push(["Kryteria", poczatek ? "ustalone poza aplikacją, treść w aktach osobowych" : "ustalone poza aplikacją, daty nie ma w kartotece QNT"]);
+  } else if (i === 1) {
+    // Okres liczy się od zakończenia poprzedniej oceny (art. 81 ustawy), gdy kartoteka nie ma daty ustalenia kryteriów.
+    const od = poczatek ? data(poczatek) : osoba.ostatnia_ocena_okresowa ? `${data(osoba.ostatnia_ocena_okresowa.data)} (poprzednia ocena)` : null;
+    wiersze.push(["Okres", `${od ? `od ${od} ` : ""}${c.termin ? `do ${data(c.termin.data)}` : ""}`.trim() || "brak dat w kartotece"]);
+  } else {
+    if (c.termin) wiersze.push([c.termin.nazwa.replace(/^./, (x) => x.toUpperCase()), `do ${data(c.termin.data)}`]);
+    if (p && p.status === "W_TOKU" && p.krok >= 3) wiersze.push(["Stan", p.krok >= 6 ? "ocena na piśmie" : "rozmowa oceniająca"]);
+  }
+  return (
+    <div className="szczegoly-etapu">
+      {wiersze.length > 0 ? (
+        <dl>
+          {wiersze.map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="meta zero">Brak danych z tego etapu w aplikacji.</p>
+      )}
+      {onOtworz && (
+        <button type="button" className="link" onClick={onOtworz}>
+          {i === 0 ? (pierwsza ? "Otwórz rozmowę wstępną" : "Otwórz część I") : "Otwórz ocenę"}
+        </button>
+      )}
     </div>
   );
 }
@@ -414,12 +485,12 @@ function Cykl({
  * Poprzednie oceny z kartoteki QNT; oceny cząstkowe ostatniej okresowej tylko dla przełożonego (mapa).
  * Na ścieżce pierwszej oceny rekord `pierwsza_ocena` opisuje bieżącą służbę przygotowawczą, nie poprzednią ocenę.
  */
-function PoprzednieOceny({ osoba, mapa, pierwsza }: { osoba: Pracownik; mapa: MapaKompetencji | null; pierwsza: boolean }) {
+function PoprzednieOceny({ osoba, mapa }: { osoba: Pracownik; mapa: MapaKompetencji | null }) {
   const o = osoba.ostatnia_ocena_okresowa;
-  const p = pierwsza ? null : osoba.pierwsza_ocena;
+  const p = osoba.pierwsza_ocena;
   return (
     <div className="poprzednie">
-      <span className="kafel-etykieta">Poprzednie oceny</span>
+      <span className="kafel-etykieta">Poprzednie oceny · kartoteka QNT</span>
       {o && (
         <p className="zero">
           Ocena okresowa <span className={`status ${o.wynik}`}>{o.wynik}</span>{" "}
@@ -439,12 +510,7 @@ function PoprzednieOceny({ osoba, mapa, pierwsza }: { osoba: Pracownik; mapa: Ma
           </span>
         </p>
       )}
-      {!o && !p && (
-        <p className="meta zero">
-          {pierwsza ? "To pierwsza ocena, wcześniejszych nie ma." : "W kartotece QNT nie ma jeszcze żadnej oceny."}
-        </p>
-      )}
-      <p className="meta zero">Źródło: kartoteka QNT</p>
+      {!o && !p && <p className="meta zero">Brak wcześniejszych ocen.</p>}
     </div>
   );
 }
@@ -501,27 +567,36 @@ function NastepnyKrok({
 }) {
   const c = dane.cykl;
   const p = dane.proces;
-  const tytul = c?.czynnosc ?? (p ? `Ocena w toku · krok ${p.krok}` : "Ustal ścieżkę oceny");
-  const przycisk = !c
-    ? p
-      ? "Kontynuuj ocenę"
-      : "Rozpocznij ocenę"
-    : c.etap === "kryteria"
-      ? "Rozpocznij ocenę"
-      : c.etap === "ocena"
-        ? "Zakończ ocenę"
-        : null;
+  // Karol 22.11: „dlaczego mnie od razu nie przerzuciło? A, bo jest w toku” – ocena w toku mówi wprost, gdzie jest.
+  const wToku = p ? miejsceWToku(p) : null;
+  const tytul = wToku ? `W toku: ${wToku.opis}` : c?.czynnosc ?? (p ? "Ocena w toku" : "Ustal ścieżkę oceny");
+  const przycisk = wToku
+    ? `Kontynuuj: ${wToku.ekran}`
+    : !c
+      ? p
+        ? "Kontynuuj ocenę"
+        : "Rozpocznij ocenę"
+      : c.etap === "kryteria"
+        ? "Rozpocznij ocenę"
+        : c.etap === "ocena"
+          ? "Zakończ ocenę"
+          : null;
+  const pierwsza = (c?.sciezka ?? p?.sciezka) === "pierwsza";
   return (
     <div className="ramka nastepny">
       <span className="kafel-etykieta">Następny krok</span>
       <strong>{tytul}</strong>
       {c?.termin && (
         <span className={c.po_terminie ? "termin zagrozony" : "termin"}>
-          {c.termin.nazwa} do {data(c.termin.data)}
+          {wToku ? `${c.termin.nazwa} do` : "Termin:"} {data(c.termin.data)}
           {c.dni_do_terminu !== null && <> ({kiedy(c.dni_do_terminu)})</>}
         </span>
       )}
-      {c?.etap === "okres" && <span className="termin">Kryteria ustalone. Ocenę końcową zaczniesz bliżej terminu.</span>}
+      {c?.etap === "okres" && !wToku && (
+        <span className="termin">
+          {pierwsza ? "Rozmowa wstępna odbyta. Pierwszą ocenę zaczniesz bliżej terminu." : "Część I zakończona. Ocenę zakończysz bliżej terminu."}
+        </span>
+      )}
       {prowadzi && przycisk && (
         <button type="button" onClick={onOcen}>
           {przycisk}
@@ -539,6 +614,19 @@ function NastepnyKrok({
       )}
     </div>
   );
+}
+
+/** Gdzie stoi ocena w toku, którą trzeba dokończyć (null: nic do zrobienia teraz, np. okres oceny po części I). */
+function miejsceWToku(p: ProcesOceny): { opis: string; ekran: string } | null {
+  if (p.status !== "W_TOKU") return null;
+  const pierwsza = p.sciezka === "pierwsza";
+  if (p.krok >= 6) return { opis: pierwsza ? "pierwsza ocena na piśmie" : "zakończenie oceny, ocena na piśmie", ekran: "ocena na piśmie" };
+  if (p.krok >= 3) return { opis: pierwsza ? "pierwsza ocena, rozmowa oceniająca" : "zakończenie oceny, rozmowa oceniająca", ekran: "rozmowa oceniająca" };
+  if (!p.krok2?.zapoznanie)
+    return pierwsza
+      ? { opis: "rozpoczęcie, rozmowa wstępna", ekran: "rozmowa wstępna" }
+      : { opis: "rozpoczęcie oceny, kryteria i część I", ekran: "kryteria i wskaźniki" };
+  return null;
 }
 
 /** Konto pracownika: zamiast „Następnego kroku” procesu — własna samoocena (#9). */
@@ -565,14 +653,19 @@ function NastepnySamoocena({ s, onOtworz }: { s: Samoocena; onOtworz: () => void
 function LiniaSamooceny({ ocena }: { ocena: StanOceny | null }) {
   const st = ocena?.samoocena_status;
   if (!ocena || !st) return null;
-  if (st !== "przekazana")
-    return <p className="meta zero">Samoocena pracownika: {st === "szkic" ? "w przygotowaniu" : "nierozpoczęta"}.</p>;
-  const w = ocena.kryteria.flatMap((k) => k.wskazniki);
-  const porownane = w.filter((x) => x.rozbieznosc !== null && x.rozbieznosc !== undefined).length;
-  const rozbiezne = w.filter((x) => x.rozbieznosc).length;
+  if (st !== "przekazana") return null;
+  const rozbiezne = ocena.kryteria.flatMap((k) => k.wskazniki).filter((x) => x.rozbieznosc).length;
+  // Karol 22.11: rozbieżności „muszą być jasno” – jedna liczba do omówienia, bez metatekstu.
   return (
-    <p className="meta zero">
-      Samoocena przekazana · do omówienia {rozbiezne} z {porownane} porównanych wskaźników (różnica co najmniej 4 pkt)
+    <p className={`linia-samooceny${rozbiezne ? " do-omowienia" : ""}`}>
+      {rozbiezne ? (
+        <>
+          Samoocena: <strong>{rozbiezne} {rozbiezne === 1 ? "wskaźnik" : rozbiezne < 5 ? "wskaźniki" : "wskaźników"} do omówienia</strong> na rozmowie
+          (różnica co najmniej 4 pkt)
+        </>
+      ) : (
+        "Samoocena przekazana, bez rozbieżności do omówienia."
+      )}
     </p>
   );
 }

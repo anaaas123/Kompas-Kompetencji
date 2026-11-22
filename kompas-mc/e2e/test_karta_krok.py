@@ -74,7 +74,7 @@ def test_karta_otwiera_kroki_3_5_jednym_kliknieciem(przegladarka, proces_w_kroku
 
 
 def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_5):
-    """#55: etap zrobiony „Rozpoczęcie oceny” otwiera krok 2 procesu, bieżący „Zakończenie oceny” kroki 3–5."""
+    """#55, #83: etap rozwija się na miejscu; „Otwórz część I” prowadzi do kroku 2, „Otwórz ocenę” do kroków 3–5."""
     _, b = przegladarka
     tryb = os.environ.get("TRYB", "light")
     page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=tryb)
@@ -88,17 +88,20 @@ def test_etapy_cyklu_na_karcie_otwieraja_swoj_krok(przegladarka, proces_w_kroku_
     etapy = page.locator(".cykl .etapy button.etap")
     expect(etapy).to_have_count(3)
     etapy.filter(has_text="Rozpoczęcie oceny").click()
+    expect(page.locator(".szczegoly-etapu")).to_contain_text("Kryteria obowiązkowe")
+    page.locator(".szczegoly-etapu button", has_text="Otwórz część I").click()
     expect(page.get_by_text("Rozpoczęcie oceny · kryteria (część I arkusza)")).to_be_visible()
 
     page.locator("nav.menu button.poz", has_text="Pulpit").click()
     page.locator(".lista button.pozycja", has_text="Maj-Demo").first.click()
     page.locator(".cykl li.biezacy button.etap").click()
+    page.locator(".szczegoly-etapu button", has_text="Otwórz ocenę").click()
     expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     page.close()
 
 
 def test_etapy_bez_oceny_w_aplikacji_nie_otwieraja_nowej(przegladarka):
-    """#55: Michał (P-104) ma kryteria ustalone poza aplikacją i okres oceny; żaden etap nie zaczyna nowej oceny."""
+    """#55, #83: Michał (P-104) ma kryteria ustalone poza aplikacją i okres oceny; etap pokazuje daty, nie zaczyna oceny."""
     _, b = przegladarka
     page = b.new_page(viewport={"width": 1440, "height": 900}, color_scheme=os.environ.get("TRYB", "light"))
     page.goto(URL)
@@ -111,5 +114,7 @@ def test_etapy_bez_oceny_w_aplikacji_nie_otwieraja_nowej(przegladarka):
 
     expect(page.locator(".cykl .etapy li")).to_have_count(3)
     expect(page.locator(".cykl .etapy li.zrobiony")).to_have_count(1)
-    expect(page.locator(".cykl .etapy button.etap")).to_have_count(0)
+    page.locator(".cykl .etapy li.zrobiony button.etap").click()
+    expect(page.locator(".szczegoly-etapu")).to_contain_text("ustalone poza aplikacją")
+    expect(page.locator(".szczegoly-etapu button")).to_have_count(0)
     page.close()
