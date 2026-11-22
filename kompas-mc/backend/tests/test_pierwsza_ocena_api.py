@@ -149,7 +149,7 @@ def test_wynik_formularz_i_pdf(api_pierwszej, punkty, zlozenie, wynik, srednia, 
     tekst = _tekst_pdf(wydruk)
     assert len(PdfReader(BytesIO(wydruk.content)).pages) == 3
     assert all(f in tekst for f in ("ARKUSZ PIERWSZEJ OCENY", "Łucja", "Wójcik-Demo", "20.11.2026"))
-    assert format(Decimal(srednia).normalize(), "f").replace(".", ",") in tekst.split()
+    assert f"{Decimal(srednia):.2f}".replace(".", ",") in tekst.split()  # ocena łączna jak na ekranie: 5,40
     assert "Wygenerowanie PDF" not in tekst and "SHA-256" not in tekst
     if wynik == "negatywna":
         assert dane["uzasadnienie"] in tekst
