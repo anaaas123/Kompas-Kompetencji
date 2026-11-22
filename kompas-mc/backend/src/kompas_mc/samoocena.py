@@ -194,3 +194,17 @@ def rozbieznosc(samo: PozycjaSamooceny | None, ocena: OcenaWskaznika | None, pro
 def zrzut(pozycje: dict[str, PozycjaSamooceny]) -> dict:
     """Postać do dziennika zmian."""
     return {k: json.loads(v.model_dump_json()) for k, v in pozycje.items()}
+
+
+KOMUNIKAT_PRZED_PRZEKAZANIEM = "Ocena przełożonego będzie widoczna po przekazaniu samooceny."
+
+
+def ukryj_przed_przekazaniem(auth, uz, rekord: dict, baza: sqlite3.Connection, proces) -> None:
+    """Pracownik (samoocena.zapisz) zobaczy treść oceny przełożonego dopiero po przekazaniu samooceny (#9),
+    żeby jej nie przepisywał; dotyczy każdego odczytu treści (ocena, wynik, arkusz, PDF), nie tylko kroku 3.
+    Po zakończeniu oceny (§ 12) pracownik zawsze widzi ocenę i dostaje kopię arkusza."""
+    from fastapi import HTTPException
+
+    if proces.status == "W_TOKU" and auth.moze(uz, "pracownik", rekord, "samoocena.zapisz"):
+        if wczytaj(baza, proces.id)[0] != "przekazana":
+            raise HTTPException(403, KOMUNIKAT_PRZED_PRZEKAZANIEM)

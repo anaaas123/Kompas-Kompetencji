@@ -27,7 +27,7 @@ from .ocena import (
 )
 from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt
-from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
+from .samoocena import rozbieznosc, ukryj_przed_przekazaniem, wczytaj as wczytaj_samoocene
 
 _OCENY = TypeAdapter(dict[str, OcenaWskaznika])
 _DECYZJE = TypeAdapter(dict[str, Decyzja])
@@ -104,9 +104,8 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         proces = proces_dostepny(request, proces_id, uz, "ocena.tresc")
         p = qnt.pracownik(proces.osoba_id)
         # Pracownik zobaczy ocenę przełożonego dopiero po przekazaniu samooceny, żeby jej nie przepisywał.
-        if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.zapisz"):
-            if wczytaj_samoocene(request.app.state.baza, proces.id)[0] != "przekazana":
-                raise HTTPException(403, "Ocena przełożonego będzie widoczna po przekazaniu samooceny.")
+        if p is not None:
+            ukryj_przed_przekazaniem(auth, uz, p.model_dump(), request.app.state.baza, proces)
         wynik = stan(request, proces)
         if p is not None and auth.moze(uz, "pracownik", p.model_dump(), "samoocena.czytaj"):
             status, _, pozycje = wczytaj_samoocene(request.app.state.baza, proces.id)
