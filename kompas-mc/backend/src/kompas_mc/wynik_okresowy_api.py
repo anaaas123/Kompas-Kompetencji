@@ -17,6 +17,7 @@ from .krok2 import WyborKroku2
 from .ocena import Decyzja, aktualne_decyzje
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, Pracownik
+from .samoocena import ukryj_przed_przekazaniem
 from .terminy_okresowej import DaneTerminow, KonfiguracjaTerminow, TerminyOkresowej, oblicz_terminy
 from .wynik_okresowy import KonfiguracjaWynikuOkresowego
 from .zawiadomienie import zawiadomienie_pdf
@@ -210,6 +211,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, serwis: SerwisWynikuOkresowego) -> A
         auth.sprawdz(uz, "pracownik", pracownik.model_dump(), akcja)
         if proces.sciezka != "okresowa" or proces.arkusz not in ("B", "C"):
             raise HTTPException(409, "Krok 6 dotyczy oceny okresowej na arkuszu B lub C.")
+        ukryj_przed_przekazaniem(auth, uz, pracownik.model_dump(), baza, proces)
 
         wybory_json, decyzje_json, zapis = baza.execute(
             "SELECT krok2, decyzje, wynik_okresowy FROM procesy WHERE id = ?", (proces_id,)

@@ -27,17 +27,17 @@ Start API trwa kilka sekund, bo przy starcie powstaje korpus z plików MC.
 
 `POST /api/asystent {"pytanie": "...", "sciezka": "pierwsza" | "okresowa" | null}`
 
-- Domyślny łańcuch to DeepSeek (`deepseek-v4-flash`) → lokalna Ollama
-  (`qwen3:8b`) → tryb ekstrakcyjny BM25. Brak klucza, sieci lub Ollamy nie
-  przerywa odpowiedzi: asystent przechodzi do następnego dostawcy.
-- Aby włączyć DeepSeek, skopiuj `backend/.env.example` jako `backend/.env` i
-  ustaw `DEEPSEEK_API_KEY=sk-...`. Plik `.env` jest ignorowany przez Git. Aby
-  wyłączyć DeepSeek, usuń wartość klucza; kolejność dostawców zmienia się w
-  `konfiguracja/asystent.yaml`.
-- Nazwę modelu można sprawdzić bez ujawniania klucza poleceniem
-  `curl -sS https://api.deepseek.com/models -H "Authorization: Bearer $DEEPSEEK_API_KEY"`.
-  Konfiguracja używa zgodnego aliasu `deepseek-v4-flash` wymaganego przez
-  specyfikację; DeepSeek kieruje go obecnie do aktualnego modelu Flash.
+- Domyślny łańcuch to DeepSeek v4 Flash hostowany w Scaleway Generative APIs
+  (`deepseek-v4-flash-0731`, serwery w UE, Paryż) → lokalna Ollama (`qwen3:8b`)
+  → tryb ekstrakcyjny BM25. Zapytania nie trafiają bezpośrednio do dostawcy modelu.
+  Brak klucza, sieci lub Ollamy nie przerywa odpowiedzi: asystent przechodzi do
+  następnego dostawcy.
+- Aby włączyć model, skopiuj `backend/.env.example` jako `backend/.env` i ustaw
+  `SCALEWAY_API_KEY` (klucz IAM z uprawnieniem GenerativeApisModelAccess). Plik
+  `.env` jest ignorowany przez Git. Aby wyłączyć model, usuń wartość klucza;
+  kolejność dostawców zmienia się w `konfiguracja/asystent.yaml`.
+- Listę modeli można sprawdzić bez ujawniania klucza poleceniem
+  `curl -sS https://api.scaleway.ai/v1/models -H "Authorization: Bearer $SCALEWAY_API_KEY"`.
 - Każda próba, wybrany model, tryb i przyczyna fallbacku trafiają do
   `backend/dane/llm.jsonl`.
 - Gdy najlepszy fragment nie zawiera co najmniej 60% słów pytania, odpowiedź brzmi „brak wystarczających informacji w bazie wiedzy”.
@@ -135,7 +135,7 @@ Endpoint podpowiedzi najpierw pyta LLM (łańcuch z `asystent.yaml` bez dostawcy
 - strony poradników o wnioskach rozwojowych i IPRZ (`llm.zrodla`);
 - pseudonimizowany kontekst: wskaźniki z ostatniego procesu, samoocenę po przekazaniu i istniejące cele. Imię, nazwisko, komórka ani identyfikator osoby nie trafiają do modelu.
 
-Model zwraca 1–3 cele SMART: nazwę, opis, miernik, termin, wskaźnik modelu i cytat. Cel ze wskaźnikiem spoza modelu albo z cytatem bez pokrycia w podanym fragmencie jest odrzucany, a powód trafia do pola `odrzucone`. Gdy LLM zawiedzie (np. brak `DEEPSEEK_API_KEY`) albo żaden cel nie przejdzie walidacji, API zwraca podpowiedzi regułowe (`zrodlo: "reguly"`). Każda podpowiedź ma status `propozycja`, oznaczenie „Sugestia asystenta – do edycji” i nigdy nie zapisuje się sama.
+Model zwraca 1–3 cele SMART: nazwę, opis, miernik, termin, wskaźnik modelu i cytat. Cel ze wskaźnikiem spoza modelu albo z cytatem bez pokrycia w podanym fragmencie jest odrzucany, a powód trafia do pola `odrzucone`. Gdy LLM zawiedzie (np. brak `SCALEWAY_API_KEY`) albo żaden cel nie przejdzie walidacji, API zwraca podpowiedzi regułowe (`zrodlo: "reguly"`). Każda podpowiedź ma status `propozycja`, oznaczenie „Sugestia asystenta – do edycji” i nigdy nie zapisuje się sama.
 
 Zakazane przejście zwraca 409, a akcja spoza roli 403.
 

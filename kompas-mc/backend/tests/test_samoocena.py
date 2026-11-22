@@ -67,8 +67,10 @@ def test_pelny_przebieg(k, h, proces):
     assert r.status_code == 200, r.text
     sugestie_przed = [kr["sugestia"] for kr in r.json()["kryteria"]]
 
-    # Pracownik nie widzi oceny przełożonego, dopóki nie przekaże samooceny.
+    # Pracownik nie widzi oceny przełożonego, dopóki nie przekaże samooceny – także przez wynik, arkusz i PDF (#72).
     assert k.get(url_oc, headers=ho).status_code == 403
+    for droga in ("wynik-okresowy", "arkusz-okresowy", "arkusz-okresowy/pdf"):
+        assert k.get(f"/api/procesy/{proces}/{droga}", headers=ho).status_code == 403, droga
 
     # Szkic: poziom, „brak zdania”, przykład; wskaźnik spoza kroku 2 → 422.
     przyklad = {"sytuacja": "Nowa ustawa", "dzialanie": "Przygotowałam analizę", "rezultat": "Przyjęta bez uwag"}
@@ -99,6 +101,7 @@ def test_pelny_przebieg(k, h, proces):
     # Po przekazaniu pracownik widzi ocenę przełożonego, ale bez pól porównania (te są dla przełożonego).
     r = k.get(url_oc, headers=ho)
     assert r.status_code == 200 and r.json()["samoocena_status"] is None
+    assert k.get(f"/api/procesy/{proces}/wynik-okresowy", headers=ho).status_code != 403
 
     # Przełożony widzi treść i rozbieżność (9 − 3 = 6 ≥ 4); „brak zdania” nie daje rozbieżności.
     oc = k.get(url_oc, headers=hp).json()

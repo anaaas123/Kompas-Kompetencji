@@ -20,6 +20,7 @@ from .arkusze import (
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, OstatniaOcenaOkresowa, Pracownik
+from .samoocena import ukryj_przed_przekazaniem
 from .terminy_okresowej import TerminyOkresowej
 from .wynik_okresowy_api import SerwisWynikuOkresowego, WynikOkresowy
 
@@ -179,6 +180,7 @@ def router(
         auth.sprawdz(uz, "pracownik", pracownik.model_dump(), akcja)
         if proces.sciezka != "okresowa" or proces.arkusz not in ("B", "C"):
             raise HTTPException(409, "Arkusz B/C dotyczy wyłącznie oceny okresowej.")
+        ukryj_przed_przekazaniem(auth, uz, pracownik.model_dump(), baza, proces)
         if akcja == "ocena.prowadz" and proces.status != "W_TOKU":
             raise HTTPException(409, "Proces nie jest w toku")
 

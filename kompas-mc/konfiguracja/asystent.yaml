@@ -76,10 +76,11 @@ komunikaty:
 
 llm:
   dostawcy:
+    # DeepSeek v4 Flash hostowany w Scaleway Generative APIs (UE, Paryż), nie bezpośrednio u dostawcy (Karol 22.11).
     - typ: openai_zgodny
-      base_url: https://api.deepseek.com
-      model: deepseek-v4-flash
-      zmienna_klucza: DEEPSEEK_API_KEY
+      base_url: https://api.scaleway.ai/v1
+      model: deepseek-v4-flash-0731
+      zmienna_klucza: SCALEWAY_API_KEY
       timeout: 30
       temperatura: 0.0
     - {typ: ollama, model: "qwen3:8b", timeout: 5}

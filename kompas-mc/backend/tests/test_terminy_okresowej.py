@@ -29,7 +29,7 @@ def test_zwykly_cykl_i_sprzeciw_od_zapoznania(terminy_config):
     )
     wynik = oblicz_terminy(qnt.pracownik("P-101"), dane, konf)
 
-    assert wynik.termin_kryteriow.data == date(2025, 1, 1)
+    assert wynik.termin_kryteriow.data == date(2025, 1, 2)  # 1.01 to Nowy Rok (dni_wolne), termin przesuwa się
     assert wynik.termin_kryteriow.slad[0].regula.zrodlo.lokalizator == "§ 7 pkt 1"
     assert wynik.termin_bazowy.data == date(2026, 12, 2)
     assert wynik.termin_sprzeciwu.data == date(2026, 11, 20)
