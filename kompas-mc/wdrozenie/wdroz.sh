@@ -4,6 +4,10 @@
 # Kod: /opt/kompas-repo, front: /opt/kompas/www-<sha> → /opt/kompas/www, dane: /var/lib/kompas (zostają między wersjami).
 # Wycofanie: wdroz.sh <poprzedni SHA> (lista w /opt/kompas/historia).
 set -euo pipefail
+# Serwer dzielimy z CAOO (2 GB RAM): jeden build naraz. Czekamy na wspólną blokadę, zamiast pomijać, bo
+# wyjście z błędem oznaczyłoby SHA jako nieudany w wdroz-auto.sh. Zwalnia się sama przy końcu skryptu.
+exec 9>/run/lock/build-sslip.lock
+flock 9
 REF="${1:-main}"
 REPO=/opt/kompas-repo
 UV=/root/.local/bin/uv

@@ -18,3 +18,5 @@ cp wdroz-auto.sh /opt/kompas/ && cp kompas-auto.service kompas-auto.timer /etc/s
 ```
 
 Automatycznie: `kompas-auto.timer` co 2 min sprawdza `origin/main` i wdraża nowy commit (`wdroz-auto.sh`, kopia w `/opt/kompas/`); nieudany SHA nie jest ponawiany, serwer wraca do poprzedniej wersji. Ręcznie: `wdroz.sh` (main) albo `wdroz.sh <SHA>`; wycofanie: `wdroz.sh <poprzedni SHA>` z `/opt/kompas/historia`. Baza SQLite w `/var/lib/kompas` zostaje między wersjami.
+
+Serwer dzieli z CAOO (`caoo.151-115-86-8.sslip.io`, port 8001, osobny blok w `/etc/caddy/Caddyfile`). Przy ponownym przygotowaniu serwera nie nadpisuj Caddyfile plikiem z repo, bo zniknie blok CAOO: dopisz tylko blok Kompasu. Oba wdrożenia budują front na serwerze pod jedną blokadą `/run/lock/build-sslip.lock`, więc dwa buildy nie idą naraz.
