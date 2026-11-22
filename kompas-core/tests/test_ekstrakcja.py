@@ -17,6 +17,15 @@ def test_pdf_strona_po_stronie_z_lokalizatorem(pdf_z_tekstem):
     assert lok["zał. 1 poz. 2"].strona == 4
 
 
+def test_pdf_od_strony_pomija_wstep_i_jego_lokalizator(pdf_z_tekstem):
+    w = ekstrahuj(pdf_z_tekstem, "ustawa", "2024", od_strony=3)
+    assert w.status is StatusEkstrakcji.OK and w.strony_bez_tekstu == []
+    assert min(f.strona for f in w.fragmenty) == 3
+    assert w.fragmenty[0].id == "ustawa@2024#1"
+    # Bez pominięcia strona 3 dziedziczy „art. 83” ze strony 1 („art. 83 § 11 ust. 1”).
+    assert w.fragmenty[0].lokalizator == "§ 11 ust. 1"
+
+
 def test_pdf_bez_warstwy_tekstowej_jest_raportowany(pdf_bez_tekstu):
     w = ekstrahuj(pdf_bez_tekstu, "skan")
     assert w.status is StatusEkstrakcji.BRAK_TEKSTU

@@ -19,13 +19,17 @@ from .model import (
 ROZSZERZENIA = {".pdf", ".docx", ".xlsx"}
 
 
-def ekstrahuj(plik: str | Path, doc_id: str, doc_version: str | None = None) -> WynikEkstrakcji:
+def ekstrahuj(
+    plik: str | Path, doc_id: str, doc_version: str | None = None, od_strony: int = 1
+) -> WynikEkstrakcji:
     """Wyciąga fragmenty z jednego pliku.
 
     - PDF z warstwą tekstową: strona po stronie; fragment = jednostka redakcyjna
       (Art./§/ustęp/Załącznik albo akapit), ``strona`` ustawiona, ``lokalizator`` z
       ostatnio widzianych oznaczeń. Strony bez tekstu trafiają do
       ``strony_bez_tekstu``; gdy żadna strona nie ma tekstu, ``status = BRAK_TEKSTU``.
+      ``od_strony`` pomija wcześniejsze strony (np. obwieszczenie przed tekstem jednolitym),
+      także w lokalizatorze.
     - DOCX: fragment = akapit lub komórka tabeli; śledzone zmiany w ``Fragment.zmiany``.
     - XLSX: fragment = niepusta komórka, ``lokalizator = "Arkusz!A1"``.
     - Inne rozszerzenia: ``status = NIEOBSŁUGIWANY`` (``Thumbs.db`` itp.).
@@ -42,7 +46,7 @@ def ekstrahuj(plik: str | Path, doc_id: str, doc_version: str | None = None) -> 
     nowy = _Numerator(doc_id, doc_version)
     try:
         if rozszerzenie == ".pdf":
-            return _pdf(sciezka, baza, nowy)
+            return _pdf(sciezka, baza, nowy, od_strony)
         if rozszerzenie == ".docx":
             return _docx(sciezka, baza, nowy)
         return _xlsx(sciezka, baza, nowy)
@@ -130,7 +134,7 @@ class _Lokalizator:
 # --- PDF ---------------------------------------------------------------------------
 
 
-def _pdf(sciezka: Path, baza: dict, nowy: _Numerator) -> WynikEkstrakcji:
+def _pdf(sciezka: Path, baza: dict, nowy: _Numerator, od_strony: int = 1) -> WynikEkstrakcji:
     from pypdf import PdfReader
 
     czytnik = PdfReader(str(sciezka))
@@ -138,6 +142,8 @@ def _pdf(sciezka: Path, baza: dict, nowy: _Numerator) -> WynikEkstrakcji:
     fragmenty: list[Fragment] = []
     bez_tekstu: list[int] = []
     for nr_strony, strona in enumerate(czytnik.pages, start=1):
+        if nr_strony < od_strony:
+            continue
         tekst = strona.extract_text() or ""
         if not tekst.strip():
             bez_tekstu.append(nr_strony)
@@ -158,7 +164,7 @@ def _pdf(sciezka: Path, baza: dict, nowy: _Numerator) -> WynikEkstrakcji:
             biezace.append(linia)
         zamknij()
 
-    liczba = len(czytnik.pages)
+    liczba = max(len(czytnik.pages) - od_strony + 1, 0)
     if liczba and len(bez_tekstu) == liczba:
         return WynikEkstrakcji(
             **baza,

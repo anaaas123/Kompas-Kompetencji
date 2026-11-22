@@ -10,14 +10,17 @@
 braki:
   - id: brak.ustawa
     typ: BRAK
-    tytul: Brak ustawy o służbie cywilnej
+    tytul: Ustawy o służbie cywilnej nie było w paczce organizatora (dołączona z ISAP)
     opis: >-
       Treść zadania wymaga, by baza wiedzy obejmowała ustawę o służbie cywilnej, a oba
-      rozporządzenia są wydane na jej podstawie. Ustawy nie ma w „materialy mc”, więc przesłanki
-      ustawowe (art. 37–38, art. 81–83) aplikacja bierze tylko z poradników.
+      rozporządzenia są wydane na jej podstawie. W paczce organizatora ustawy nie było. Drużyna
+      dołączyła oficjalny tekst jednolity (Dz.U. 2026 poz. 590, obwieszczenie Marszałka Sejmu
+      z 17.04.2026, stan prawny na 14.04.2026, decyzja z 22.11.2026). Nie obejmuje zmiany
+      z Dz.U. 2026 poz. 26, która wchodzi w życie 1.01.2027.
     wplyw: >-
-      Wybór ścieżki i terminy z ustawy mają kategorię OBJAŚNIENIE_MATERIAŁU (poradnik), nie PRZEPIS.
-      Asystent formalny nie odpowie cytatem z ustawy.
+      Asystent formalny cytuje ustawę jako PRZEPIS (doc_id ustawa-sc), także artykuł wskazany
+      w pytaniu („art. 81 ustawy”). Krok 1 nadal opiera przesłanki ustawowe (art. 35, 37, 81) na
+      poradnikach, z kategorią OBJAŚNIENIE_MATERIAŁU.
     adnotacje:
       - kategoria: OBJAŚNIENIE_MATERIAŁU
         doc_id: zadanie-mc
@@ -32,6 +35,11 @@ braki:
         lokalizator: podstawa prawna
         strona: 1
         cytat_dosłowny: Na podstawie art. 38 ust. 4 ustawy z dnia 21 listopada 2008 r. o służbie cywilnej
+      - kategoria: PRZEPIS
+        doc_id: ustawa-sc
+        lokalizator: art. 1
+        strona: 3
+        cytat_dosłowny: ustanawia się służbę cywilną oraz określa zasady dostępu do tej służby
 
   - id: brak.pytania-i-odpowiedzi
     typ: BRAK
@@ -155,8 +163,8 @@ pytania_do_mentorow:
   - id: pytanie.ustawa
     dotyczy: brak.ustawa
     pytanie: >-
-      Czy dołączycie tekst jednolity ustawy o służbie cywilnej? Jeśli nie, czy możemy opierać
-      przesłanki ustawowe na poradnikach i oznaczać je jako objaśnienie materiału?
+      Dołączyliśmy tekst jednolity ustawy o służbie cywilnej z ISAP (Dz.U. 2026 poz. 590, stan
+      prawny na 14.04.2026). Czy organizator udostępni inny zakres ustawy, który mamy przyjąć?
   - id: pytanie.zestaw-qa
     dotyczy: brak.pytania-i-odpowiedzi
     pytanie: >-

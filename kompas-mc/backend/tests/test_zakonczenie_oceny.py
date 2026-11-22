@@ -31,7 +31,14 @@ def test_zakonczenie_zamyka_proces_i_zapisuje_ocene_w_kartotece(api_arkusza, ust
     assert klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-19"}).status_code == 422
     assert klient.post(f"{url}/zakoncz", headers=h, json={}).status_code == 422
 
+    # Arkusz i wynik po zakończeniu pokazują tę samą „poprzednią ocenę” co przy zatwierdzeniu (nie zakończoną).
+    poprzednia_przed = _json(klient.get(f"{proces}/wynik-okresowy", headers=h))["poprzednia_ocena"]
+    arkusz_przed = {p["id"]: p["wartosc"] for s in _json(klient.get(url, headers=h))["sekcje"] for p in s["pola"]}
     zak = _json(klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}))
+    assert _json(klient.get(f"{proces}/wynik-okresowy", headers=h))["poprzednia_ocena"] == poprzednia_przed
+    arkusz_po = _json(klient.get(url, headers=h))
+    assert {p["id"]: p["wartosc"] for s in arkusz_po["sekcje"] for p in s["pola"]} == arkusz_przed
+    assert arkusz_po["zatwierdzony"]
     assert zak["wynik"] == "pozytywna" and zak["srednia"] == "7,00"
     assert zak["data_sporzadzenia_oceny"] == "2026-11-20" and zak["data_zapoznania_z_ocena"] == "2026-11-21"
     p = _json(klient.get(proces, headers=h))

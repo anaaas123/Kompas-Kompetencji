@@ -2,18 +2,23 @@
 
 Przebieg ``odpowiedz(pytanie, sciezka)``:
 
+0. Pytanie wskazujące ustawę (``wzorzec_pytania_o_ustawe``), gdy dokumentu ``ustawa`` nie ma
+   w korpusie ⇒ „brak informacji” z uwagą ``brak_ustawy`` (nie podkładamy cytatu z rozporządzenia).
+   Gdy ustawa jest w korpusie, artykuł wskazany w pytaniu („art. 81 ustawy”, ``wzorzec_ustawy``)
+   idzie na początek cytatów i, jak FAQ, omija bramki odmowy z kroków 3–4.
 1. Słownik z konfiguracji dopisuje do pytania słowa z przepisów („zwolnienie lekarskie”
    → „usprawiedliwiona nieobecność”, „kiedy” → „termin”).
 2. Przygotowany zestaw pytań i odpowiedzi (``faq.yaml``, pkt 5 treści zadania): gdy pytanie
    jest dość podobne (``prog_faq``) do pozycji dla tej ścieżki, ``tresc`` = odpowiedź napisana
-   przez człowieka, a pierwszy cytat = fragment z cytatem tej pozycji (sprawdzanym w CI
-   przez ``kompas-waliduj``). Dalsze cytaty z rankingu.
+   przez człowieka, a pierwszy cytat = fragment z cytatem tej pozycji (sprawdzanym przy
+   starcie i przez ``kompas-waliduj``). Dalsze cytaty z rankingu.
 3. Pojęcia pytania, których nie ma ani w korpusie, ani w FAQ ⇒ „brak informacji” z ich
    listą (``nieznane_pojecia``).
 4. Ranking BM25 na rdzeniach ``kompas_core`` skróconych do ``dlugosc_rdzenia`` znaków, tylko
    w dokumentach ścieżki, z wagą dokumentu (przepis przed objaśnieniem). Wynik najlepszego
-   fragmentu poniżej ``minimalny_wynik`` ⇒ „brak informacji”.
-5. Wybrane fragmenty idą przez łańcuch ``LlmProvider`` (domyślnie ekstrakcyjny); core odrzuca
+   fragmentu poniżej ``minimalny_wynik`` albo udział pojęć pytania w tym fragmencie poniżej
+   ``minimalne_pokrycie`` ⇒ „brak informacji”.
+5. Wybrane fragmenty idą przez łańcuch ``LlmProvider`` z ``asystent.yaml``; core odrzuca
    cytaty bez pokrycia w korpusie i loguje wywołanie.
 
 Każdy cytat ma wyróżnione zdanie (dosłowny podciąg fragmentu) i flagę, gdy objaśnienie
@@ -86,6 +91,7 @@ class KonfiguracjaAsystenta:
     llm: dict[str, Any]
     dlugosc_rdzenia: int = 5
     minimalny_wynik: float = 0.0
+    minimalne_pokrycie: float = 0.0
     prog_faq: float = 1.0
     udzial_nieznanych: float = 0.0
     slowa_pomijane: str = ""
@@ -93,6 +99,9 @@ class KonfiguracjaAsystenta:
     wagi_kategorii: dict[str, float] | None = None
     wagi_dokumentow: dict[str, float] | None = None
     wzorzec_ustawy: str = r"(?!)"
+    wzorzec_pytania_o_ustawe: str = r"(?!)"
+    ustawa: str | None = None
+    ustawa_maks_z_rankingu: int | None = None
     komunikaty: dict[str, str] | None = None
     faq: list[dict] | None = None
 
@@ -110,6 +119,7 @@ class KonfiguracjaAsystenta:
             llm=d["llm"],
             dlugosc_rdzenia=int(d.get("dlugosc_rdzenia", 5)),
             minimalny_wynik=float(d.get("minimalny_wynik", 0.0)),
+            minimalne_pokrycie=float(d.get("minimalne_pokrycie", 0.0)),
             prog_faq=float(d.get("prog_faq", 1.0)),
             udzial_nieznanych=float(d.get("udzial_nieznanych", 0.0)),
             slowa_pomijane=str(d.get("slowa_pomijane", "")),
@@ -117,6 +127,9 @@ class KonfiguracjaAsystenta:
             wagi_kategorii=d.get("wagi_kategorii") or {},
             wagi_dokumentow=d.get("wagi_dokumentow") or {},
             wzorzec_ustawy=d.get("wzorzec_ustawy", r"(?!)"),
+            wzorzec_pytania_o_ustawe=d.get("wzorzec_pytania_o_ustawe", r"(?!)"),
+            ustawa=d.get("ustawa"),
+            ustawa_maks_z_rankingu=d.get("ustawa_maks_z_rankingu"),
             komunikaty=d.get("komunikaty") or {},
             faq=faq,
         )
@@ -130,6 +143,11 @@ class _PozycjaFaq:
     warianty: tuple[frozenset[str], ...]
     fragment: Fragment
     cytat: str
+
+
+_NAGLOWEK_DZU = re.compile(r"^\s*Dziennik Ustaw\s+[–-]\s+\d+\s+[–-]\s+Poz\.\s*\d+\s*$", re.M)
+_UCHYLONY = re.compile(r"(?:Art\.\s*\d+[a-z]*\.\s*)?(?:\d+[a-z]*\.\s*)?\(uchylon\w*\)")
+_ARTYKUL = re.compile(r"art\.\s*(\d+[a-z]*)(?:\s*ust\.\s*(\d+[a-z]*))?", re.IGNORECASE)
 
 
 def _bez_dzielenia(s: str) -> str:
@@ -149,6 +167,8 @@ class Asystent:
         self.dziennik = dziennik
         self.dostawcy = dostawcy if dostawcy is not None else z_konfiguracji(konfiguracja.llm)
         self._wzorzec_ustawy = re.compile(konfiguracja.wzorzec_ustawy, re.IGNORECASE)
+        self._pytanie_o_ustawe = re.compile(konfiguracja.wzorzec_pytania_o_ustawe, re.IGNORECASE)
+        self._ustawa_w_bazie = konfiguracja.ustawa in korpus.doc_ids_dla(None)
         self._pomijane = set(self._tokeny(konfiguracja.slowa_pomijane))
 
         # Indeks BM25 na rdzeniach skróconych (core nie ma porównania po prefiksie).
@@ -174,27 +194,45 @@ class Asystent:
         brak = OdpowiedzAsystenta(
             pytanie=pytanie, sciezka=sciezka, znaleziono=False, komunikat=self.konf.komunikat_brak
         )
+        if not self._ustawa_w_bazie and self._pytanie_o_ustawe.search(pytanie):
+            return brak.model_copy(update={"uwagi": [self._kom("brak_ustawy")]})
         rozwiniete, pokryte = self._rozwin(pytanie)
         zapytanie = self._tresc(rozwiniete)
         if not zapytanie:
             return brak
         dozwolone = set(self.korpus.doc_ids_dla(sciezka))
+        wskazane = self._przepisy_ustawy(pytanie)
 
-        faq, podob = self._dopasuj_faq(zapytanie, sciezka)
-        if faq is None:
+        # Pytanie o konkretny artykuł: odpowiedzią jest sam przepis, bez tekstu pozycji FAQ.
+        faq, podob = (None, 0.0) if wskazane else self._dopasuj_faq(zapytanie, sciezka)
+        if faq is None and not wskazane:
             nieznane = self._nieznane_pojecia(pytanie, pokryte)
             if nieznane:
                 kom = self._kom("nieznane_pojecia").format(pojecia=", ".join(nieznane))
                 return brak.model_copy(update={"nieznane_pojecia": nieznane, "uwagi": [kom]})
 
         ranking = self._ranking(zapytanie, dozwolone)
-        if faq is None and (not ranking or ranking[0][0] < self.konf.minimalny_wynik):
+        if faq is None and not wskazane and (
+            not ranking
+            or ranking[0][0] < self.konf.minimalny_wynik
+            or self._pokrycie(zapytanie, ranking[0][1].tekst) < self.konf.minimalne_pokrycie
+        ):
             return brak
 
-        wybrane: list[Fragment] = [faq.fragment] if faq else []
-        for _, f in ranking:
+        pewne = {f.id for f in wskazane} | ({faq.fragment.id} if faq else set())
+        wybrane: list[Fragment] = []
+        kandydaci = wskazane or [*([faq.fragment] if faq else []), *(f for _, f in ranking)]
+        limit = self.konf.ustawa_maks_z_rankingu
+        for f in kandydaci:
             if len(wybrane) >= self.konf.cytaty:
                 break
+            if (
+                not wskazane
+                and limit is not None
+                and f.doc_id == self.konf.ustawa
+                and sum(w.doc_id == f.doc_id for w in wybrane) >= limit
+            ):
+                continue
             if all(f.id != w.id for w in wybrane):
                 wybrane.append(f)
 
@@ -214,7 +252,7 @@ class Asystent:
                 self.dziennik,
             )
         except BrakOdpowiedzi:
-            if faq is None:
+            if not pewne:
                 return brak
             wynik = None
 
@@ -224,12 +262,17 @@ class Asystent:
         if wynik is not None:
             for c in sorted(wynik.odpowiedz.cytaty, key=lambda c: kolejnosc[c.fragment_id]):
                 teksty.setdefault(c.fragment_id, c.cytat)
-        if faq is not None and faq.fragment.id not in teksty:
-            # Dostawca pominął fragment FAQ (np. brak wspólnych słów); jego cytat jest
-            # sprawdzany w CI (kompas-waliduj), więc pokazujemy fragment w całości.
-            teksty = {faq.fragment.id: faq.fragment.tekst, **teksty}
+        for f in wybrane:
+            if f.id in pewne and f.id not in teksty:
+                # Dostawca pominął fragment FAQ (cytat sprawdzany przy starcie i przez
+                # kompas-waliduj) albo przepis wskazany w pytaniu: pokazujemy go w całości.
+                teksty[f.id] = f.tekst
         cytaty = [
-            self._cytat(po_id[fid], tekst, zapytanie, faq if faq and fid == faq.fragment.id else None)
+            self._cytat(
+                po_id[fid], tekst, zapytanie,
+                faq if faq and fid == faq.fragment.id else None,
+                caly=any(fid == f.id for f in wskazane),
+            )
             for fid, tekst in sorted(teksty.items(), key=lambda kv: kolejnosc[kv[0]])
         ]
 
@@ -246,7 +289,7 @@ class Asystent:
             tresc=faq.odpowiedz if faq else (wynik.odpowiedz.tresc if wynik else None),
             cytaty=cytaty,
             tryb=wynik.tryb if wynik else Tryb.EKSTRAKCYJNE,
-            dostawca=wynik.dostawca if wynik else "faq",
+            dostawca=wynik.dostawca if wynik else ("faq" if faq else "przepis"),
             odrzuceni=wynik.odrzuceni if wynik else [],
             pokrycie=round(pokrycie, 3),
             faq_id=faq.id if faq else None,
@@ -302,6 +345,28 @@ class Asystent:
             if not znane and slowo.lower() not in (w.lower() for w in wynik):
                 wynik.append(slowo)
         return wynik if tresc and len(wynik) / tresc >= self.konf.udzial_nieznanych else []
+
+    def _przepisy_ustawy(self, pytanie: str) -> list[Fragment]:
+        """Fragmenty ustawy dla artykułów wskazanych w pytaniu („art. 81 ustawy”, „art. 83 ust. 1
+        u.s.c.”), w kolejności tekstu, bez ustępów uchylonych i samych nagłówków strony."""
+        if not self._ustawa_w_bazie:
+            return []
+        wynik: list[Fragment] = []
+        for m in self._wzorzec_ustawy.finditer(pytanie):
+            art, ust = _ARTYKUL.match(m.group()).groups()
+            cel = f"art. {art} ust. {ust}" if ust else f"art. {art}"
+            for f in self._fragmenty:
+                tekst = _NAGLOWEK_DZU.sub("", f.tekst).strip()
+                if (
+                    f.doc_id == self.konf.ustawa
+                    and f.lokalizator
+                    and (f.lokalizator == cel or f.lokalizator.startswith(cel + " "))
+                    and tekst
+                    and not _UCHYLONY.fullmatch(tekst)
+                    and f not in wynik
+                ):
+                    wynik.append(f)
+        return wynik
 
     # --- FAQ --------------------------------------------------------------------------
 
@@ -386,10 +451,13 @@ class Asystent:
     # --- cytat ------------------------------------------------------------------------
 
     def _cytat(
-        self, f: Fragment, tekst: str, zapytanie: list[str], faq: _PozycjaFaq | None
+        self, f: Fragment, tekst: str, zapytanie: list[str], faq: _PozycjaFaq | None,
+        caly: bool = False,
     ) -> CytatAsystenta:
         dok = self.korpus.dokumenty[f.doc_id]
-        if faq is not None and faq.cytat in tekst:
+        if caly:  # przepis wskazany w pytaniu: wyróżniony cały ustęp
+            wyrozniony = tekst.strip()
+        elif faq is not None and faq.cytat in tekst:
             wyrozniony = faq.cytat
         else:
             wyrozniony = self._najlepsze_zdanie(tekst, zapytanie)

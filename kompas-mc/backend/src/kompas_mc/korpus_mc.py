@@ -32,6 +32,7 @@ class Dokument:
     podzial: str
     doc_version: str | None = None
     asystent: bool = True
+    od_strony: int = 1
 
 
 @dataclass(frozen=True)
@@ -103,11 +104,12 @@ def zaladuj(manifest: str | Path) -> KorpusMC:
             podzial=p.get("podzial", "jednostki"),
             doc_version=None if p.get("doc_version") is None else str(p["doc_version"]),
             asystent=bool(p.get("asystent", True)),
+            od_strony=int(p.get("od_strony", 1)),
         )
         if d.doc_id in dokumenty:
             raise ValueError(f"powtórzone doc_id w manifeście: {d.doc_id}")
         dokumenty[d.doc_id] = d
-        w = ekstrahuj(d.plik, d.doc_id, d.doc_version)
+        w = ekstrahuj(d.plik, d.doc_id, d.doc_version, d.od_strony)
         if d.podzial == "strony" and w.status is StatusEkstrakcji.OK:
             w = _po_stronach(w)
         wyniki.append(w)

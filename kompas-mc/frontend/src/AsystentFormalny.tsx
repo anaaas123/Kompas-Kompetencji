@@ -189,7 +189,7 @@ function Cytat({ c, glowny }: { c: CytatAsystenta; glowny: boolean }) {
       <div className="zrodlo">
         <span className={`kategoria ${c.kategoria === "PRZEPIS" ? "przepis" : ""}`}>{c.kategoria}</span>
         {c.powoluje_ustawe && (
-          <span className="kategoria ustawa" title="Tekstu ustawy nie ma w bazie wiedzy">
+          <span className="kategoria ustawa" title="Fragment powołuje przepis ustawy; tekst ustawy jest w bazie wiedzy">
             powołuje ustawę
           </span>
         )}

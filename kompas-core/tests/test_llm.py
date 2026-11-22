@@ -164,6 +164,29 @@ def test_openai_zgodny_wysyla_chat_completions_i_parsuje_odpowiedz(monkeypatch):
     assert wynik.dostawca == "openai_zgodny" and wynik.tryb is Tryb.NA_ZYWO
 
 
+def test_openai_zgodny_adres_ze_zmiennej_nadpisuje_konfiguracje(monkeypatch):
+    """Klucz Scaleway ograniczony do projektu wymaga adresu z identyfikatorem projektu (ustawianego na serwerze)."""
+    monkeypatch.setenv("KLUCZ_TESTOWY", "sekret")
+    adresy = []
+
+    def post(url, dane, naglowki, timeout):
+        adresy.append(url)
+        return {"choices": [{"message": {"content": json.dumps({
+            "cytaty": [{"fragment_id": "rozp#1", "cytat": "jedno kryterium ma 1 punkt"}], "wybor": [], "tresc": "",
+        })}}]}
+
+    monkeypatch.setattr(modul, "_post_json", post)
+    dostawca = OpenAiZgodny("https://api.example.test/v1", "model-1", "KLUCZ_TESTOWY", zmienna_adresu="ADRES_TESTOWY")
+    monkeypatch.delenv("ADRES_TESTOWY", raising=False)
+    wywolaj(zapytanie(), [dostawca], DziennikPamiec())
+    monkeypatch.setenv("ADRES_TESTOWY", "https://api.example.test/projekt-1/v1/")
+    wywolaj(zapytanie(), [dostawca], DziennikPamiec())
+    assert adresy == [
+        "https://api.example.test/v1/chat/completions",
+        "https://api.example.test/projekt-1/v1/chat/completions",
+    ]
+
+
 def test_openai_zgodny_bez_klucza_przechodzi_do_fallbacku(monkeypatch):
     monkeypatch.delenv("NIE_MA_TAKIEGO_KLUCZA", raising=False)
     dostawca = OpenAiZgodny("https://api.example.test", "model-1", "NIE_MA_TAKIEGO_KLUCZA")
@@ -226,3 +249,14 @@ def test_dostawca_z_konfiguracji_wersji(tmp_path):
         z_konfiguracji(mc)
     with pytest.raises(ValueError, match="nieznany"):
         z_konfiguracji({"dostawcy": [{"typ": "gpt"}]})
+
+
+class DziennikNiezapisywalny:
+    def zapisz(self, wpis):
+        raise OSError("brak miejsca na dysku")
+
+
+def test_blad_zapisu_dziennika_nie_przerywa_odpowiedzi(caplog):
+    wynik = wywolaj(zapytanie(), [Ekstrakcyjny()], DziennikNiezapisywalny(), ZEGAR)
+    assert wynik.dostawca == "ekstrakcyjny" and wynik.odpowiedz.cytaty
+    assert "nie zapisano wpisu dziennika" in caplog.text

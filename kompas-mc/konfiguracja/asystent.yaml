@@ -1,9 +1,12 @@
 # Asystent formalny (RAG na lokalnym korpusie).
 #
 # Przebieg (szczegóły: backend/src/kompas_mc/asystent.py):
+#   0. artykuł ustawy wskazany w pytaniu ⇒ cytaty z tego artykułu; bez ustawy w korpusie pytanie
+#      o ustawę (`wzorzec_pytania_o_ustawe`) ⇒ „brak informacji” z komunikatem `brak_ustawy`,
 #   1. przygotowany zestaw pytań i odpowiedzi (faq.yaml) w ramach ścieżki,
 #   2. pojęcia pytania nieobecne w korpusie i w FAQ ⇒ „brak informacji” z ich nazwą,
-#   3. ranking BM25 na rdzeniach skróconych do `dlugosc_rdzenia`, z wagą dokumentu,
+#   3. ranking BM25 na rdzeniach skróconych do `dlugosc_rdzenia`, z wagą dokumentu;
+#      poza FAQ najlepszy fragment musi mieć `minimalny_wynik` i `minimalne_pokrycie`,
 #   4. fragmenty idą przez łańcuch LlmProvider (walidacja cytatów w core).
 
 wersja: "asystent-mc-2"
@@ -13,6 +16,9 @@ faq: faq.yaml           # względem tego pliku
 
 dlugosc_rdzenia: 5      # „warunki”/„warunkiem” → ten sam prefiks (stemmer core daje różne rdzenie)
 minimalny_wynik: 4.0    # wynik najlepszego fragmentu (po wagach), poniżej ⇒ „brak informacji”
+# Udział pojęć pytania (po słowniku) obecnych w najlepszym fragmencie; tylko poza FAQ, poniżej ⇒ „brak”.
+# Pomiar 22.11: parafrazy z bazy poza FAQ 0,50–0,86; „Jak zgłosić wypadek przy pracy?” 0,33.
+minimalne_pokrycie: 0.5
 prog_faq: 0.35          # podobieństwo pytania do pozycji FAQ (kosinus ważony idf, 0–1)
 udzial_nieznanych: 0.0  # 0.0 = każde pojęcie spoza korpusu i FAQ blokuje odpowiedź
 
@@ -55,6 +61,7 @@ slownik:
   nie zgadza się: sprzeciw
   odwołać się: sprzeciw
   odwołanie: sprzeciw
+  przysługuje: służy        # art. 83 ust. 1 ustawy: „Od oceny okresowej służy … sprzeciw”
   skala: punkty
   awans: kolejnego stopnia służbowego
   nowy pracownik: nawiązania stosunku pracy pierwszej oceny
@@ -65,12 +72,24 @@ slownik:
   w jakim czasie: termin
   jak długo: okres
 
-# Fragment objaśnienia, który powołuje przepis ustawy (ustawy nie ma w „materialy mc”).
+# Odwołanie do przepisu ustawy: we fragmencie objaśnienia (flaga „powołuje ustawę”) i w pytaniu
+# (wskazany artykuł idzie na początek cytatów).
 wzorzec_ustawy: 'art\.\s*\d+[a-z]*(?:\s*ust\.\s*\d+)?\s*(?:ustawy|u\.s\.c)'
+# doc_id tekstu ustawy w korpus.yaml. Gdy go nie ma w korpusie, pytanie o ustawę (wzorzec niżej:
+# całe formy rzeczownika, nie „ustaw”, bo to też „ustawić”, i skrót u.s.c.) dostaje odmowę
+# `brak_ustawy` przed wyszukiwaniem, zamiast cytatu z rozporządzenia.
+ustawa: ustawa-sc
+# Najwyżej tyle fragmentów ustawy z rankingu w jednej odpowiedzi (artykuł wskazany w pytaniu bez
+# limitu). Ustawa (541 fragmentów) dotyczy głównie naboru, mianowania i dyscypliny, więc bez limitu
+# wypierała rozporządzenia i poradniki. Pomiar 22.11, waga ustawy 1,0, tryb ekstrakcyjny:
+# bez limitu parafrazy 13/22, limit 1: 16/22, limit 2: 14/22; kontrolne 22/22 w każdym wariancie.
+ustawa_maks_z_rankingu: 1
+wzorzec_pytania_o_ustawe: '\bustaw(?:a|y|ie|ę|ą)\b|\bu\.\s*s\.\s*c\b'
 
 komunikaty:
   nieznane_pojecia: 'Tych pojęć nie ma w bazie wiedzy: {pojecia}.'
-  ustawa: Fragment poradnika lub arkusza powołuje ustawę o służbie cywilnej, której tekstu nie ma w bazie wiedzy – zweryfikuj w ustawie.
+  brak_ustawy: Tekstu ustawy o służbie cywilnej nie ma w bazie wiedzy, więc asystent nie cytuje jej przepisów – sprawdź w ustawie.
+  ustawa: Fragment poradnika lub arkusza powołuje przepis ustawy o służbie cywilnej; jej tekst jednolity (Dz.U. 2026 poz. 590) jest w bazie wiedzy – zapytaj o wskazany artykuł, np. „art. 83 ustawy”.
   sugestia: Asystent wskazuje fragmenty źródeł; nie podejmuje decyzji o ocenie.
   faq: Odpowiedź z przygotowanego zestawu pytań i odpowiedzi; podstawą jest cytowany fragment źródła.
 
@@ -81,6 +100,8 @@ llm:
       base_url: https://api.scaleway.ai/v1
       model: deepseek-v4-flash-0731
       zmienna_klucza: SCALEWAY_API_KEY
+      # Klucz z uprawnieniami do jednego projektu wymaga adresu https://api.scaleway.ai/<projekt>/v1 (ustaw na serwerze).
+      zmienna_adresu: SCALEWAY_BASE_URL
       timeout: 30
       temperatura: 0.0
     - {typ: ollama, model: "qwen3:8b", timeout: 5}
@@ -89,9 +110,11 @@ llm:
 reguly:
   - id: asystent.brak-informacji
     opis: >-
-      Gdy pytanie nie pasuje do przygotowanego zestawu pytań i zawiera pojęcie, którego nie ma
-      w korpusie ani w FAQ, albo najlepszy fragment ma wynik poniżej `minimalny_wynik`,
-      asystent odpowiada komunikatem `komunikat_brak` i nazywa brakujące pojęcia.
+      Gdy pytanie wskazuje ustawę, a dokumentu `ustawa` nie ma w korpusie, asystent odpowiada
+      komunikatem `komunikat_brak` i uwagą `brak_ustawy`. Gdy pytanie nie pasuje do przygotowanego zestawu pytań i zawiera pojęcie,
+      którego nie ma w korpusie ani w FAQ, albo najlepszy fragment ma wynik poniżej
+      `minimalny_wynik` lub pokrycie pytania poniżej `minimalne_pokrycie`, asystent odpowiada
+      komunikatem `komunikat_brak` i nazywa brakujące pojęcia.
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA
         uzasadnienie: >-
@@ -102,7 +125,7 @@ reguly:
 
   - id: asystent.przepis-przed-objasnieniem
     opis: >-
-      Wynik fragmentu jest mnożony przez wagę dokumentu: rozporządzenia 1.0, model 0.9,
+      Wynik fragmentu jest mnożony przez wagę dokumentu: przepisy (rozporządzenia, ustawa) 1.0, model 0.9,
       poradniki 0.8, arkusze 0.6, OSP 0.4.
     adnotacje:
       - kategoria: DECYZJA_PROJEKTOWA

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import urllib.request
@@ -18,6 +19,8 @@ from ..zrodla.korpus import Korpus
 from ..zrodla.model import StatusEkstrakcji, WynikEkstrakcji
 from ..zrodla.walidator import cytat_w_tekscie
 from .model import Odpowiedz, Tryb, WpisLogu, WynikLlm, Zapytanie
+
+_log = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -209,12 +212,20 @@ class OpenAiZgodny:
         zmienna_klucza: str,
         timeout: float = 30,
         temperatura: float | None = None,
+        zmienna_adresu: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.zmienna_klucza = zmienna_klucza
+        self.zmienna_adresu = zmienna_adresu
+        """Opcjonalna zmienna środowiskowa z adresem API (np. Scaleway z identyfikatorem projektu dla klucza
+        o uprawnieniach tylko do jednego projektu); pusta albo brak = ``base_url`` z konfiguracji."""
         self.timeout = timeout
         self.temperatura = temperatura
+
+    def _adres(self) -> str:
+        nadpisany = os.environ.get(self.zmienna_adresu) if self.zmienna_adresu else None
+        return (nadpisany or self.base_url).rstrip("/")
 
     def odpowiedz(self, zapytanie: Zapytanie) -> Odpowiedz:
         klucz = os.environ.get(self.zmienna_klucza)
@@ -231,7 +242,7 @@ class OpenAiZgodny:
         if self.temperatura is not None:
             dane["temperature"] = self.temperatura
         wynik = _post_json(
-            f"{self.base_url}/chat/completions",
+            f"{self._adres()}/chat/completions",
             dane,
             {"authorization": f"Bearer {klucz}"},
             self.timeout,
@@ -327,7 +338,8 @@ def wywolaj(
     zegar: Callable[[], datetime] = datetime.now,
 ) -> WynikLlm:
     """Pyta dostawców po kolei; pierwsza poprawna odpowiedź wygrywa. Każda próba
-    trafia do dziennika. Gdy nikt nie odpowie poprawnie: ``BrakOdpowiedzi``.
+    trafia do dziennika; błąd zapisu dziennika idzie do ``logging`` i nie przerywa
+    odpowiedzi. Gdy nikt nie odpowie poprawnie: ``BrakOdpowiedzi``.
     Na końcu listy warto mieć ``Ekstrakcyjny``, który działa zawsze."""
     proby: list[WpisLogu] = []
     for d in dostawcy:
@@ -352,7 +364,10 @@ def wywolaj(
             bledy=bledy,
             odpowiedz=odpowiedz,
         )
-        dziennik.zapisz(wpis)
+        try:
+            dziennik.zapisz(wpis)
+        except Exception:  # noqa: BLE001 - dziennik nie może przerwać odpowiedzi
+            _log.exception("nie zapisano wpisu dziennika LLM (%s)", d.nazwa)
         proby.append(wpis)
         if not bledy:
             return WynikLlm(
@@ -371,6 +386,7 @@ _TYPY: dict[str, Callable[[dict[str, Any]], LlmProvider]] = {
         base_url=c["base_url"],
         model=c["model"],
         zmienna_klucza=c["zmienna_klucza"],
+        zmienna_adresu=c.get("zmienna_adresu"),
         timeout=c.get("timeout", 30),
         temperatura=c.get("temperatura"),
     ),

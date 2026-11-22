@@ -56,9 +56,11 @@ Konta i uprawnienia są w `kompas-mc/konfiguracja/role.yaml`.
 
 ### Klucz API i model językowy
 
-Do uruchomienia nie potrzebujesz klucza API. Bez klucza asystent odpowiada w
-trybie ekstrakcyjnym, czyli cytatami z korpusu. Model lokalny (Ollama) włącza
-się w `kompas-mc/konfiguracja/asystent.yaml`.
+Do uruchomienia nie potrzebujesz klucza API. Łańcuch dostawców w
+`kompas-mc/konfiguracja/asystent.yaml` to DeepSeek v4 Flash przez Scaleway Generative APIs, UE
+(`SCALEWAY_API_KEY` i opcjonalnie `SCALEWAY_BASE_URL` w `kompas-mc/backend/.env`) → lokalna Ollama (`qwen3:8b`) → tryb ekstrakcyjny. Bez
+klucza i bez Ollamy asystent odpowiada w trybie ekstrakcyjnym, czyli cytatami z
+korpusu.
 
 ### Inne porty
 

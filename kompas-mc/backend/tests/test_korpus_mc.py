@@ -30,3 +30,12 @@ def test_filtr_sciezki(korpus_mc):
     pierwsza = set(korpus_mc.doc_ids_dla("pierwsza"))
     assert "rozp-2015-pierwsza" in pierwsza and "rozp-2016-okresowe" not in pierwsza
     assert "model-kompetencji" in pierwsza
+
+
+def test_ustawa_od_artykulu_1_bez_obwieszczenia(korpus_mc):
+    f = [f for f in korpus_mc.korpus.fragmenty if f.doc_id == "ustawa-sc"]
+    assert korpus_mc.dokumenty["ustawa-sc"].kategoria.value == "PRZEPIS"
+    assert min(x.strona for x in f) == 3  # strony 1–2: obwieszczenie cytujące inne ustawy
+    lok = {x.lokalizator for x in f}
+    assert {"art. 1", "art. 81 ust. 1", "art. 83 ust. 1"} <= lok
+    assert not any(x.lokalizator in ("art. 22 ust. 1", "art. 461") and x.strona < 3 for x in f)

@@ -9,11 +9,12 @@ pytania-parafrazy.yaml – zestaw TESTOWY napisany przed FAQ; tylko pomiar, nie 
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 import yaml
-from kompas_core.llm import DziennikJsonl, Ekstrakcyjny, OpenAiZgodny, Ollama
+from kompas_core.llm import DziennikJsonl, DziennikPamiec, Ekstrakcyjny, OpenAiZgodny, Ollama
 from kompas_core.llm import dostawca as modul_dostawcy
 
 from kompas_mc.asystent import Asystent, KonfiguracjaAsystenta
@@ -127,6 +128,7 @@ def test_domyslny_lancuch_deepseek_ollama_ekstrakcyjny(ustawienia):
         "base_url": "https://api.scaleway.ai/v1",
         "model": "deepseek-v4-flash-0731",
         "zmienna_klucza": "SCALEWAY_API_KEY",
+        "zmienna_adresu": "SCALEWAY_BASE_URL",
         "timeout": 30,
         "temperatura": 0.0,
     }
@@ -216,6 +218,47 @@ def test_nieznane_pojecie_jest_nazwane(asystent):
     odp = asystent.odpowiedz("Pracownik zgłasza mobbing. Co robić?")
     assert odp.znaleziono is False and "mobbing" in odp.nieznane_pojecia
     assert any("mobbing" in u for u in odp.uwagi)
+
+
+def test_pytanie_o_artykul_ustawy_daje_ten_artykul(asystent):
+    odp = asystent.odpowiedz("Co mówi art. 81 ustawy o służbie cywilnej?", "okresowa")
+    assert odp.znaleziono and odp.faq_id is None and odp.cytaty
+    assert all(c.doc_id == "ustawa-sc" and c.lokalizator.startswith("art. 81 ") for c in odp.cytaty)
+    assert odp.cytaty[0].lokalizator == "art. 81 ust. 1" and odp.cytaty[0].kategoria.value == "PRZEPIS"
+    assert all(c.wyrozniony == c.cytat.strip() for c in odp.cytaty)
+
+
+def test_wskazany_ustep_u_s_c_bez_dopelniania_rankingiem(asystent):
+    odp = asystent.odpowiedz("Co mówi art. 83 ust. 1 u.s.c.?")
+    assert [(c.doc_id, c.lokalizator) for c in odp.cytaty] == [("ustawa-sc", "art. 83 ust. 1")]
+
+
+def test_sprzeciw_cytuje_art_83_ustawy(asystent):
+    odp = asystent.odpowiedz("Kiedy przysługuje sprzeciw od oceny okresowej?", "okresowa")
+    art83 = [c for c in odp.cytaty if c.doc_id == "ustawa-sc" and c.lokalizator == "art. 83 ust. 1"]
+    assert odp.znaleziono and art83 and "7 dni" in art83[0].cytat
+
+
+def test_bez_ustawy_w_korpusie_pytanie_o_ustawe_daje_brak_ustawy(korpus_mc, ustawienia):
+    konf = replace(KonfiguracjaAsystenta.z_pliku(ustawienia.konfiguracja_asystenta), ustawa="nie-ma")
+    bez = Asystent(korpus_mc, konf, DziennikPamiec(), dostawcy=[Ekstrakcyjny(k=3)])
+    for pytanie in ("Co mówi art. 81 ustawy o służbie cywilnej?", "Jaki termin sprzeciwu podaje u.s.c.?"):
+        odp = bez.odpowiedz(pytanie, "okresowa")
+        assert odp.znaleziono is False and odp.cytaty == []
+        assert odp.uwagi == [konf.komunikaty["brak_ustawy"]]
+
+
+def test_slowo_ustawic_nie_jest_pytaniem_o_ustawe(asystent):
+    assert not asystent._pytanie_o_ustawe.search("Jak ustawić termin rozmowy?")
+    odp = asystent.odpowiedz("Kiedy przeprowadza się rozmowę wstępną?", "pierwsza")
+    assert odp.znaleziono and odp.cytaty[0].lokalizator == "§ 3"
+    assert odp.cytaty[0].doc_id == "rozp-2015-pierwsza"
+
+
+def test_slabe_pokrycie_pytania_poza_faq_daje_brak(asystent):
+    # Słowa są w korpusie („na wypadek braku porozumienia”), więc tylko pokrycie to łapie.
+    odp = asystent.odpowiedz("Jak zgłosić wypadek przy pracy?")
+    assert odp.znaleziono is False and odp.cytaty == [] and odp.nieznane_pojecia == []
 
 
 # --- przygotowany zestaw pytań i odpowiedzi ---------------------------------------------

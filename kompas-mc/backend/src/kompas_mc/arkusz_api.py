@@ -20,6 +20,7 @@ from .arkusze import (
 from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .procesy import ProcesOceny, wczytaj_proces
 from .qnt import MockQnt, OstatniaOcenaOkresowa, Pracownik
+from .zakonczenie import ZakonczenieOceny, pracownik_procesu, zastosuj_zakonczone  # noqa: F401 (app importuje stąd)
 from .samoocena import ukryj_przed_przekazaniem
 from .terminy_okresowej import TerminyOkresowej
 from .wynik_okresowy_api import SerwisWynikuOkresowego, WynikOkresowy
@@ -66,32 +67,6 @@ class DaneZakonczenia(BaseModel):
     data_zapoznania_z_ocena: date | None = Field(
         default=None, description="Dzień zapoznania ocenianego z oceną (§ 12 ust. 1). Domyślnie z wyniku (krok 7).",
     )
-
-
-class ZakonczenieOceny(BaseModel):
-    """Zakończona ocena okresowa (#72): po zapoznaniu ocenianego z oceną sporządzoną na piśmie (§ 12 rozp. 2016)."""
-
-    proces_id: int
-    data_sporzadzenia_oceny: date
-    data_zapoznania_z_ocena: date
-    wynik: Literal["pozytywna", "negatywna"]
-    srednia: str
-    oceny_czastkowe: dict[str, int]
-    zakonczyl: str
-    zakonczono: datetime
-
-
-def zastosuj_zakonczone(baza, qnt: MockQnt) -> None:
-    """Przy starcie: zakończone oceny z aplikacji wracają do mocka QNT jako ostatnia ocena (kolejno od najstarszej)."""
-    for osoba_id, zapis in baza.execute(
-        "SELECT osoba_id, zakonczenie FROM procesy WHERE status = 'ZAKONCZONY' AND sciezka = 'okresowa'"
-        " AND zakonczenie IS NOT NULL ORDER BY id"
-    ):
-        z = ZakonczenieOceny.model_validate_json(zapis)
-        qnt.zapisz_ocene_okresowa(osoba_id, OstatniaOcenaOkresowa(
-            data=z.data_sporzadzenia_oceny, wynik=z.wynik, oceny_czastkowe=z.oceny_czastkowe,
-            data_zapoznania=z.data_zapoznania_z_ocena,
-        ))
 
 
 class _ZapisArkusza(BaseModel):
@@ -180,6 +155,7 @@ def router(
         auth.sprawdz(uz, "pracownik", pracownik.model_dump(), akcja)
         if proces.sciezka != "okresowa" or proces.arkusz not in ("B", "C"):
             raise HTTPException(409, "Arkusz B/C dotyczy wyłącznie oceny okresowej.")
+        pracownik = pracownik_procesu(baza, pracownik, proces)
         ukryj_przed_przekazaniem(auth, uz, pracownik.model_dump(), baza, proces)
         if akcja == "ocena.prowadz" and proces.status != "W_TOKU":
             raise HTTPException(409, "Proces nie jest w toku")
@@ -385,6 +361,7 @@ def router(
             wynik=obl.wynik, srednia=f"{obl.srednia:.2f}".replace(".", ","),
             oceny_czastkowe={o.kompetencja_id: o.punkty for o in stan.wynik.oceny_czastkowe},
             zakonczyl=uz.login, zakonczono=datetime.now(UTC),
+            poprzednia_ocena=stan.pracownik.ostatnia_ocena_okresowa,
         )
         baza = request.app.state.baza
         with baza:
