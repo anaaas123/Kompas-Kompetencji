@@ -116,11 +116,13 @@ export function KartaPracownika({
         const mapa = prowadzi ? await pobierzMapeKompetencji(token).catch(() => null) : null;
         const wlasne = procesy.filter((p) => p.osoba_id === osoba.osoba_id);
         const proces = wlasne.find((p) => p.status === "W_TOKU") ?? wlasne[wlasne.length - 1] ?? null;
-        // Ocena kryteriów istnieje dopiero po zapisaniu kroku 2.
-        const ocena = proces?.krok2 ? await pobierzOcene(token, proces.id).catch(() => null) : null;
         // Samoocena: tylko konto pracownika (własny proces); przed krokiem 2 API zwraca 409.
-        const samoocena =
-          proces && sesja.uzytkownik.rola === "oceniany" ? await pobierzSamoocene(token, proces.id).catch(() => null) : null;
+        const rola = sesja.uzytkownik.rola;
+        const samoocena = proces && rola === "oceniany" ? await pobierzSamoocene(token, proces.id).catch(() => null) : null;
+        // Ocena kryteriów istnieje dopiero po zapisaniu kroku 2. HR nie widzi treści ocen, pracownik dopiero po
+        // przekazaniu samooceny albo zakończeniu – inaczej API odpowiada 403 i odmowa trafia do rejestru (przegląd serwera, zgłoszenie 122).
+        const widziOcene = rola === "przelozony" || (rola === "oceniany" && (proces?.status !== "W_TOKU" || samoocena?.status === "przekazana"));
+        const ocena = proces?.krok2 && widziOcene ? await pobierzOcene(token, proces.id).catch(() => null) : null;
         if (!aktualne) return;
         setDane({
           analiza,
@@ -226,7 +228,9 @@ export function KartaPracownika({
                 dane={dane}
                 prowadzi={prowadzi}
                 onOcen={() => onOcen(wToku, dane.cykl?.etap === "kryteria" ? "krok2" : undefined)}
+                onZobacz={() => onOcen(dane.proces)}
                 przelozony={dane.przelozony}
+                hr={sesja.uzytkownik.rola === "hr"}
               />
             )}
 
@@ -235,7 +239,10 @@ export function KartaPracownika({
               <dl className="dane-kadrowe">
                 <dt>Zatrudnienie</dt>
                 <dd>
-                  od {data(osoba.data_zatrudnienia)}, na czas {osoba.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}
+                  od {data(osoba.data_zatrudnienia)},{" "}
+                  {osoba.korpus === "urzednik_sc"
+                    ? "na podstawie mianowania"
+                    : `na czas ${osoba.rodzaj_umowy === "nieokreslony" ? "nieokreślony" : "określony"}`}
                   {osoba.data_konca_zatrudnienia && <>, do {data(osoba.data_konca_zatrudnienia)}</>}
                 </dd>
                 <dt>Staż</dt>
@@ -506,7 +513,8 @@ function OcenyKryteriow({
   const o = pierwsza ? null : osoba.ostatnia_ocena_okresowa;
   const p = pierwsza ? null : osoba.pierwsza_ocena;
   const biezace = ocena?.kryteria.filter((k) => k.decyzja) ?? [];
-  const poprzednieSlupki = o && biezace.length === 0 ? <OcenyCzastkowe mapa={mapa} osoba={osoba} bezNaglowka /> : null;
+  const maPunkty = mapa?.osoby.some((x) => x.osoba_id === osoba.osoba_id && x.zrodlo === "ostatnia_ocena");
+  const poprzednieSlupki = o && biezace.length === 0 && maPunkty ? <OcenyCzastkowe mapa={mapa} osoba={osoba} bezNaglowka /> : null;
   if (!o && !p && biezace.length === 0) return null;
   const max = ocena ? Math.max(...ocena.skala.punkty) : 9;
   return (
@@ -601,14 +609,33 @@ function NastepnyKrok({
   prowadzi,
   onOcen,
   przelozony,
+  hr,
+  onZobacz,
 }: {
   dane: Dane;
   prowadzi: boolean;
   onOcen: () => void;
   przelozony: Pracownik | null;
+  hr: boolean;
+  onZobacz: () => void;
 }) {
   const c = dane.cykl;
   const p = dane.proces;
+  // Po zakończonej pierwszej ocenie nie ma kolejnej pierwszej (API: 409); dalej decyzja kadrowa (icc-30, PR 123).
+  if (p?.sciezka === "pierwsza" && p.status === "ZAKONCZONY") {
+    return (
+      <div className="ramka nastepny">
+        <span className="kafel-etykieta">Następny krok</span>
+        <strong>Pierwsza ocena zakończona</strong>
+        <span className="termin">Dalej decyzja kadrowa o dalszym zatrudnieniu.</span>
+        {!hr && (
+          <button type="button" className="jasny" onClick={onZobacz}>
+            Zobacz ocenę
+          </button>
+        )}
+      </div>
+    );
+  }
   // Karol 22.11: „dlaczego mnie od razu nie przerzuciło? A, bo jest w toku” – ocena w toku mówi wprost, gdzie jest.
   const wToku = p ? miejsceWToku(p, c) : null;
   const tytul = wToku ? `W toku: ${wToku.opis}` : c?.czynnosc ?? (p ? "Ocena w toku" : "Ustal ścieżkę oceny");
@@ -649,8 +676,9 @@ function NastepnyKrok({
           Prowadzi przełożony{przelozony ? `: ${przelozony.imie} ${przelozony.nazwisko}` : ""}.
         </span>
       )}
-      {!prowadzi && p && (
-        <button type="button" className="jasny" onClick={onOcen}>
+      {/* HR nie wchodzi w treść oceny; pracownik ogląda ją po zakończeniu (przegląd serwera, zgłoszenie 122, poz. 1). */}
+      {!prowadzi && p && !hr && p.status !== "W_TOKU" && (
+        <button type="button" className="jasny" onClick={onZobacz}>
           Zobacz ocenę
         </button>
       )}
