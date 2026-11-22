@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from kompas_core.auth import Autoryzacja, Dziennik, Uzytkownik
@@ -25,7 +25,7 @@ from .ocena import (
     scal_oceny,
     zbuduj_stan,
 )
-from .procesy import ProcesOceny, wczytaj_proces
+from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt
 from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
 
@@ -185,7 +185,7 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2) -> APIRouter:
         if proces.status != "W_TOKU":
             raise HTTPException(409, "Proces nie jest w toku")
         zapoznanie = proces.krok2.zapoznanie if proces.krok2 else None
-        if body.data and (body.data > date.today() or (zapoznanie and body.data < zapoznanie)):
+        if body.data and (body.data > dzien_urzedowy(datetime.now(UTC)) or (zapoznanie and body.data < zapoznanie)):
             raise HTTPException(422, "Data rozmowy musi przypadać od zapoznania z kryteriami do dziś.")
         przed = _wczytaj_rozmowe(request.app.state.baza, proces.id)
         nowy = zapisz(

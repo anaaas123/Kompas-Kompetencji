@@ -38,6 +38,12 @@ def dzien_urzedowy(chwila: datetime) -> date:
     return (chwila if chwila.tzinfo else chwila.replace(tzinfo=UTC)).astimezone(STREFA_URZEDU).date()
 
 
+def dzien_ustalenia_kryteriow(wybor: WyborKroku2) -> date:
+    """Dzień ustalenia kryteriów: data rozmowy z części I (zapoznanie, § 5–6), a bez niej dzień zapisu
+    w aplikacji. Część I przepisana na końcu okresu ma datę sprzed miesięcy, nie dzień przepisania."""
+    return wybor.zapoznanie or dzien_urzedowy(wybor.zapisano)
+
+
 class ProcesOceny(BaseModel):
     id: int
     osoba_id: str
