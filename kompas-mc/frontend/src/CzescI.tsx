@@ -108,11 +108,7 @@ export function ZakonczenieCzesciI({
         </p>
       ) : (
         moznaProwadzic && (
-          <PoleDaty
-            nazwa={naKoncuOkresu ? "Data zapoznania z kryteriami z podpisanej części I (§ 6 ust. 2)" : "Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)"}
-            wartosc={dataZapoznania}
-            onZmiana={setData}
-          />
+          <PoleDaty nazwa="Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)" wartosc={dataZapoznania} onZmiana={setData} />
         )
       )}
       {blad && <p className="blad">{blad}</p>}
