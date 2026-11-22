@@ -255,6 +255,12 @@ def test_oceniany_widzi_pierwsza_ocene_dopiero_po_sporzadzeniu(api_pierwszej):
         klient.post(f"{proces}/samoocena/przekaz", headers=oceniany)
     assert klient.get(f"{proces}/ocena", headers=oceniany).status_code == 403
     assert klient.get(url, headers=oceniany).status_code == 403
+    # Helix G3 runda 2 (Grok): te same punkty nie mogą wyjść przez mapę zespołu ani opis osoby.
+    mapa = _json(klient.get("/api/zespol/kompetencje", headers=oceniany))
+    assert all(o["zrodlo"] != "biezaca_ocena" for o in mapa["osoby"] if o["osoba_id"] == "P-101"), mapa["osoby"]
+    opis = _json(klient.get("/api/pracownicy/P-101/opis", headers=oceniany))
+    assert all("biezaca.decyzje" not in z.get("fakty", []) for z in opis["zdania"]), opis["zdania"]
+    assert "bieżąca ocena" not in str(opis)
 
 
 def test_zakonczenie_pierwszej_oceny(api_pierwszej):

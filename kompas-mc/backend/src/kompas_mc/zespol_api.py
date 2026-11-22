@@ -21,7 +21,7 @@ from .ocena import KonfiguracjaOceny, aktualne_decyzje
 from .ocena_api import _wczytaj_dane
 from .procesy import _KOLUMNY, _z_wiersza
 from .qnt import MockQnt
-from .samoocena import rozbieznosc, wczytaj as wczytaj_samoocene
+from .samoocena import powod_ukrycia, rozbieznosc, wczytaj as wczytaj_samoocene
 
 
 class KryteriumMapy(BaseModel):
@@ -66,10 +66,9 @@ def router(auth: Autoryzacja, qnt: MockQnt, stan2: StanKroku2, konf: Konfiguracj
                 continue
             wynik: OsobaMapy | None = None
             proces = procesy.get(p.osoba_id)
-            pracownik_sam = auth.moze(uz, "pracownik", rekord, "samoocena.zapisz")
             if proces is not None and proces.krok2 is not None:
                 status, _, samo = wczytaj_samoocene(baza, proces.id)
-                if not (pracownik_sam and status != "przekazana"):
+                if powod_ukrycia(auth, uz, rekord, baza, proces) is None:
                     oceny, decyzje = _wczytaj_dane(baza, proces.id)
                     biezace = aktualne_decyzje(proces.krok2, decyzje)
                     if biezace:
