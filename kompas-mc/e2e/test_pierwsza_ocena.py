@@ -128,7 +128,7 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     rozwin("Część ogólna")
     for klucz, wartosc in {
         "imie": "Łucja", "nazwisko": "Wójcik-Demo", "stanowisko": "Dyrektor",
-        "komorka_organizacyjna": "Departament Cyberbezpieczeństwa",
+        "komorka_organizacyjna": "Departament Rozwoju i Bezpieczeństwa Sztucznej Inteligencji",
     }.items():
         page.locator(f'[id="pole-kierujacy_komorka.{klucz}"] input').fill(wartosc)
     expect(page.get_by_role("textbox", name="Data podpisu kierującego komórką")).to_have_value("")

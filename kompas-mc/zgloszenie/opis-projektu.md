@@ -41,4 +41,4 @@ Działamy według trzech zasad:
 
 ## Dane demo
 
-Pracownicy z mocka QNT są fikcyjni. Opisy stanowisk pochodzą z trzech OSP z materiałów MC. Konta demo: `przelozony1`, `przelozony2`, `hr`, `oceniany` (hasło `demo`).
+Pracownicy z mocka QNT są fikcyjni. Opisy stanowisk pochodzą z trzech OSP z materiałów MC. Te OSP są z dwóch departamentów, więc w demo przełożona (Departament Rozwoju i Bezpieczeństwa SI) ocenia też naczelnika z Departamentu Współpracy Międzynarodowej; w urzędzie oceniającym jest zawsze bezpośredni przełożony z komórki ocenianego. Konta demo: `przelozony1`, `przelozony2`, `hr`, `oceniany` (hasło `demo`).

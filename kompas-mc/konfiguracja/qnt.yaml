@@ -16,8 +16,8 @@ pracownicy:
     imie: Marta
     nazwisko: Kowalczyk-Demo
     stanowisko: naczelnik wydziału
-    symbol_osp: DWM WKAM 1
-    komorka: Departament Współpracy Międzynarodowej / Wydział Koordynacji Aktywności Międzynarodowych
+    symbol_osp: DWM WKAM 1          # OSP naczelnika z materiałów MC (DWM); komórka jak zespołu, który ocenia
+    komorka: Departament Rozwoju i Bezpieczeństwa Sztucznej Inteligencji / Wydział Wspierania Innowacyjności
     przelozony_id: P-000            # zastępca dyrektora, poza demo
     kieruje_pracownikami: true      # OSP: 5–9 pracowników
     korpus: urzednik_sc
