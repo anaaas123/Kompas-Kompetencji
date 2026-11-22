@@ -548,6 +548,22 @@ async function zapiszOcene(token: string, procesId: number, sciezka: string, dan
 export const zapiszWskazniki = (token: string, procesId: number, wskazniki: Record<string, OcenaWskaznika | null>) =>
   zapiszOcene(token, procesId, "wskazniki", { wskazniki });
 
+/** Pytanie do rozmowy przy wskaźniku z modelu (Scaleway, UE); `pytanie: null`, gdy model nie odpowiedział. */
+export async function pobierzPodpowiedz(
+  token: string,
+  procesId: number,
+  wskaznikId: string,
+): Promise<{ pytanie: string | null; dostawca?: string | null }> {
+  const r = await fetch(`/api/procesy/${procesId}/rozmowa/podpowiedz`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...autoryzacja(token) },
+    body: JSON.stringify({ wskaznik_id: wskaznikId }),
+  });
+  const tresc = await r.json().catch(() => null);
+  if (!r.ok) throw new BladApi(r.status, tresc?.detail);
+  return tresc;
+}
+
 export const zapiszRozmowe = (token: string, procesId: number, zapis: ZapisRozmowy) =>
   zapiszOcene(token, procesId, "rozmowa", zapis);
 

@@ -11,6 +11,7 @@ from kompas_core.zrodla.cli import main as waliduj
 
 from kompas_mc.app import utworz_aplikacje
 from kompas_mc.ustawienia import KATALOG_MC
+from test_ocena import _proces_z_krokiem2
 
 
 @pytest.fixture(scope="module")
@@ -293,3 +294,43 @@ def test_kazdy_nieoceniony_wskaznik_ma_swoje_pytanie(klient, naglowek):
     nieocenione = {w["wskaznik_id"] for k in stan["kryteria"] for w in k["wskazniki"] if w["ocena"] is None}
     z_pytaniem = {q["powiazanie"]["wskaznik_id"] for q in plan["pytania"] if q["powiazanie"]["typ"] == "wskaznik"}
     assert nieocenione and nieocenione <= z_pytaniem
+
+
+class _AtrapaPodpowiedzi:
+    """Dostawca LLM w teście: pytanie z cytatem z opisu wskaźnika; zapisuje, co dostał."""
+
+    nazwa = "atrapa"
+    model = "test"
+    tryb = Tryb.NA_ZYWO
+
+    def __init__(self):
+        self.zapytania = []
+
+    def odpowiedz(self, zapytanie):
+        self.zapytania.append(zapytanie)
+        f = zapytanie.fragmenty[0]
+        return Odpowiedz(cytaty=[Cytat(fragment_id=f.id, cytat=f.tekst[:40])], tresc="Kiedy w tym okresie było to widać?")
+
+
+def test_podpowiedz_ai_przy_wskazniku_bez_danych_osobowych(klient, naglowek):
+    """Karol 22.11: podpowiedź przy wskaźniku z modelu (Scaleway); kontekst bez imion, 404 dla obcego wskaźnika."""
+    h = naglowek("przelozony2")
+    proces = _proces_z_krokiem2(klient, naglowek, "P-103", "okresowa", "przelozony2")
+    wid = proces["krok2"]["kryteria"][0]["wskazniki"][0]["id"]
+    llm = klient.app.state.cele_llm
+    atrapa, poprzedni = _AtrapaPodpowiedzi(), llm.dostawcy
+    llm.dostawcy = [atrapa]
+    try:
+        url = f"/api/procesy/{proces['id']}/rozmowa/podpowiedz"
+        r = klient.post(url, json={"wskaznik_id": wid}, headers=h)
+        assert r.status_code == 200, r.text
+        assert r.json()["pytanie"] == "Kiedy w tym okresie było to widać?" and r.json()["dostawca"] == "atrapa"
+        pracownik = klient.get("/api/pracownicy/P-103", headers=h).json()
+        tekst = atrapa.zapytania[0].pytanie
+        assert pracownik["nazwisko"] not in tekst and pracownik["imie"] not in tekst
+        assert klient.post(url, json={"wskaznik_id": "nie-ma"}, headers=h).status_code == 404
+        llm.dostawcy = []
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=h).json()["pytanie"] is None
+        assert klient.post(url, json={"wskaznik_id": wid}, headers=naglowek("hr")).status_code == 403
+    finally:
+        llm.dostawcy = poprzedni

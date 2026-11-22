@@ -3,6 +3,7 @@ import {
   BladApi,
   pobierzOcene,
   pobierzKrok2,
+  pobierzPodpowiedz,
   przygotujRozmowe,
   zapiszDecyzje,
   zapiszRozmowe,
@@ -96,6 +97,9 @@ const etykietaKafla = (etykieta: string) => {
 };
 
 /** Jeden wskaźnik (układ makiety v2): zadania z OSP, przypomnienie z pytaniem, pięć równych kafli z opisem, przykład. */
+// Podpowiedzi AI raz na wskaźnik w procesie: powrót do ekranu nie pyta modelu drugi raz.
+const podpowiedziAi = new Map<string, Promise<string | null>>();
+
 function EkranWskaznika({
   kr,
   w,
@@ -124,6 +128,21 @@ function EkranWskaznika({
   const [uwagi, setUwagi] = useState(w.ocena?.uwagi ?? "");
   const [dopytaj, setDopytaj] = useState(false);
   const [czat, setCzat] = useState(false);
+  const [ai, setAi] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (tylkoOdczyt) return;
+    const klucz = `${procesId}:${w.wskaznik_id}`;
+    if (!podpowiedziAi.has(klucz))
+      podpowiedziAi.set(
+        klucz,
+        pobierzPodpowiedz(token, procesId, w.wskaznik_id).then((p) => p.pytanie, () => null),
+      );
+    let zyje = true;
+    podpowiedziAi.get(klucz)?.then((p) => zyje && setAi(p));
+    return () => {
+      zyje = false;
+    };
+  }, [token, procesId, w.wskaznik_id, tylkoOdczyt]);
   const przyklady = w.ocena?.przyklady ?? [];
   // Zablokowane tylko w odczycie: „disabled” na czas zapisu zrzucałby fokus klawiatury na początek strony.
   const zablokowane = tylkoOdczyt;
@@ -151,9 +170,19 @@ function EkranWskaznika({
               Zadanie z opisu stanowiska: {zadania.map((z) => z.tekst).join(" · ")}
             </p>
           )}
-          {pytania.slice(0, 1).map((p) => (
-            <p key={p}>{p}</p>
-          ))}
+          {ai ? (
+            <>
+              <p>{ai}</p>
+              <p className="meta">Podpowiedź AI (model w UE, bez danych osobowych). Sprawdź ją przed zadaniem pytania.</p>
+            </>
+          ) : (
+            <>
+              {pytania.slice(0, 1).map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+              {ai === undefined && !tylkoOdczyt && <p className="meta">Asystent AI przygotowuje podpowiedź do tego wskaźnika…</p>}
+            </>
+          )}
           <div className="oc-pytanie-akcje">
             {pytania.length > 1 && (
               <button type="button" className="link oc-brak" aria-expanded={dopytaj} onClick={() => setDopytaj((v) => !v)}>
