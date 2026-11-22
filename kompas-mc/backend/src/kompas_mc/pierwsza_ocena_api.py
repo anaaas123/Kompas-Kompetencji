@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -22,7 +24,7 @@ from .krok2 import KonfiguracjaKroku2, WyborKroku2
 from .metodyka import RejestrMetodyk
 from .ocena import Decyzja, Mapowanie, aktualne_decyzje
 from .pierwsza_ocena import DanePierwszejOceny, ZapisDanychPierwszej, uzupelnij_z_kadr, wypelnij_pierwsza
-from .procesy import ProcesOceny, wczytaj_proces
+from .procesy import ProcesOceny, dzien_urzedowy, wczytaj_proces
 from .qnt import MockQnt, Pracownik
 from .rejestr import ustaw_szczegoly
 from .terminy_pierwszej import KonfiguracjaTerminowPierwszej, TerminyPierwszej, oblicz_terminy_pierwszej
@@ -38,6 +40,12 @@ _PDF = {"application/pdf": {"schema": {"type": "string", "format": "binary"}}}
 
 class ZapisPierwszejOceny(DanePierwszejOceny):
     zatwierdz: bool = Field(default=False, description="Zatwierdza kompletny arkusz w aplikacji.")
+
+
+class ZakonczeniePierwszej(BaseModel):
+    """Zakończenie pierwszej oceny po zapoznaniu ocenianego z oceną sporządzoną na piśmie (§ 11 ust. 1 rozp. 2015)."""
+
+    data_zapoznania_z_ocena: date = Field(description="Dzień zapoznania ocenianego z oceną (podpis na arkuszu).")
 
 
 class ArkuszPierwszej(BaseModel):
@@ -234,12 +242,28 @@ def router(
             ),
         ), odcisk
 
+    def ukryj_przed_sporzadzeniem(request: Request, uz: Uzytkownik, m: _Migawka) -> None:
+        """Oceniany widzi punkty i arkusz pierwszej oceny dopiero po jej sporządzeniu na piśmie (aktualnie zatwierdzony
+        arkusz, § 11 rozp. 2015). Pierwsza ocena nie ma samooceny, więc blokada okresowej (przekazanie samooceny)
+        tu nie pasuje; kopię części I–II po rozmowie wstępnej (§ 4 ust. 4) oceniany dostaje bez punktów.
+        Rozstrzyga wyliczony stan zatwierdzenia (po zmianie ocen dawne zatwierdzenie nie odsłania nowych punktów),
+        a błąd wyliczenia zamyka dostęp."""
+        if m.proces.status != "W_TOKU" or not auth.moze(uz, "pracownik", m.pracownik.model_dump(), "samoocena.zapisz"):
+            return
+        try:
+            zatwierdzony = widok(request, m, m.zapis)[0].formularz.zatwierdzony
+        except HTTPException:
+            zatwierdzony = False
+        if not zatwierdzony:
+            raise HTTPException(403, "Pierwszą ocenę zobaczysz po jej sporządzeniu na piśmie przez przełożonego.")
+
     @r.get("")
     def odczyt(
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
     ) -> StanPierwszejOceny:
         """Pokaż terminy, status sprawozdania, egzamin, warunki wyniku i formularz pierwszej oceny."""
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
+        ukryj_przed_sporzadzeniem(request, uz, m)
         return widok(request, m, m.zapis)[0]
 
     @r.put("")
@@ -290,6 +314,45 @@ def router(
             )
         return stan
 
+    @r.post("/zakoncz")
+    def zakoncz(
+        proces_id: int, body: ZakonczeniePierwszej, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.prowadz"),
+    ) -> StanPierwszejOceny:
+        """Zakończ pierwszą ocenę po zapoznaniu ocenianego z oceną (§ 11 ust. 1 rozp. 2015).
+
+        Wymaga zatwierdzonego arkusza (409). Data zapoznania nie wcześniejsza niż sporządzenie oceny i nie
+        z przyszłości (422). Proces dostaje status ZAKONCZONY i krok 8; dalej decyzja kadrowa poza aplikacją.
+        """
+        m = wczytaj(request, proces_id, uz, "ocena.prowadz")
+        stan, _ = widok(request, m, m.zapis)
+        if not stan.formularz.zatwierdzony or stan.obliczenie is None:
+            raise HTTPException(409, "Najpierw zatwierdź arkusz pierwszej oceny.")
+        sporzadzono = stan.dane.data_sporzadzenia_oceny
+        if sporzadzono is None:
+            raise HTTPException(422, "Brak daty sporządzenia oceny na piśmie.")
+        if body.data_zapoznania_z_ocena < sporzadzono:
+            raise HTTPException(422, "Zapoznanie z oceną nie może być wcześniejsze niż jej sporządzenie.")
+        if body.data_zapoznania_z_ocena > dzien_urzedowy(datetime.now(UTC)):
+            raise HTTPException(422, "Data zapoznania z oceną nie może być z przyszłości.")
+        zakonczenie = {
+            "data_zapoznania_z_ocena": body.data_zapoznania_z_ocena.isoformat(),
+            "data_sporzadzenia_oceny": sporzadzono.isoformat(), "wynik": stan.obliczenie.wynik,
+            "zakonczyl": uz.login, "zakonczono": datetime.now(UTC).isoformat(),
+        }
+        baza = request.app.state.baza
+        with baza:
+            zmieniono = baza.execute(
+                "UPDATE procesy SET status = 'ZAKONCZONY', krok = MAX(krok, 8), zakonczenie = ?"
+                " WHERE id = ? AND status = 'W_TOKU' AND krok2 IS ? AND decyzje IS ? AND pierwsza_ocena IS ?",
+                (json.dumps(zakonczenie, ensure_ascii=False), proces_id, *m.wiersz),
+            ).rowcount
+        if not zmieniono:
+            raise HTTPException(409, "Dane procesu zmieniły się. Odśwież pierwszą ocenę i ponów zakończenie.")
+        dziennik: Dziennik = request.app.state.dziennik
+        dziennik.zapisz(uz.login, "proces", str(proces_id), {"status": "W_TOKU"},
+                        {"status": "ZAKONCZONY", "zakonczenie": zakonczenie}, wersja)
+        return stan
+
     @r.get("/arkusz.pdf", response_class=Response, responses={200: {"content": _PDF}})
     def arkusz(
         proces_id: int, request: Request, uz: Uzytkownik = auth.wymagaj("ocena.tresc"),
@@ -297,6 +360,7 @@ def router(
         """Pobierz arkusz pierwszej oceny z miejscami na podpisy odręczne."""
         ustaw_szczegoly(request, format="pdf")
         m = wczytaj(request, proces_id, uz, "ocena.tresc")
+        ukryj_przed_sporzadzeniem(request, uz, m)
         stan, _ = widok(request, m, m.zapis)
         _sprawdz_gotowosc(stan)
         pdf = arkusz_pierwszej_oceny_pdf(

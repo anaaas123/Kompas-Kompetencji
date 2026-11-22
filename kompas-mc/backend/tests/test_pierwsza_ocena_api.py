@@ -230,3 +230,41 @@ def test_rozmowa_wstepna_pdf_po_zapisie_terminu_sprawozdania(api_pierwszej):
         assert date.fromisoformat(stan["terminy"][klucz]["data"]).strftime("%d.%m.%Y") in tekst
     assert "ROZMOWA OCENIAJĄCA" not in tekst and "Wygenerowanie PDF" not in tekst
     assert klient.get(f"{proces}/pierwsza-ocena/rozmowa-wstepna.pdf", headers=_login(klient, "oceniany")).status_code == 403
+
+
+def test_oceniany_widzi_pierwsza_ocene_dopiero_po_sporzadzeniu(api_pierwszej):
+    """Helix G3 #2: przed zatwierdzeniem arkusza oceniany nie dostaje punktów ani PDF pierwszej oceny."""
+    klient, _ = api_pierwszej
+    h = _login(klient, "przelozony1")
+    # Jedyne konto ocenianego to P-101 (system proponuje okresową, więc ścieżka pierwsza wymaga uzasadnienia).
+    r = klient.post("/api/procesy", headers=h, json={
+        "osoba_id": "P-101", "sciezka": "pierwsza", "uzasadnienie": "Scenariusz testu uprawnień pierwszej oceny.",
+    })
+    proces = f"/api/procesy/{_json(r, 201)['id']}"
+    _oceny(klient, h, proces, (3, 5, 5, 7, 7))
+    url = f"{proces}/pierwsza-ocena"
+    oceniany = _login(klient, "oceniany")
+    assert klient.get(url, headers=oceniany).status_code == 403
+    assert klient.get(f"{url}/arkusz.pdf", headers=oceniany).status_code == 403
+    assert klient.get(url, headers=h).status_code == 200
+
+
+def test_zakonczenie_pierwszej_oceny(api_pierwszej):
+    """Helix G3 #4: zatwierdzony arkusz → zapoznanie (§ 11 ust. 1) → ZAKONCZONY; drugiej pierwszej oceny nie ma."""
+    klient, h = api_pierwszej
+    proces = _proces(klient, h)
+    url = f"{proces}/pierwsza-ocena"
+    _oceny(klient, h, proces, (3, 5, 5, 7, 7))
+    dane = {**_dane("2026-11-14"), "wnioski_rozwojowe": "Doskonalenie prowadzenia spotkań zespołu."}
+    _json(klient.put(url, headers=h, json=dane))
+    _json(klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}), 409)
+    _json(klient.put(url, headers=h, json={**dane, "zatwierdz": True}))
+    _json(klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-19"}), 422)
+    _json(klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2099-01-01"}), 422)
+    _json(klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}))
+    proces_po = _json(klient.get(proces, headers=h))
+    assert (proces_po["status"], proces_po["krok"]) == ("ZAKONCZONY", 8)
+    assert klient.post(f"{url}/zakoncz", headers=h, json={"data_zapoznania_z_ocena": "2026-11-21"}).status_code == 409
+    assert klient.get(f"{url}/arkusz.pdf", headers=h).status_code == 200
+    r = klient.post("/api/procesy", headers=h, json={"osoba_id": "P-201", "sciezka": "pierwsza"})
+    assert r.status_code == 409 and "zakończona" in r.text
