@@ -53,12 +53,15 @@ export function RozmowaWstepna({
     setPracuje(true);
     setBlad(null);
     try {
-      let s = stan;
-      if (!zapisane) {
-        s = await zapiszPierwsza(token, procesId, { ...stan.dane, data_rozmowy_wstepnej: dataRozmowy, wyznaczony_termin_sprawozdania: koniec }, false);
-        setStan(s);
+      if (zapisane) {
+        await drukuj(stan);
+        return;
       }
+      const s = await zapiszPierwsza(token, procesId, { ...stan.dane, data_rozmowy_wstepnej: dataRozmowy, wyznaczony_termin_sprawozdania: koniec }, false);
+      setStan(s);
       await drukuj(s);
+      // Karol 02:04: po zapisie i wydruku wracamy do karty, gdzie następnym krokiem jest sprawozdanie (#99).
+      onPracownik();
     } catch (err) {
       setBlad(bladWyniku(err));
     } finally {

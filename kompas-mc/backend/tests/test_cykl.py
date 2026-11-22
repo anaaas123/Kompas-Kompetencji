@@ -106,3 +106,18 @@ def test_okno_oceny_koncowej_z_konfiguracji(ustawienia):
     assert etap_okresowej(robert, None, konf, DZIS, DZIS).etap == "ocena"
     krotsze = konf.model_copy(update={"okno_oceny_koncowej": konf.okno_oceny_koncowej.model_copy(update={"liczba": 10})})
     assert etap_okresowej(robert, None, krotsze, DZIS, DZIS).etap == "okres"
+
+
+def test_pierwsza_po_rozmowie_wstepnej_nastepne_jest_sprawozdanie(klient, h):
+    """#99: po zapisie rozmowy wstępnej i terminu sprawozdania cykl pokazuje sprawozdanie i datę rozmowy."""
+    naglowek = h("przelozony1")
+    pid = klient.post("/api/procesy", json={"osoba_id": "P-202", "sciezka": "pierwsza"}, headers=naglowek).json()["id"]
+    url = f"/api/procesy/{pid}/pierwsza-ocena"
+    stan = klient.get(url, headers=naglowek).json()
+    od = stan["terminy"]["termin_sprawozdania_od"]["data"]
+    dane = {**stan["dane"], "data_rozmowy_wstepnej": "2026-11-20", "wyznaczony_termin_sprawozdania": od}
+    assert klient.put(url, json=dane, headers=naglowek).status_code == 200
+    e = cykl(klient, naglowek)["P-202"]
+    assert (e["etap"], e["czynnosc"], e["termin"]["data"]) == ("okres", "Sprawozdanie pracownika", od)
+    assert e["kryteria_ustalone"] == "2026-11-20", "etap rozpoczęcia z datą rozmowy wstępnej"
+    assert e["termin"]["adnotacje"]

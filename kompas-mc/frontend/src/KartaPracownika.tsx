@@ -330,7 +330,9 @@ function Cykl({
   const etapy = ETAPY_CYKLU[sciezka ?? "okresowa"];
   // Ocena w toku przed zapoznaniem z kryteriami stoi na rozpoczęciu, nawet gdy termin z kartoteki jest dalej.
   const p = dane.proces;
-  const rozpoczecieWToku = p?.status === "W_TOKU" && p.krok < 3 && !p.krok2?.zapoznanie;
+  // Pierwsza ocena: rozpoczęcie kończy zapis rozmowy wstępnej, czyli wyjście cyklu z etapu „kryteria” (#99).
+  const rozpoczecieWToku =
+    p?.status === "W_TOKU" && p.krok < 3 && !p.krok2?.zapoznanie && !(p.sciezka === "pierwsza" && c && c.etap !== "kryteria");
   const biezacy = rozpoczecieWToku ? 0 : c ? INDEKS_ETAPU[c.etap] : -1;
   // Karol 22.11 02:13: etap rozwija się na miejscu i pokazuje, co ustalono; przejście do ekranu jest w środku.
   const [otwarty, setOtwarty] = useState<number | null>(null);
@@ -607,7 +609,7 @@ function NastepnyKrok({
   const c = dane.cykl;
   const p = dane.proces;
   // Karol 22.11: „dlaczego mnie od razu nie przerzuciło? A, bo jest w toku” – ocena w toku mówi wprost, gdzie jest.
-  const wToku = p ? miejsceWToku(p) : null;
+  const wToku = p ? miejsceWToku(p, c) : null;
   const tytul = wToku ? `W toku: ${wToku.opis}` : c?.czynnosc ?? (p ? "Ocena w toku" : "Ustal ścieżkę oceny");
   const przycisk = wToku
     ? `Kontynuuj: ${wToku.ekran}`
@@ -656,11 +658,13 @@ function NastepnyKrok({
 }
 
 /** Gdzie stoi ocena w toku, którą trzeba dokończyć (null: nic do zrobienia teraz, np. okres oceny po części I). */
-function miejsceWToku(p: ProcesOceny): { opis: string; ekran: string } | null {
+function miejsceWToku(p: ProcesOceny, c: EtapOsoby | null): { opis: string; ekran: string } | null {
   if (p.status !== "W_TOKU") return null;
   const pierwsza = p.sciezka === "pierwsza";
   if (p.krok >= 6) return { opis: pierwsza ? "pierwsza ocena na piśmie" : "zakończenie oceny, ocena na piśmie", ekran: "ocena na piśmie" };
   if (p.krok >= 3) return { opis: pierwsza ? "pierwsza ocena, rozmowa oceniająca" : "zakończenie oceny, rozmowa oceniająca", ekran: "rozmowa oceniająca" };
+  // Pierwsza ocena: rozpoczęcie kończy zapis rozmowy wstępnej (cykl wychodzi z etapu „kryteria”), nie data zapoznania (#99).
+  if (pierwsza && c && c.etap !== "kryteria") return null;
   if (!p.krok2?.zapoznanie)
     return pierwsza
       ? { opis: "rozpoczęcie, rozmowa wstępna", ekran: "rozmowa wstępna" }
