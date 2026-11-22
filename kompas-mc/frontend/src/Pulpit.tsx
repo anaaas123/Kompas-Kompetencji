@@ -1,15 +1,18 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import AsystentFormalny from "./AsystentFormalny";
 import {
+  celeApi,
   pobierzCykl,
   pobierzMapeKompetencji,
   pobierzPracownikow,
+  type Cel,
   type EtapOsoby,
   type MapaKompetencji as Mapa,
   type Pracownik,
 } from "./api";
 import { Ikona } from "./Ikona";
 import type { Sesja } from "./Konto";
+import { STATUS as STATUS_CELU } from "./CeleOsoby";
 import { MapaKompetencji } from "./Kompetencje";
 import { Inicjaly, SzkieletListy, WierszListy } from "./Lista";
 import { Kafel } from "./Wykresy";
@@ -72,12 +75,15 @@ export function Pulpit({
   onWyloguj,
   onZespol,
   onPracownicy,
+  onCele,
 }: {
   sesja: Sesja;
   onWybierz: (p: Pracownik) => void;
   onWyloguj: () => void;
   onZespol: () => void;
   onPracownicy: () => void;
+  /** Konto ocenianego: przejście do „Twoje cele”. */
+  onCele?: () => void;
 }) {
   const [sprawy, setSprawy] = useState<Sprawa[] | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
@@ -88,6 +94,12 @@ export function Pulpit({
   const [mapa, setMapa] = useState<Mapa | null>(null);
   const rola = sesja.uzytkownik.rola;
   const zespol = rola !== "oceniany";
+  // Konto ocenianego (G2, 22.11): prawa kolumna z celami i ostatnią oceną zamiast pustego miejsca obok jednego wiersza.
+  const [cele, setCele] = useState<Cel[] | null>(null);
+  useEffect(() => {
+    if (zespol || !sesja.uzytkownik.osoba_id) return;
+    celeApi.lista(sesja.token, sesja.uzytkownik.osoba_id).then((l) => setCele(l.cele), () => setCele([]));
+  }, [zespol, sesja.token, sesja.uzytkownik.osoba_id]);
 
   useEffect(() => {
     let aktualne = true;
@@ -195,7 +207,7 @@ export function Pulpit({
         </div>
       )}
 
-      <div className={zespol ? "pulpit-kolumny" : "pulpit-jedna"}>
+      <div className="pulpit-kolumny">
         <section className="sekcja">
           <div className="wiersz-tytulu">
             <h2>{zespol && szukaj ? "Wyniki wyszukiwania" : rola === "oceniany" ? "Twoja ocena" : rola === "hr" ? "Terminy w urzędzie" : "Do zrobienia"}</h2>
@@ -278,6 +290,46 @@ export function Pulpit({
             </section>
             {/* Karol 02:04, zgłoszenie 110: prawa kolumna pokazuje kompetencje zespołu w skrócie; średnie i osoby są pod spodem. */}
             {mapa && <MapaKompetencji mapa={mapa} ludzie={ludzie} onWybierz={onWybierz} czesc="wnioski" />}
+          </aside>
+        )}
+
+        {!zespol && sprawy && (
+          <aside className="pulpit-boczna">
+            <section className="sekcja">
+              <div className="wiersz-tytulu">
+                <h2>Twoje cele</h2>
+                {onCele && (
+                  <button type="button" className="link" onClick={onCele}>
+                    Wszystkie
+                  </button>
+                )}
+              </div>
+              {cele === null ? (
+                <p className="meta">Wczytuję cele…</p>
+              ) : cele.length === 0 ? (
+                <p className="meta">Nie masz jeszcze celów rozwojowych.</p>
+              ) : (
+                <ul className="pulpit-cele">
+                  {cele.slice(0, 3).map((c) => (
+                    <li key={c.id}>
+                      <span>{c.nazwa}</span>
+                      <span className={`status ${STATUS_CELU[c.status][1]}`}>{STATUS_CELU[c.status][0]}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section className="sekcja">
+              <h2>Ostatnia ocena</h2>
+              {ludzie[0]?.ostatnia_ocena_okresowa ? (
+                <p className="pulpit-ostatnia">
+                  <span className={`status ${ludzie[0].ostatnia_ocena_okresowa.wynik}`}>{ludzie[0].ostatnia_ocena_okresowa.wynik}</span>
+                  <span>{data(ludzie[0].ostatnia_ocena_okresowa.data)}</span>
+                </p>
+              ) : (
+                <p className="meta">W aktach nie ma jeszcze oceny okresowej.</p>
+              )}
+            </section>
           </aside>
         )}
       </div>
