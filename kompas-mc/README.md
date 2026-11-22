@@ -103,6 +103,16 @@ Kontrakt jest w `/docs` (OpenAPI). Konta i uprawnienia zmienia się w `konfigura
 
 **Zakres danych osobowych.** Mock QNT zawiera 10 fikcyjnych osób powiązanych z trzema OSP: imię, nazwisko, stanowisko, komórkę, przełożonego i fakty kadrowe potrzebne do wyboru ścieżki oceny i terminów (podstawa i data zatrudnienia, korpus, ostatnia ocena, egzamin, zastępstwo, nieobecności). Nie ma PESEL, adresów ani danych wrażliwych. Pola `scenariusz` i `oczekiwany_arkusz` służą tylko do demo i testów i nie trafiają do odpowiedzi API.
 
+## Stan pokazu (demo)
+
+Na świeżej bazie, przy działającym API:
+
+```bash
+PYTHONPATH=kompas-mc/backend/src:kompas-core/src python -m kompas_mc.stan_demo --api http://127.0.0.1:8002
+```
+
+Skrypt przez API (te same reguły i rejestr operacji) przygotowuje ocenę okresową Anny Zielińskiej-Demo (P-101) w trakcie: krok 2 zapisany i część I zamknięta, większość wskaźników oceniona z przykładami (jeden poniżej oczekiwań, jeden „brak podstaw”, jeden pusty do kliknięcia na żywo), bez decyzji przełożonego. Samoocena konta `oceniany` jest przekazana z jedną rozbieżnością o 4 poziomy. Do tego jeden cel zatwierdzony i jedna propozycja celu od Anny. Drugie uruchomienie niczego nie zmienia i kończy się kodem 0.
+
 ## Rejestr operacji
 
 Każda zmiana (żądanie inne niż GET), pobranie dokumentu (PDF, CSV), odczyt karty, oceny, notatek i samooceny oraz każda odmowa 401/403 trafia do tabeli `operacje` w bazie aplikacji: czas, użytkownik (login, rola, osoba), stały kod akcji i jej opis, trasa, obiekt, osoba oceniana, wynik (`ok`, `odmowa`, `blad`), kod HTTP, czas trwania i identyfikator żądania (nagłówek `X-Request-Id`). Wpis powstaje także wtedy, gdy obsługa żądania rzuci wyjątek. Trasy dopisują szczegóły przez `ustaw_szczegoly(request, …)` tylko z listy dozwolonych pól (np. asystent: tryb, dostawca, odrzuceni dostawcy, wynik walidacji cytatów), a osobę ocenianą spoza ścieżki przez `ustaw_osobe`. Treść żądań, odpowiedzi, notatek, pytań i haseł do rejestru nie trafia. Przy logowaniu zapisuje się tylko zadeklarowany login.
