@@ -136,11 +136,11 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
     s.krok("I-krok2-kryteria")
     page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
     # Część I arkusza (§ 5 ust. 3, § 6): wydruk do podpisu, data rozmowy i zapoznania (domyślnie dziś), zakończenie.
-    expect(page.get_by_role("heading", name="Zakończ część I arkusza")).to_be_visible()
+    expect(page.get_by_role("heading", name="Rozmowa 1: ustalenia na okres oceny")).to_be_visible()
     s.krok("I-krok2-czesc-I")
     s.pdf("Pobierz część I do podpisu")
     page.get_by_role("button", name="Zapisz i zakończ część I").click()
-    expect(page.get_by_role("heading", name="Część I arkusza zakończona")).to_be_visible()
+    expect(page.get_by_role("heading", name="Rozmowa 1 zakończona: ustalenia na okres")).to_be_visible()
     s.krok("I-czesc-I-zakonczona")
 
     page.get_by_role("button", name="Wróć do pracownika").click()
@@ -174,7 +174,7 @@ def test_ocena_okresowa_klikaniem_od_karty_do_pdf(przegladarka):
         page.get_by_role("button", name="Zatwierdź kryteria i dalej").click()
         # Koniec okresu: kryteria przepisane z podpisanej części I, data jej zapoznania z początku okresu.
         # Jedno kliknięcie: zapis daty z podpisanej części I i od razu rozmowa oceniająca (Karol 22.11, 02:04).
-        expect(page.get_by_role("heading", name="Kryteria z części I arkusza")).to_be_visible()
+        expect(page.get_by_role("heading", name="Ustalenia z podpisanej części I")).to_be_visible()
         page.get_by_label("Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)").fill("2024-12-20")
         s.krok("II-czesc-I-przepisana")
         page.get_by_role("button", name="Zapisz i przejdź do rozmowy oceniającej").click()

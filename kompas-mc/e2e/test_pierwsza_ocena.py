@@ -96,6 +96,9 @@ def test_pierwsza_ocena_od_krokow_3_5_do_pdf_arkusza(przegladarka, proces_pierws
     expect(page.get_by_role("heading", level=1, name="Rozmowa oceniająca")).to_be_visible()
     wnioski = "Koordynowanie pracy z interesariuszami."
     while not page.get_by_role("heading", name="Podsumowanie i punkty").is_visible():
+        informacja = page.get_by_role("button", name="Informacja zwrotna: mocne strony i obszary rozwoju")
+        if informacja.count():
+            informacja.click()
         obszary = page.get_by_label("Obszary rozwoju")
         if obszary.count():
             obszary.fill(wnioski)

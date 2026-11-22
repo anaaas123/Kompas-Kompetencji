@@ -303,6 +303,8 @@ export interface WyborKroku2 {
   zapisano: string;
   /** Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2): zakończenie części I. */
   zapoznanie?: string | null;
+  /** Oczekiwania i cele na okres (§ 5 ust. 1 pkt 3–4), cel w wierszu. */
+  ustalenia?: string | null;
 }
 
 export interface Krok2 {
@@ -337,11 +339,11 @@ export async function zapiszKrok2(
 }
 
 /** Zakończenie części I: data rozmowy na początku okresu i zapoznania z kryteriami (§ 5 ust. 1, § 6 ust. 2). */
-export async function zapiszZapoznanie(token: string, procesId: number, data: string): Promise<ProcesOceny> {
+export async function zapiszZapoznanie(token: string, procesId: number, data: string, ustalenia?: string): Promise<ProcesOceny> {
   const r = await fetch(`/api/procesy/${procesId}/krok2/zapoznanie`, {
     method: "PUT",
     headers: { "content-type": "application/json", ...autoryzacja(token) },
-    body: JSON.stringify({ data }),
+    body: JSON.stringify({ data, ustalenia: ustalenia?.trim() || null }),
   });
   const tresc = await r.json().catch(() => null);
   if (!r.ok) throw new BladApi(r.status, tresc?.detail);

@@ -289,9 +289,11 @@ def test_zakonczenie_czesci_i_zapisuje_date_zapoznania(klient, naglowek):
     # Przed początkiem okresu (poprzednia ocena P-102: 16.11.2026) nie wolno; część I sprzed miesięcy na końcu
     # okresu wolno (przepisanie z podpisanej części I) — sprawdza to test cyklu poniżej.
     assert klient.put(f"{url}/zapoznanie", json={"data": "2026-11-15"}, headers=h).status_code == 422
-    r = klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=h)
+    r = klient.put(f"{url}/zapoznanie", json={"data": dzis, "ustalenia": "  Opinie w 14 dni\nSzkolenie z AI Act  "}, headers=h)
     assert r.status_code == 200, r.text
     assert r.json()["krok2"]["zapoznanie"] == dzis
+    # Oczekiwania i cele z rozmowy na początku okresu (§ 5 ust. 1 pkt 3–4) zapisują się przy zakończeniu części I.
+    assert r.json()["krok2"]["ustalenia"] == "Opinie w 14 dni\nSzkolenie z AI Act"
     # Nowy zapis kryteriów kasuje datę: część I trzeba podpisać od nowa.
     assert klient.put(url, json={"wskazniki": wsk}, headers=h).json()["krok2"]["zapoznanie"] is None
     assert klient.put(f"{url}/zapoznanie", json={"data": dzis}, headers=naglowek("hr")).status_code == 403

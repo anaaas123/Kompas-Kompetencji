@@ -39,6 +39,7 @@ export function ZakonczenieCzesciI({
   // początek okresu w arkuszu („od”), więc pole startuje puste, zamiast podsuwać dzisiejszą datę.
   const [wpisana, setData] = useState<string | null>(wybor.zapoznanie ?? null);
   const dataZapoznania = wpisana ?? (naKoncuOkresu ? null : new Date().toLocaleDateString("sv-SE"));
+  const [ustalenia, setUstalenia] = useState(wybor.ustalenia ?? "");
   const [czekam, setCzekam] = useState(false);
   const [drukuje, setDrukuje] = useState(false);
   const [blad, setBlad] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export function ZakonczenieCzesciI({
     setCzekam(true);
     setBlad(null);
     try {
-      onZapisano(await zapiszZapoznanie(token, proces.id, dataZapoznania));
+      onZapisano(await zapiszZapoznanie(token, proces.id, dataZapoznania, ustalenia));
       if (naKoncuOkresu) onDalej();
     } catch (err) {
       setBlad(opisBledu(err));
@@ -81,7 +82,11 @@ export function ZakonczenieCzesciI({
   return (
     <div className="k2-ustalone czesc-i" role="status">
       <h2 ref={tytul} tabIndex={-1}>
-        {naKoncuOkresu ? "Kryteria z części I arkusza" : zakonczona ? "Część I arkusza zakończona" : "Zakończ część I arkusza"}
+        {naKoncuOkresu
+          ? "Ustalenia z podpisanej części I"
+          : zakonczona
+            ? "Rozmowa 1 zakończona: ustalenia na okres"
+            : "Rozmowa 1: ustalenia na okres oceny"}
       </h2>
       <p className="meta">
         {wybor.kryteria.length - dodatkowe} kryteriów obowiązkowych
@@ -110,9 +115,16 @@ export function ZakonczenieCzesciI({
         </p>
       ) : (
         moznaProwadzic && (
-          <PoleDaty nazwa="Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)" wartosc={dataZapoznania} onZmiana={setData} />
+          <>
+            <PoleDaty nazwa="Data rozmowy i zapoznania z kryteriami (§ 6 ust. 2)" wartosc={dataZapoznania} onZmiana={setData} />
+            <label className="etykieta oc-uwagi">
+              {naKoncuOkresu ? "Cele z podpisanej części I (opcjonalnie, każdy w osobnym wierszu)" : "Oczekiwania i cele na okres (opcjonalnie, § 5 ust. 1 pkt 3–4)"}
+              <textarea rows={3} value={ustalenia} onChange={(e) => setUstalenia(e.target.value)} />
+            </label>
+          </>
         )
       )}
+      {zakonczona && wybor.ustalenia && <p className="meta">Oczekiwania i cele: {wybor.ustalenia.split("\n").join(" · ")}</p>}
       {blad && <p className="blad">{blad}</p>}
       <div className="k2-akcje">
         <button type="button" className="link k2-do-pracownika" onClick={onPracownik}>

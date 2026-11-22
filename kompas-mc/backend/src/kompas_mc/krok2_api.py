@@ -140,7 +140,12 @@ def router(
         with baza:
             if not baza.execute(
                 "UPDATE procesy SET krok2 = ? WHERE id = ? AND status = 'W_TOKU'",
-                (proces.krok2.model_copy(update={"zapoznanie": body.data}).model_dump_json(), proces.id),
+                (
+                    proces.krok2.model_copy(
+                        update={"zapoznanie": body.data, "ustalenia": (body.ustalenia or "").strip() or None}
+                    ).model_dump_json(),
+                    proces.id,
+                ),
             ).rowcount:
                 raise HTTPException(409, "Proces nie jest w toku")
         dziennik: Dziennik = request.app.state.dziennik
