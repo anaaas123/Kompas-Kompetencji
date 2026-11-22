@@ -18,9 +18,9 @@ braki:
       z 17.04.2026, stan prawny na 14.04.2026, decyzja z 22.11.2026). Nie obejmuje zmiany
       z Dz.U. 2026 poz. 26, która wchodzi w życie 1.01.2027.
     wplyw: >-
-      Asystent formalny cytuje ustawę jako PRZEPIS (doc_id ustawa-sc), także artykuł wskazany
-      w pytaniu („art. 81 ustawy”). Krok 1 nadal opiera przesłanki ustawowe (art. 35, 37, 81) na
-      poradnikach, z kategorią OBJAŚNIENIE_MATERIAŁU.
+      Asystent formalny cytuje ustawę jako przepis, także artykuł wskazany w pytaniu
+      („art. 81 ustawy”). Krok 1 nadal opiera przesłanki ustawowe (art. 35, 37, 81) na
+      poradnikach i oznacza je jako materiał.
     adnotacje:
       - kategoria: OBJAŚNIENIE_MATERIAŁU
         doc_id: zadanie-mc
@@ -46,10 +46,10 @@ braki:
     tytul: Brak przygotowanego zestawu pytań i odpowiedzi
     opis: >-
       Treść zadania wymienia w bazie wiedzy „przygotowany zestaw pytań i odpowiedzi”. Zestawu
-      organizatora nie ma w „materialy mc”. Drużyna przygotowała własny zestaw
-      (konfiguracja/faq.yaml, #37), w którym każda odpowiedź ma cytat ze źródła.
+      organizatora nie ma w „materialy mc”. Drużyna przygotowała własny zestaw, w którym każda
+      odpowiedź ma cytat ze źródła.
     wplyw: >-
-      Asystent korzysta z zestawu drużyny (DECYZJA_PROJEKTOWA, do zatwierdzenia). Zestaw
+      Asystent korzysta z zestawu drużyny (zasada aplikacji, do zatwierdzenia). Zestaw
       organizatora, jeśli się pojawi, trzeba porównać z naszym.
     adnotacje:
       - kategoria: OBJAŚNIENIE_MATERIAŁU
@@ -85,7 +85,7 @@ braki:
       3, 5 i 7 punktów. Sugestia z modelu dla pierwszej oceny wymaga przeliczenia 5→3.
     wplyw: >-
       Mapowanie 5→3 (1 i 3 → 3 pkt; 5 → 5 pkt; 7 i 9 → 7 pkt) jest metodyką aplikacji.
-      HR zatwierdza jej wersję z osobą i datą (/api/metodyka); ocena zapisuje użytą wersję.
+      HR zatwierdza jej wersję z osobą i datą; ocena zapisuje użytą wersję.
     adnotacje:
       - kategoria: OBJAŚNIENIE_MATERIAŁU
         doc_id: model-kompetencji
@@ -112,8 +112,8 @@ braki:
       Każda kompetencja ma od 2 do 6 wskaźników z opisami 5 poziomów. Rozporządzenie przyznaje
       ocenę cząstkową za kryterium, a model nie mówi, jak połączyć oceny wskaźników.
     wplyw: >-
-      Sugerowany poziom kryterium (mediana wskaźników) to DECYZJA_PROJEKTOWA w wersjonowanej
-      metodyce (/api/metodyka, zatwierdza HR); przełożony zawsze wybiera ocenę sam (#31).
+      Sugerowany poziom kryterium (mediana wskaźników) to zasada aplikacji zapisana
+      w wersjonowanej metodyce, którą zatwierdza HR; przełożony zawsze wybiera ocenę sam.
     adnotacje:
       - kategoria: OBJAŚNIENIE_MATERIAŁU
         doc_id: model-kompetencji
